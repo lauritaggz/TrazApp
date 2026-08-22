@@ -1,4 +1,13 @@
-"""SQLAlchemy ORM models package.
+from app.models.ingrediente import Ingrediente, VersionIngrediente
+from app.models.lote import LoteIngrediente, LoteProducto, UsoLoteIngrediente
+from app.models.producto import Producto, VersionProducto
 
-Domain entities will be added in subsequent phases.
-"""
+__all__ = [
+    "Producto",
+    "VersionProducto",
+    "Ingrediente",
+    "VersionIngrediente",
+    "LoteIngrediente",
+    "LoteProducto",
+    "UsoLoteIngrediente",
+]
