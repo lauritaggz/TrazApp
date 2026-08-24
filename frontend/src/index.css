@@ -1,0 +1,66 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --color-brand-50: #f0f7f4;
+  --color-brand-100: #d9ede6;
+  --color-brand-200: #b3dbd0;
+  --color-brand-500: #3d8a6e;
+  --color-brand-600: #2f6b57;
+  --color-brand-700: #255747;
+  --color-brand-800: #1c4336;
+
+  --color-surface: #f7f8f7;
+  --color-card: #ffffff;
+  --color-border: #e5e7e5;
+  --color-text-primary: #1f2933;
+  --color-text-secondary: #667085;
+  --color-text-muted: #9aa4a8;
+  --color-error: #b42318;
+  --color-error-bg: #fef3f2;
+  --color-error-border: #fecdca;
+  --color-success: #027a48;
+  --color-success-bg: #ecfdf3;
+  --color-success-border: #a9efc5;
+  --color-panel-muted: #a8cfc2;
+  --color-panel-soft: #c8e0d8;
+  --color-panel-faint: #6aab93;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c4c7c4;
+}
