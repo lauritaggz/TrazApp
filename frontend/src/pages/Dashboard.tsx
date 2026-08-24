@@ -1,20 +1,19 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import type { DashboardSection } from "@/components/layout/Sidebar";
 
-interface DashboardProps {
-  /** Optional until T12-06 wires GET /auth/me. */
-  producerName?: string;
-}
-
-export default function Dashboard({ producerName }: DashboardProps) {
+export default function Dashboard() {
   const navigate = useNavigate();
+  const { productor, logout } = useAuth();
   const [activePage, setActivePage] = useState<DashboardSection>("inicio");
+  const producerName = productor?.nombre;
+  const firstName = producerName?.trim().split(/\s+/)[0] ?? "";
 
   function handleLogout() {
-    // T12-06: descartar access_token y llamar POST /auth/logout si aplica.
-    navigate("/login");
+    logout();
+    navigate("/login", { replace: true });
   }
 
   return (
@@ -25,7 +24,7 @@ export default function Dashboard({ producerName }: DashboardProps) {
       producerName={producerName}
     >
       {activePage === "inicio" && (
-        <HomePage onNavigate={setActivePage} />
+        <HomePage firstName={firstName} onNavigate={setActivePage} />
       )}
       {activePage === "productos" && (
         <ComingSoonPage
@@ -48,8 +47,10 @@ export default function Dashboard({ producerName }: DashboardProps) {
 }
 
 function HomePage({
+  firstName,
   onNavigate,
 }: {
+  firstName: string;
   onNavigate: (page: DashboardSection) => void;
 }) {
   return (
@@ -59,7 +60,7 @@ function HomePage({
           Panel de inicio
         </p>
         <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-          Bienvenida
+          {firstName ? `Bienvenida, ${firstName}` : "Bienvenida"}
         </h1>
         <p className="text-text-secondary text-sm leading-relaxed">
           Desde aquí podrás gestionar la información de trazabilidad de tus

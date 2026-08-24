@@ -1,21 +1,23 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext";
 import Logo from "@/components/Logo";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { ApiError } from "@/types/auth";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
   }>({});
-
-  // T12-06: activar loading alrededor de POST /auth/login.
-  const loading = false;
 
   function validate() {
     const errs: typeof fieldErrors = {};
@@ -26,7 +28,7 @@ export default function Login() {
     return errs;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     const errs = validate();
@@ -35,8 +37,27 @@ export default function Login() {
       return;
     }
     setFieldErrors({});
+    setLoading(true);
 
-    // T12-06: conectar con POST /auth/login, guardar access_token y navegar a /dashboard.
+    try {
+      await login({ email, password });
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (Object.keys(err.fieldErrors).length > 0) {
+          setFieldErrors(err.fieldErrors);
+        }
+        setError(
+          err.status === 401
+            ? "Credenciales inválidas"
+            : err.message,
+        );
+      } else {
+        setError("No se pudo iniciar sesión. Intenta de nuevo más tarde.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

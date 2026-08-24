@@ -5,15 +5,15 @@ import Logo from "@/components/Logo";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { register as registerProductor } from "@/services/authService";
+import { ApiError } from "@/types/auth";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState("");
-
-  // T12-06: activar loading/success alrededor de POST /auth/register.
-  const loading = false;
-  const success = false;
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -37,7 +37,7 @@ export default function Register() {
     return errs;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setGlobalError("");
     const errs = validate();
@@ -46,8 +46,29 @@ export default function Register() {
       return;
     }
     setFieldErrors({});
+    setLoading(true);
 
-    // T12-06: conectar con POST /auth/register y mostrar RegisterSuccess.
+    try {
+      await registerProductor({
+        nombre: form.name.trim(),
+        email: form.email,
+        password: form.password,
+      });
+      setSuccess(true);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (Object.keys(err.fieldErrors).length > 0) {
+          setFieldErrors(err.fieldErrors);
+        }
+        setGlobalError(err.message);
+      } else {
+        setGlobalError(
+          "No se pudo crear la cuenta. Intenta de nuevo más tarde.",
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (success) {

@@ -35,6 +35,7 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      CORS_ORIGINS: ${CORS_ORIGINS}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -55,6 +56,8 @@ services:
       dockerfile: Dockerfile
     container_name: trazapp-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
@@ -62,6 +65,8 @@ services:
       - frontend_node_modules:/app/node_modules
     command: >
       sh -c "npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
