@@ -1,4 +1,4 @@
-from app.core.security import hash_password, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.models import Productor
 from app.repositories.productor_repository import ProductorRepository
 from app.schemas.auth import (
@@ -48,4 +48,9 @@ class AuthService:
 
     def login(self, payload: ProductorLogin) -> LoginResponse:
         productor = self.authenticate(payload)
-        return LoginResponse(productor=ProductorRead.model_validate(productor))
+        access_token = create_access_token(subject=str(productor.id))
+        return LoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            productor=ProductorRead.model_validate(productor),
+        )

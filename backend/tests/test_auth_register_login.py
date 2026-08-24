@@ -89,14 +89,14 @@ def test_login_accepts_valid_credentials(client) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["message"] == "Autenticación satisfactoria"
+    assert body["token_type"] == "bearer"
+    assert isinstance(body["access_token"], str)
+    assert body["access_token"]
     assert body["productor"]["email"] == REGISTER_PAYLOAD["email"]
     assert "password" not in body
     assert "password_hash" not in body
     assert "password" not in body["productor"]
     assert "password_hash" not in body["productor"]
-    assert "access_token" not in body
-    assert "token" not in body
 
 
 def test_login_rejects_incorrect_password(client) -> None:

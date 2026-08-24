@@ -43,7 +43,15 @@ class ProductorRead(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    """Temporary successful-auth payload until JWT is introduced in T12-04."""
-
-    message: str = "Autenticación satisfactoria"
+    access_token: str
+    token_type: str = "bearer"
     productor: ProductorRead
+
+
+class LogoutResponse(BaseModel):
+    """Stateless logout: the client must discard its local access token."""
+
+    message: str = (
+        "Sesión cerrada. Descarte el access token en el cliente; "
+        "el servidor no mantiene sesiones ni revoca tokens en esta etapa."
+    )

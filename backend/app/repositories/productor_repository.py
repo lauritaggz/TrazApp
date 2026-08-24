@@ -8,6 +8,9 @@ class ProductorRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def get_by_id(self, productor_id: int) -> Productor | None:
+        return self.db.get(Productor, productor_id)
+
     def get_by_email(self, email: str) -> Productor | None:
         stmt = select(Productor).where(Productor.email == email)
         return self.db.scalar(stmt)
