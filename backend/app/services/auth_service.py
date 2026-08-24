@@ -6,6 +6,7 @@ from app.schemas.auth import (
     ProductorLogin,
     ProductorRead,
     ProductorRegister,
+    ProductorUpdate,
 )
 
 
@@ -29,6 +30,7 @@ class AuthService:
         password_hash = hash_password(payload.password)
         productor = self.repository.create(
             nombre=payload.nombre,
+            nombre_negocio=payload.nombre_negocio,
             email=payload.email,
             password_hash=password_hash,
             activo=True,
@@ -54,3 +56,15 @@ class AuthService:
             token_type="bearer",
             productor=ProductorRead.model_validate(productor),
         )
+
+    def update_profile(
+        self,
+        productor: Productor,
+        payload: ProductorUpdate,
+    ) -> ProductorRead:
+        updated = self.repository.update_profile(
+            productor,
+            nombre=payload.nombre,
+            nombre_negocio=payload.nombre_negocio,
+        )
+        return ProductorRead.model_validate(updated)

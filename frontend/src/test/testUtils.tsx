@@ -25,6 +25,7 @@ export function renderWithProviders(
 export const mockProductor = {
   id: 1,
   nombre: "Ana Perez",
+  nombre_negocio: "Panaderia La Espiga",
   email: "ana@ejemplo.com",
   activo: true,
   created_at: "2026-08-24T12:00:00Z",

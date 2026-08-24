@@ -9,7 +9,12 @@ import { register as registerProductor } from "@/services/authService";
 import { ApiError } from "@/types/auth";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    businessName: "",
+    email: "",
+    password: "",
+  });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +33,10 @@ export default function Register() {
   function validate() {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "El nombre es obligatorio.";
+    if (!form.businessName.trim()) {
+      errs.businessName =
+        "El nombre del negocio o emprendimiento es obligatorio.";
+    }
     if (!form.email) errs.email = "El correo electrónico es obligatorio.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = "Ingresa un correo electrónico válido.";
@@ -51,6 +60,7 @@ export default function Register() {
     try {
       await registerProductor({
         nombre: form.name.trim(),
+        nombre_negocio: form.businessName.trim(),
         email: form.email,
         password: form.password,
       });
@@ -122,6 +132,17 @@ export default function Register() {
               error={fieldErrors.name}
               disabled={loading}
               autoComplete="name"
+            />
+
+            <Input
+              label="Nombre del negocio o emprendimiento"
+              type="text"
+              placeholder="Tu negocio o emprendimiento"
+              value={form.businessName}
+              onChange={(e) => update("businessName", e.target.value)}
+              error={fieldErrors.businessName}
+              disabled={loading}
+              autoComplete="organization"
             />
 
             <Input

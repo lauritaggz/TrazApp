@@ -7,6 +7,7 @@ from app.models import Productor
 
 REGISTER_PAYLOAD = {
     "nombre": "Productor Demo",
+    "nombre_negocio": "Emprendimiento Demo",
     "email": "productor@ejemplo.com",
     "password": "SecretoProductor123!",
 }
@@ -19,6 +20,7 @@ def test_register_creates_productor(client) -> None:
     body = response.json()
     assert body["id"] > 0
     assert body["nombre"] == REGISTER_PAYLOAD["nombre"]
+    assert body["nombre_negocio"] == REGISTER_PAYLOAD["nombre_negocio"]
     assert body["email"] == REGISTER_PAYLOAD["email"]
     assert body["activo"] is True
     assert "created_at" in body
@@ -54,6 +56,7 @@ def test_register_rejects_duplicate_email(client) -> None:
         "/auth/register",
         json={
             "nombre": "Otro Productor",
+            "nombre_negocio": "Otro Emprendimiento",
             "email": "Productor@Ejemplo.com",
             "password": "OtraClaveSegura99!",
         },

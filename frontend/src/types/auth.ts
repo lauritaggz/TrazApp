@@ -1,6 +1,7 @@
 export interface Productor {
   id: number;
   nombre: string;
+  nombre_negocio: string | null;
   email: string;
   activo: boolean;
   created_at: string;
@@ -8,8 +9,14 @@ export interface Productor {
 
 export interface RegisterRequest {
   nombre: string;
+  nombre_negocio: string;
   email: string;
   password: string;
+}
+
+export interface UpdateProfileRequest {
+  nombre: string;
+  nombre_negocio: string;
 }
 
 export interface LoginRequest {

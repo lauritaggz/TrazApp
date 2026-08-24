@@ -2,13 +2,14 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import AppShell from "@/components/layout/AppShell";
-import type { DashboardSection } from "@/components/layout/Sidebar";
+import type { AppSection } from "@/components/layout/Sidebar";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { productor, logout } = useAuth();
-  const [activePage, setActivePage] = useState<DashboardSection>("inicio");
+  const [activePage, setActivePage] = useState<AppSection>("inicio");
   const producerName = productor?.nombre;
+  const businessName = productor?.nombre_negocio;
   const firstName = producerName?.trim().split(/\s+/)[0] ?? "";
 
   function handleLogout() {
@@ -16,15 +17,24 @@ export default function Dashboard() {
     navigate("/login", { replace: true });
   }
 
+  function handleNavigate(page: AppSection) {
+    if (page === "perfil") {
+      navigate("/perfil");
+      return;
+    }
+    setActivePage(page);
+  }
+
   return (
     <AppShell
       activePage={activePage}
-      onNavigate={setActivePage}
+      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
+      businessName={businessName}
     >
       {activePage === "inicio" && (
-        <HomePage firstName={firstName} onNavigate={setActivePage} />
+        <HomePage firstName={firstName} onNavigate={handleNavigate} />
       )}
       {activePage === "productos" && (
         <ComingSoonPage
@@ -51,7 +61,7 @@ function HomePage({
   onNavigate,
 }: {
   firstName: string;
-  onNavigate: (page: DashboardSection) => void;
+  onNavigate: (page: AppSection) => void;
 }) {
   return (
     <div className="max-w-3xl space-y-8">

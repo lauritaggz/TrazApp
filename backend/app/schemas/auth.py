@@ -3,18 +3,28 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
+def _normalize_required_text(value: str, field_name: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} no puede estar vacío")
+    return normalized
+
+
 class ProductorRegister(BaseModel):
     nombre: str = Field(min_length=1, max_length=255)
+    nombre_negocio: str = Field(min_length=1, max_length=255)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
     @field_validator("nombre")
     @classmethod
     def normalize_nombre(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("nombre no puede estar vacío")
-        return normalized
+        return _normalize_required_text(value, "nombre")
+
+    @field_validator("nombre_negocio")
+    @classmethod
+    def normalize_nombre_negocio(cls, value: str) -> str:
+        return _normalize_required_text(value, "nombre_negocio")
 
     @field_validator("email")
     @classmethod
@@ -32,11 +42,29 @@ class ProductorLogin(BaseModel):
         return str(value).strip().lower()
 
 
+class ProductorUpdate(BaseModel):
+    """Editable profile fields. Identity comes from the authenticated session."""
+
+    nombre: str = Field(min_length=1, max_length=255)
+    nombre_negocio: str = Field(min_length=1, max_length=255)
+
+    @field_validator("nombre")
+    @classmethod
+    def normalize_nombre(cls, value: str) -> str:
+        return _normalize_required_text(value, "nombre")
+
+    @field_validator("nombre_negocio")
+    @classmethod
+    def normalize_nombre_negocio(cls, value: str) -> str:
+        return _normalize_required_text(value, "nombre_negocio")
+
+
 class ProductorRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     nombre: str
+    nombre_negocio: str | None
     email: str
     activo: bool
     created_at: datetime

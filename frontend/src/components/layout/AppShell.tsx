@@ -1,14 +1,13 @@
 import { useState, type ReactNode } from "react";
-import Sidebar, {
-  type DashboardSection,
-} from "@/components/layout/Sidebar";
+import Sidebar, { type AppSection } from "@/components/layout/Sidebar";
 
 interface AppShellProps {
   children: ReactNode;
-  activePage: DashboardSection;
-  onNavigate: (page: DashboardSection) => void;
+  activePage: AppSection;
+  onNavigate: (page: AppSection) => void;
   onLogout: () => void;
   producerName?: string;
+  businessName?: string | null;
 }
 
 export default function AppShell({
@@ -17,6 +16,7 @@ export default function AppShell({
   onNavigate,
   onLogout,
   producerName,
+  businessName,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -59,12 +59,15 @@ export default function AppShell({
                   {producerName}
                 </span>
               ) : null}
+              {businessName ? (
+                <span className="text-xs text-text-secondary leading-tight">
+                  {businessName}
+                </span>
+              ) : null}
               <span className="text-xs text-text-secondary">Productor</span>
             </div>
             <div className="h-9 w-9 rounded-full bg-brand-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-              {producerName?.trim()?.[0]?.toUpperCase() ?? (
-                <UserIcon />
-              )}
+              {producerName?.trim()?.[0]?.toUpperCase() ?? <UserIcon />}
             </div>
           </div>
         </header>

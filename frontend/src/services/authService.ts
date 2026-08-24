@@ -5,6 +5,7 @@ import {
   type LoginResponse,
   type Productor,
   type RegisterRequest,
+  type UpdateProfileRequest,
 } from "@/types/auth";
 
 function getApiBaseUrl(): string {
@@ -46,6 +47,9 @@ function mapFieldErrors(detail: unknown): Record<string, string> {
     }
 
     if (field === "nombre") fieldErrors.name = "Revisa el nombre ingresado.";
+    else if (field === "nombre_negocio")
+      fieldErrors.businessName =
+        "Revisa el nombre del negocio o emprendimiento.";
     else if (field === "email")
       fieldErrors.email = "Revisa el correo electrónico ingresado.";
     else if (field === "password")
@@ -150,4 +154,17 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
 
 export async function getCurrentProductor(): Promise<Productor> {
   return request<Productor>("/auth/me", { method: "GET" }, true);
+}
+
+export async function updateProfile(
+  payload: UpdateProfileRequest,
+): Promise<Productor> {
+  return request<Productor>(
+    "/auth/me",
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
 }

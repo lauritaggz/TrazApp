@@ -19,16 +19,32 @@ class ProductorRepository:
         self,
         *,
         nombre: str,
+        nombre_negocio: str,
         email: str,
         password_hash: str,
         activo: bool = True,
     ) -> Productor:
         productor = Productor(
             nombre=nombre,
+            nombre_negocio=nombre_negocio,
             email=email,
             password_hash=password_hash,
             activo=activo,
         )
+        self.db.add(productor)
+        self.db.commit()
+        self.db.refresh(productor)
+        return productor
+
+    def update_profile(
+        self,
+        productor: Productor,
+        *,
+        nombre: str,
+        nombre_negocio: str,
+    ) -> Productor:
+        productor.nombre = nombre
+        productor.nombre_negocio = nombre_negocio
         self.db.add(productor)
         self.db.commit()
         self.db.refresh(productor)

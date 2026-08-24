@@ -8,6 +8,7 @@ from app.schemas.auth import (
     ProductorLogin,
     ProductorRead,
     ProductorRegister,
+    ProductorUpdate,
 )
 from app.services.auth_service import AuthError, AuthService, DuplicateEmailError
 
@@ -52,6 +53,16 @@ def me(
 ) -> ProductorRead:
     """Private route that returns the authenticated producer profile."""
     return ProductorRead.model_validate(current_productor)
+
+
+@router.patch("/me", response_model=ProductorRead)
+def update_me(
+    payload: ProductorUpdate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: AuthService = Depends(get_auth_service),
+) -> ProductorRead:
+    """Update editable profile fields for the authenticated producer only."""
+    return service.update_profile(current_productor, payload)
 
 
 @router.post("/logout", response_model=LogoutResponse)
