@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api.routes import health, ingredientes, lotes, productos
+from app.api.routes import auth, health, ingredientes, lotes, productos
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -15,6 +15,7 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(productos.router)
 app.include_router(ingredientes.router)
 app.include_router(lotes.router)

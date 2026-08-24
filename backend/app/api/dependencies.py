@@ -4,7 +4,9 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.repositories.productor_repository import ProductorRepository
 from app.repositories.trazabilidad_repository import TrazabilidadRepository
+from app.services.auth_service import AuthService
 from app.services.trazabilidad_service import TrazabilidadService
 
 
@@ -15,3 +17,8 @@ def get_database_session(db: Session = Depends(get_db)) -> Generator[Session, No
 def get_trazabilidad_service(db: Session = Depends(get_db)) -> TrazabilidadService:
     repository = TrazabilidadRepository(db)
     return TrazabilidadService(repository)
+
+
+def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
+    repository = ProductorRepository(db)
+    return AuthService(repository)
