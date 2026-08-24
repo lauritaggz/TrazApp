@@ -1,0 +1,10 @@
+{
+  "description": "Streamline food traceability management for small producers with a user-friendly platform that simplifies authentication and product information access.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
