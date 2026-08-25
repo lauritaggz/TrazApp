@@ -9,6 +9,7 @@ from app.models import Productor
 
 REGISTER_PAYLOAD = {
     "nombre": "Productor Demo",
+    "nombre_negocio": "Emprendimiento JWT",
     "email": "jwt.productor@ejemplo.com",
     "password": "SecretoProductor123!",
 }

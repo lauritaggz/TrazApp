@@ -1,11 +1,11 @@
 import Logo from "@/components/Logo";
 import NavItem from "@/components/layout/NavItem";
 
-export type DashboardSection = "inicio" | "productos" | "ingredientes";
+export type AppSection = "inicio" | "productos" | "ingredientes" | "perfil";
 
 interface SidebarProps {
-  activePage: DashboardSection;
-  onNavigate: (page: DashboardSection) => void;
+  activePage: AppSection;
+  onNavigate: (page: AppSection) => void;
   onLogout: () => void;
   open: boolean;
   onClose: () => void;
@@ -18,7 +18,7 @@ export default function Sidebar({
   open,
   onClose,
 }: SidebarProps) {
-  function go(page: DashboardSection) {
+  function go(page: AppSection) {
     onNavigate(page);
     onClose();
   }
@@ -57,7 +57,13 @@ export default function Sidebar({
         />
       </nav>
 
-      <div className="px-3 pb-4 border-t border-border pt-3 shrink-0">
+      <div className="px-3 pb-4 border-t border-border pt-3 shrink-0 space-y-1">
+        <NavItem
+          icon={<UserIcon />}
+          label="Mi perfil"
+          active={activePage === "perfil"}
+          onClick={() => go("perfil")}
+        />
         <button
           onClick={onLogout}
           className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm text-text-secondary hover:text-error hover:bg-error-bg transition-colors"
@@ -121,6 +127,24 @@ function LeafIcon() {
     >
       <path d="M17 8C8 10 5.9 16.17 3.82 19.82A2 2 0 004 22h1c8.27 0 15-6.73 15-15v-1l-3 2z" />
       <line x1="7" y1="17" x2="13" y2="11" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
