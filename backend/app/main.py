@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health, ingredientes, lotes, productos
+from app.api.routes import auth, gestion_productos, health, ingredientes, lotes, productos
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -25,6 +25,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(gestion_productos.router)
 app.include_router(productos.router)
 app.include_router(ingredientes.router)
 app.include_router(lotes.router)
