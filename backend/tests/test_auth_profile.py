@@ -105,6 +105,48 @@ def test_authenticated_productor_can_update_nombre_and_negocio(
     assert productor_after.password_hash == password_hash_before
 
 
+def test_update_profile_only_nombre_preserves_nombre_negocio(client) -> None:
+    login_body = _register_and_login(client)
+    token = login_body["access_token"]
+    original_id = login_body["productor"]["id"]
+    original_email = login_body["productor"]["email"]
+    original_nombre_negocio = login_body["productor"]["nombre_negocio"]
+
+    response = client.patch(
+        "/auth/me",
+        headers=_auth_headers(token),
+        json={"nombre": "Ana Maria Perez"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == original_id
+    assert body["email"] == original_email
+    assert body["nombre"] == "Ana Maria Perez"
+    assert body["nombre_negocio"] == original_nombre_negocio
+
+
+def test_update_profile_only_nombre_negocio_preserves_nombre(client) -> None:
+    login_body = _register_and_login(client)
+    token = login_body["access_token"]
+    original_id = login_body["productor"]["id"]
+    original_email = login_body["productor"]["email"]
+    original_nombre = login_body["productor"]["nombre"]
+
+    response = client.patch(
+        "/auth/me",
+        headers=_auth_headers(token),
+        json={"nombre_negocio": "Espiga Artesanal"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == original_id
+    assert body["email"] == original_email
+    assert body["nombre"] == original_nombre
+    assert body["nombre_negocio"] == "Espiga Artesanal"
+
+
 def test_update_profile_without_jwt_is_rejected(client) -> None:
     response = client.patch(
         "/auth/me",

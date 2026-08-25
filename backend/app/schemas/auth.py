@@ -45,17 +45,21 @@ class ProductorLogin(BaseModel):
 class ProductorUpdate(BaseModel):
     """Editable profile fields. Identity comes from the authenticated session."""
 
-    nombre: str = Field(min_length=1, max_length=255)
-    nombre_negocio: str = Field(min_length=1, max_length=255)
+    nombre: str | None = Field(default=None, min_length=1, max_length=255)
+    nombre_negocio: str | None = Field(default=None, min_length=1, max_length=255)
 
     @field_validator("nombre")
     @classmethod
-    def normalize_nombre(cls, value: str) -> str:
+    def normalize_nombre(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         return _normalize_required_text(value, "nombre")
 
     @field_validator("nombre_negocio")
     @classmethod
-    def normalize_nombre_negocio(cls, value: str) -> str:
+    def normalize_nombre_negocio(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         return _normalize_required_text(value, "nombre_negocio")
 
 
