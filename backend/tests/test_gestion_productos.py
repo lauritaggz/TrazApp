@@ -255,6 +255,91 @@ def test_producto_legacy_null_no_aparece_en_listado_hu01(client, db_session) -> 
     get_legacy = client.get(f"/gestion/productos/{legacy.id}", headers=headers)
     assert get_legacy.status_code == 404
 
+    patch_legacy = client.patch(
+        f"/gestion/productos/{legacy.id}",
+        headers=headers,
+        json={"nombre": "Intento sobre legacy"},
+    )
+    assert patch_legacy.status_code == 404
+
+
+def test_patch_codigo_duplicado_409_y_operacion_posterior_sigue_funcionando(
+    client,
+) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+
+    first = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json=PRODUCTO_BASE,
+    ).json()
+    second = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={**PRODUCTO_BASE, "codigo_interno": "pan-001", "nombre": "Pan"},
+    ).json()
+
+    conflict = client.patch(
+        f"/gestion/productos/{second['id']}",
+        headers=headers,
+        json={"codigo_interno": first["codigo_interno"]},
+    )
+    assert conflict.status_code == 409
+
+    recovery = client.patch(
+        f"/gestion/productos/{second['id']}",
+        headers=headers,
+        json={"codigo_interno": "pan-002", "nombre": "Pan recuperado"},
+    )
+    assert recovery.status_code == 200
+    assert recovery.json()["codigo_interno"] == "PAN-002"
+    assert recovery.json()["nombre"] == "Pan recuperado"
+    assert recovery.json()["id"] == second["id"]
+
+
+def test_endpoints_legacy_no_operan_sobre_producto_hu01(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    owned = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json=PRODUCTO_BASE,
+    ).json()
+    assert owned["productor_id"] == login["productor"]["id"]
+
+    create_version = client.post(
+        f"/productos/{owned['id']}/versiones",
+        json={"descripcion": "Intento legacy sobre HU01"},
+    )
+    list_versions = client.get(f"/productos/{owned['id']}/versiones")
+
+    assert create_version.status_code == 404
+    assert list_versions.status_code == 404
+    assert _count_versiones(db_session, owned["id"]) == 0
+
+    # Even if a version existed for an owned product, lote creation must fail.
+    version = VersionProducto(
+        producto_id=owned["id"],
+        numero_version=1,
+        descripcion="Versión inyectada",
+        vigente=True,
+    )
+    db_session.add(version)
+    db_session.commit()
+    db_session.refresh(version)
+
+    lote_response = client.post(
+        "/lotes-productos",
+        json={
+            "codigo_lote": "LP-HU01-BYPASS",
+            "version_producto_id": version.id,
+            "lotes_ingredientes": ["CH-NOEXISTE"],
+        },
+    )
+    assert lote_response.status_code == 404
+
+
 
 def test_patch_parcial_conserva_omitidos_y_mantiene_id_productor(client) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
