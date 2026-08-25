@@ -62,9 +62,15 @@ class AuthService:
         productor: Productor,
         payload: ProductorUpdate,
     ) -> ProductorRead:
+        nombre = payload.nombre if payload.nombre is not None else productor.nombre
+        nombre_negocio = (
+            payload.nombre_negocio
+            if payload.nombre_negocio is not None
+            else productor.nombre_negocio
+        )
         updated = self.repository.update_profile(
             productor,
-            nombre=payload.nombre,
-            nombre_negocio=payload.nombre_negocio,
+            nombre=nombre,
+            nombre_negocio=nombre_negocio,
         )
         return ProductorRead.model_validate(updated)
