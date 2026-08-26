@@ -4,14 +4,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { ApiError } from "@/types/auth";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
-import * as authService from "@/services/authService";
 import { setAccessToken } from "@/lib/tokenStorage";
+import * as authService from "@/services/authService";
+import * as productService from "@/services/productService";
 
 vi.mock("@/services/authService", () => ({
   login: vi.fn(),
   register: vi.fn(),
   getCurrentProductor: vi.fn(),
   updateProfile: vi.fn(),
+}));
+
+vi.mock("@/services/productService", () => ({
+  listProducts: vi.fn(),
+  createProduct: vi.fn(),
+  getProduct: vi.fn(),
+  updateProduct: vi.fn(),
 }));
 
 async function fillRegisterForm(
@@ -41,6 +49,7 @@ describe("Login HU12", () => {
     vi.mocked(authService.getCurrentProductor).mockRejectedValue(
       new ApiError("No autenticado", 401),
     );
+    vi.mocked(productService.listProducts).mockResolvedValue([]);
   });
 
   it("valida campos obligatorios", async () => {
@@ -117,7 +126,7 @@ describe("Login HU12", () => {
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana" }),
+      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
     ).toBeInTheDocument();
     expect(localStorage.getItem("trazapp_access_token")).toBe("test-token");
   });
@@ -243,6 +252,7 @@ describe("Registro HU12", () => {
 describe("Protección y logout HU12", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(productService.listProducts).mockResolvedValue([]);
   });
 
   it("usuario sin sesión no puede acceder al Dashboard", async () => {
@@ -267,10 +277,17 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana" }),
+      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Productor")).toBeInTheDocument();
-    expect(screen.getByText("Panaderia La Espiga")).toBeInTheDocument();
+    expect(screen.getAllByText("Panaderia La Espiga").length).toBeGreaterThan(0);
+    expect(
+      await screen.findByText("Aún no has registrado productos."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Registrar primer producto" })
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it("cerrar sesión elimina el token y vuelve a Login", async () => {
@@ -281,7 +298,7 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana" }),
+      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
