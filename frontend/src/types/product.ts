@@ -13,6 +13,46 @@ export interface Product {
   created_at: string | null;
 }
 
+/** Payload for POST /gestion/productos. Ownership comes from JWT. */
+export interface ProductCreatePayload {
+  codigo_interno: string;
+  nombre: string;
+  descripcion: string;
+  /** Decimal string to avoid unnecessary precision loss. */
+  contenido_neto: string;
+  unidad_medida: UnidadMedida;
+  presentacion?: string | null;
+}
+
+export interface ProductFormValues {
+  codigo_interno: string;
+  nombre: string;
+  descripcion: string;
+  contenido_neto: string;
+  unidad_medida: "" | UnidadMedida;
+  presentacion: string;
+}
+
+export const EMPTY_PRODUCT_FORM_VALUES: ProductFormValues = {
+  codigo_interno: "",
+  nombre: "",
+  descripcion: "",
+  contenido_neto: "",
+  unidad_medida: "",
+  presentacion: "",
+};
+
+export const PRODUCT_FORM_UNIT_OPTIONS: {
+  value: UnidadMedida;
+  label: string;
+}[] = [
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
+  { value: "ml", label: "ml" },
+  { value: "L", label: "L" },
+  { value: "unidad", label: "unidad" },
+];
+
 export type ProductSortOption = "recent" | "code" | "name";
 
 export type ProductUnitFilter = "all" | UnidadMedida;

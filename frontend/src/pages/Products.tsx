@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
@@ -22,12 +23,14 @@ import {
 
 export default function Products() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { handleLogout, handleNavigate, producerName, businessName } =
     useAppShell();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [filters, setFilters] = useState<ProductListFilters>(
     DEFAULT_PRODUCT_LIST_FILTERS,
   );
@@ -48,6 +51,13 @@ export default function Products() {
   useEffect(() => {
     void loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    const state = location.state as { productCreated?: boolean } | null;
+    if (!state?.productCreated) return;
+    setSuccessMessage("Producto creado correctamente.");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const filteredProducts = useMemo(
     () => filterAndSortProducts(products, filters),
@@ -105,6 +115,8 @@ export default function Products() {
             + Nuevo producto
           </Button>
         </header>
+
+        {successMessage && <Alert type="success">{successMessage}</Alert>}
 
         {!showEmptyState && !error && (
           <ProductListControls

@@ -15,8 +15,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Python virtualenv layout at repo root (not frontend/src/lib)
+/lib/
+/lib64/
 parts/
 sdist/
 var/

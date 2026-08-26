@@ -3,30 +3,6 @@ import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
 
-/** Temporary route shell until T01-06 (create) and T01-07 (detail) are implemented. */
-export function ProductNewPlaceholder() {
-  const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
-    useAppShell();
-
-  return (
-    <AppShell
-      activePage="productos"
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-      producerName={producerName}
-      businessName={businessName}
-    >
-      <RouteShellContent
-        title="Nuevo producto"
-        description="El formulario de creación se implementará en T01-06."
-        backLabel="Volver a productos"
-        onBack={() => navigate("/productos")}
-      />
-    </AppShell>
-  );
-}
-
 /** Temporary route shell until T01-07 implements the full product detail view. */
 export function ProductDetailPlaceholder() {
   const navigate = useNavigate();
