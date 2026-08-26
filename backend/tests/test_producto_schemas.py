@@ -203,6 +203,7 @@ def test_producto_gestion_read_from_attributes() -> None:
         unidad_medida = "g"
         presentacion = None
         activo = True
+        created_at = None
 
     read = ProductoGestionRead.model_validate(_Row())
 
@@ -211,6 +212,27 @@ def test_producto_gestion_read_from_attributes() -> None:
     assert read.codigo_interno == "GAL-001"
     assert read.contenido_neto == Decimal("100.5")
     assert read.presentacion is None
+    assert read.created_at is None
+
+
+def test_producto_gestion_read_incluye_created_at_cuando_existe() -> None:
+    from datetime import datetime, timezone
+
+    class _RowWithCreatedAt:
+        id = 11
+        productor_id = 2
+        codigo_interno = "GAL-002"
+        nombre = "Galleta"
+        descripcion = "Descripción"
+        contenido_neto = Decimal("100")
+        unidad_medida = "g"
+        presentacion = None
+        activo = True
+        created_at = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
+
+    read = ProductoGestionRead.model_validate(_RowWithCreatedAt())
+
+    assert read.created_at == datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
 
 
 def test_contrato_legacy_rt01_producto_create_solo_nombre() -> None:

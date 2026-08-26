@@ -159,6 +159,7 @@ class ProductoGestionRead(BaseModel):
     unidad_medida: str | None
     presentacion: str | None
     activo: bool
+    created_at: datetime | None
 
 
 # --- VersionProducto (RT-01 / formulación; sin cambios de contrato) ---

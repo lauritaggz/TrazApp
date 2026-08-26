@@ -48,6 +48,11 @@ class Producto(Base):
     unidad_medida: Mapped[str | None] = mapped_column(String(20), nullable=True)
     presentacion: Mapped[str | None] = mapped_column(String(255), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        server_default=func.now(),
+    )
 
     productor: Mapped["Productor | None"] = relationship(back_populates="productos")
     versiones: Mapped[list["VersionProducto"]] = relationship(

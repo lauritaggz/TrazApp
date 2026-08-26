@@ -1,47 +1,47 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/auth/AuthContext";
+import { useAppShell } from "@/hooks/useAppShell";
 import AppShell from "@/components/layout/AppShell";
 import type { AppSection } from "@/components/layout/Sidebar";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { productor, logout } = useAuth();
+  const { handleLogout, handleNavigate, producerName, businessName } =
+    useAppShell();
   const [activePage, setActivePage] = useState<AppSection>("inicio");
-  const producerName = productor?.nombre;
-  const businessName = productor?.nombre_negocio;
   const firstName = producerName?.trim().split(/\s+/)[0] ?? "";
 
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
-
-  function handleNavigate(page: AppSection) {
+  function handleDashboardNavigate(page: AppSection) {
+    if (page === "productos") {
+      navigate("/productos");
+      return;
+    }
     if (page === "perfil") {
-      navigate("/perfil");
+      handleNavigate(page);
+      return;
+    }
+    if (page === "inicio") {
+      setActivePage("inicio");
+      handleNavigate(page);
       return;
     }
     setActivePage(page);
+    handleNavigate(page);
   }
 
   return (
     <AppShell
-      activePage={activePage}
-      onNavigate={handleNavigate}
+      activePage={activePage === "ingredientes" ? "ingredientes" : "inicio"}
+      onNavigate={handleDashboardNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       {activePage === "inicio" && (
-        <HomePage firstName={firstName} onNavigate={handleNavigate} />
-      )}
-      {activePage === "productos" && (
-        <ComingSoonPage
-          icon={<BoxIcon large />}
-          title="Productos"
-          description="Aquí podrás registrar y gestionar todos los productos que elaboras."
-          onBack={() => setActivePage("inicio")}
+        <HomePage
+          firstName={firstName}
+          onGoToProducts={() => navigate("/productos")}
+          onGoToIngredients={() => setActivePage("ingredientes")}
         />
       )}
       {activePage === "ingredientes" && (
@@ -58,10 +58,12 @@ export default function Dashboard() {
 
 function HomePage({
   firstName,
-  onNavigate,
+  onGoToProducts,
+  onGoToIngredients,
 }: {
   firstName: string;
-  onNavigate: (page: AppSection) => void;
+  onGoToProducts: () => void;
+  onGoToIngredients: () => void;
 }) {
   return (
     <div className="max-w-3xl space-y-8">
@@ -86,14 +88,14 @@ function HomePage({
           <QuickCard
             icon={<BoxIcon large />}
             title="Productos"
-            description="Registra y organiza los productos que elaboras."
-            onClick={() => onNavigate("productos")}
+            description="Administra los productos de tu negocio."
+            onClick={onGoToProducts}
           />
           <QuickCard
             icon={<LeafIcon large />}
             title="Ingredientes"
             description="Define los ingredientes que conforman tus recetas."
-            onClick={() => onNavigate("ingredientes")}
+            onClick={onGoToIngredients}
           />
         </div>
       </div>

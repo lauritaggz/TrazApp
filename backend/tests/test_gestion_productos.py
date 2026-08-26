@@ -72,6 +72,7 @@ def test_productor_autenticado_crea_producto_valido(client) -> None:
     assert body["presentacion"] == "Bolsa resellable"
     assert body["activo"] is True
     assert body["productor_id"] == login["productor"]["id"]
+    assert body["created_at"] is not None
 
 
 def test_producto_queda_asociado_al_productor_autenticado(client, db_session) -> None:

@@ -3,6 +3,11 @@ import { ProtectedRoute, PublicOnlyRoute } from "@/auth/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
+import {
+  ProductDetailPlaceholder,
+  ProductNewPlaceholder,
+} from "@/pages/ProductRouteShell";
+import Products from "@/pages/Products";
 import Register from "@/pages/Register";
 
 export default function App() {
@@ -17,6 +22,9 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/productos" element={<Products />} />
+        <Route path="/productos/nuevo" element={<ProductNewPlaceholder />} />
+        <Route path="/productos/:id" element={<ProductDetailPlaceholder />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

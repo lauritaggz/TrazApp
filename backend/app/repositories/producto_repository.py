@@ -51,7 +51,7 @@ class ProductoRepository:
         stmt = (
             select(Producto)
             .where(Producto.productor_id == productor_id)
-            .order_by(Producto.id.asc())
+            .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
         )
         return list(self.db.scalars(stmt).all())
 
