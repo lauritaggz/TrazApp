@@ -132,6 +132,7 @@ export default function ProductNew() {
         {globalError && <Alert type="error">{globalError}</Alert>}
 
         <ProductForm
+          mode="create"
           values={values}
           errors={errors}
           loading={loading}

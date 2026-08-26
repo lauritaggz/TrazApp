@@ -7,12 +7,14 @@ import {
 } from "@/lib/productFormValidation";
 import {
   PRODUCT_FORM_UNIT_OPTIONS,
+  type ProductFormMode,
   type ProductFormValues,
 } from "@/types/product";
 
 interface ProductFormProps {
   values: ProductFormValues;
   errors: ProductFormFieldErrors;
+  mode?: ProductFormMode;
   loading?: boolean;
   /** Increment after each failed submit to move focus to the first error. */
   errorFocusToken?: number;
@@ -26,9 +28,10 @@ interface ProductFormProps {
 export default function ProductForm({
   values,
   errors,
+  mode = "create",
   loading = false,
   errorFocusToken = 0,
-  submitLabel = "Guardar producto",
+  submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar producto",
   loadingLabel = "Guardando…",
   onChange,
   onSubmit,

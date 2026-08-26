@@ -24,6 +24,18 @@ export interface ProductCreatePayload {
   presentacion?: string | null;
 }
 
+/** Partial payload for PATCH /gestion/productos/{id}. */
+export interface ProductUpdatePayload {
+  codigo_interno?: string;
+  nombre?: string;
+  descripcion?: string;
+  contenido_neto?: string;
+  unidad_medida?: UnidadMedida;
+  presentacion?: string | null;
+}
+
+export type ProductFormMode = "create" | "edit";
+
 export interface ProductFormValues {
   codigo_interno: string;
   nombre: string;

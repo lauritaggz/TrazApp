@@ -19,6 +19,8 @@ vi.mock("@/services/authService", () => ({
 vi.mock("@/services/productService", () => ({
   listProducts: vi.fn(),
   createProduct: vi.fn(),
+  getProduct: vi.fn(),
+  updateProduct: vi.fn(),
 }));
 
 const mockProducts: Product[] = [
@@ -228,6 +230,7 @@ describe("Productos HU01 — listado y navegación", () => {
   it("muestra presentación null como guión y permite navegar al detalle", async () => {
     const user = userEvent.setup();
     vi.mocked(productService.listProducts).mockResolvedValue(mockProducts);
+    vi.mocked(productService.getProduct).mockResolvedValue(mockProducts[0]);
     await openProductsPage();
 
     const panLinks = screen.getAllByRole("link", { name: "Ver producto Pan integral" });
@@ -236,8 +239,9 @@ describe("Productos HU01 — listado y navegación", () => {
 
     await user.click(panLinks[0]);
     expect(
-      await screen.findByRole("heading", { name: "Detalle de producto" }),
+      await screen.findByRole("heading", { name: "Pan integral", level: 1 }),
     ).toBeInTheDocument();
+    expect(screen.getByText("No especificada")).toBeInTheDocument();
   });
 
   it("muestra error de API y permite reintentar", async () => {
@@ -537,6 +541,299 @@ describe("Productos HU01 — creación", () => {
 
     expect(
       await screen.findByRole("heading", { name: "Productos", level: 1 }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Productos HU01 — detalle y edición", () => {
+  const galeta = mockProducts[2];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    setupAuthenticated();
+    vi.mocked(productService.listProducts).mockResolvedValue(mockProducts);
+  });
+
+  it("requiere autenticación para detalle", async () => {
+    localStorage.clear();
+    vi.mocked(authService.getCurrentProductor).mockRejectedValue(
+      Object.assign(new Error("No autenticado"), { status: 401 }),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(
+      await screen.findByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeInTheDocument();
+  });
+
+  it("requiere autenticación para edición", async () => {
+    localStorage.clear();
+    vi.mocked(authService.getCurrentProductor).mockRejectedValue(
+      Object.assign(new Error("No autenticado"), { status: 401 }),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeInTheDocument();
+  });
+
+  it("muestra loading y luego el detalle del producto", async () => {
+    let resolveProduct!: (value: Product) => void;
+    vi.mocked(productService.getProduct).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveProduct = resolve;
+        }),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(await screen.findByText("Cargando producto...")).toBeInTheDocument();
+
+    resolveProduct(galeta);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Galleta de chocolate",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Información general")).toBeInTheDocument();
+    expect(screen.getAllByText("GAL-001").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("Galleta con cobertura"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("250 g")).toBeInTheDocument();
+    expect(screen.getByText("Bolsa de 10 unidades")).toBeInTheDocument();
+  });
+
+  it("muestra Producto no disponible ante 404 y permite volver", async () => {
+    const user = userEvent.setup();
+    vi.mocked(productService.getProduct).mockRejectedValue(
+      new ApiError("No encontrado", 404),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/999"] });
+
+    expect(
+      await screen.findByRole("heading", { name: "Producto no disponible." }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Volver a productos" }));
+    expect(
+      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("navega a edición desde el detalle", async () => {
+    const user = userEvent.setup();
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Editar producto" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Código interno/)).toHaveValue("GAL-001");
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue("Galleta de chocolate");
+    expect(screen.getByLabelText(/Descripción/)).toHaveValue(
+      "Galleta con cobertura",
+    );
+    expect(screen.getByLabelText(/Contenido neto/)).toHaveValue("250");
+    expect(screen.getByLabelText(/Unidad de medida/)).toHaveValue("g");
+    expect(screen.getByLabelText(/^Presentación$/)).toHaveValue(
+      "Bolsa de 10 unidades",
+    );
+  });
+
+  it("envía PATCH parcial, elimina presentación y vuelve al detalle actualizado", async () => {
+    const user = userEvent.setup();
+    const updated: Product = {
+      ...galeta,
+      nombre: "Galleta de chocolate premium",
+      presentacion: null,
+    };
+
+    vi.mocked(productService.getProduct)
+      .mockResolvedValueOnce(galeta)
+      .mockResolvedValueOnce(updated);
+    vi.mocked(productService.updateProduct).mockResolvedValue(updated);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    const nombre = screen.getByLabelText(/^Nombre/);
+    await user.clear(nombre);
+    await user.type(nombre, "Galleta de chocolate premium");
+    await user.clear(screen.getByLabelText(/^Presentación$/));
+
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => {
+      expect(productService.updateProduct).toHaveBeenCalledTimes(1);
+    });
+
+    expect(productService.updateProduct).toHaveBeenCalledWith(1, {
+      nombre: "Galleta de chocolate premium",
+      presentacion: null,
+    });
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Galleta de chocolate premium",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Producto actualizado correctamente."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No especificada")).toBeInTheDocument();
+  });
+
+  it("muestra 409 en código, conserva valores ante error y evita doble envío", async () => {
+    const user = userEvent.setup();
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+    vi.mocked(productService.updateProduct)
+      .mockRejectedValueOnce(
+        new ApiError("Ya existe un producto con ese código interno.", 409),
+      )
+      .mockRejectedValueOnce(new ApiError("fallo", 500));
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/Código interno/));
+    await user.type(screen.getByLabelText(/Código interno/), "PAN-001");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(
+      await screen.findByText("Ya existe un producto con este código interno."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Código interno/)).toHaveValue("PAN-001");
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue("Galleta de chocolate");
+
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    expect(
+      await screen.findByText(
+        "No pudimos guardar los cambios. Inténtalo nuevamente.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Código interno/)).toHaveValue("PAN-001");
+  });
+
+  it("evita doble envío mientras guarda", async () => {
+    const user = userEvent.setup();
+    let resolveUpdate!: (value: Product) => void;
+    const renamed = { ...galeta, nombre: "Nombre temporal" };
+    vi.mocked(productService.getProduct)
+      .mockResolvedValueOnce(galeta)
+      .mockResolvedValue(renamed);
+    vi.mocked(productService.updateProduct).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/^Nombre/));
+    await user.type(screen.getByLabelText(/^Nombre/), "Nombre temporal");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(screen.getByRole("button", { name: "Guardando…" })).toBeDisabled();
+    expect(productService.updateProduct).toHaveBeenCalledTimes(1);
+
+    resolveUpdate(renamed);
+    expect(
+      await screen.findByRole("heading", { name: "Nombre temporal", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("cancelar en edición vuelve al detalle sin guardar", async () => {
+    const user = userEvent.setup();
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Galleta de chocolate",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(productService.updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("tras editar, el listado refleja los datos actualizados", async () => {
+    const user = userEvent.setup();
+    const updated: Product = {
+      ...galeta,
+      nombre: "Galleta premium listado",
+    };
+    const updatedList = mockProducts.map((item) =>
+      item.id === updated.id ? updated : item,
+    );
+
+    vi.mocked(productService.getProduct)
+      .mockResolvedValueOnce(galeta)
+      .mockResolvedValueOnce(updated);
+    vi.mocked(productService.updateProduct).mockResolvedValue(updated);
+    vi.mocked(productService.listProducts).mockResolvedValue(updatedList);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/^Nombre/));
+    await user.type(screen.getByLabelText(/^Nombre/), "Galleta premium listado");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Galleta premium listado",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Volver a productos" }));
+    expect(
+      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Galleta premium listado").length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("edición 404 muestra producto no disponible", async () => {
+    vi.mocked(productService.getProduct).mockRejectedValue(
+      new ApiError("No encontrado", 404),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/999/editar"] });
+
+    expect(
+      await screen.findByRole("heading", { name: "Producto no disponible." }),
     ).toBeInTheDocument();
   });
 });
