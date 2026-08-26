@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session
 from app.core.security import TokenError, decode_access_token
 from app.db.session import get_db
 from app.models import Productor
+from app.repositories.producto_repository import ProductoRepository
 from app.repositories.productor_repository import ProductorRepository
 from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.services.auth_service import AuthService
+from app.services.producto_service import ProductoService
 from app.services.trazabilidad_service import TrazabilidadService
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -27,6 +29,11 @@ def get_trazabilidad_service(db: Session = Depends(get_db)) -> TrazabilidadServi
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     repository = ProductorRepository(db)
     return AuthService(repository)
+
+
+def get_producto_service(db: Session = Depends(get_db)) -> ProductoService:
+    repository = ProductoRepository(db)
+    return ProductoService(repository)
 
 
 def get_current_productor(

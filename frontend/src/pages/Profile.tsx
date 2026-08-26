@@ -1,17 +1,17 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import AppShell from "@/components/layout/AppShell";
-import type { AppSection } from "@/components/layout/Sidebar";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useAppShell } from "@/hooks/useAppShell";
 import { updateProfile } from "@/services/authService";
 import { ApiError } from "@/types/auth";
 
 export default function Profile() {
-  const navigate = useNavigate();
-  const { productor, setProductor, logout } = useAuth();
+  const { productor, setProductor } = useAuth();
+  const { handleLogout, handleNavigate, producerName, businessName } =
+    useAppShell();
   const [form, setForm] = useState({
     name: productor?.nombre ?? "",
     businessName: productor?.nombre_negocio ?? "",
@@ -28,20 +28,6 @@ export default function Profile() {
       businessName: productor.nombre_negocio ?? "",
     });
   }, [productor]);
-
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
-
-  function handleNavigate(page: AppSection) {
-    if (page === "perfil") return;
-    if (page === "inicio") {
-      navigate("/dashboard");
-      return;
-    }
-    navigate("/dashboard");
-  }
 
   function update(key: "name" | "businessName", value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -104,8 +90,8 @@ export default function Profile() {
       activePage="perfil"
       onNavigate={handleNavigate}
       onLogout={handleLogout}
-      producerName={productor?.nombre}
-      businessName={productor?.nombre_negocio}
+      producerName={producerName ?? productor?.nombre}
+      businessName={businessName ?? productor?.nombre_negocio}
     >
       <div className="max-w-xl space-y-6">
         <div>

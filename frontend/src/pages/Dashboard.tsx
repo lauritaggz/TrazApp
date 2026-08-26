@@ -1,47 +1,72 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/auth/AuthContext";
+import { useAppShell } from "@/hooks/useAppShell";
 import AppShell from "@/components/layout/AppShell";
+import Button from "@/components/ui/Button";
 import type { AppSection } from "@/components/layout/Sidebar";
+import { productCountLabel } from "@/lib/productListUtils";
+import { listProducts } from "@/services/productService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { productor, logout } = useAuth();
+  const { handleLogout, handleNavigate, producerName, businessName } =
+    useAppShell();
   const [activePage, setActivePage] = useState<AppSection>("inicio");
-  const producerName = productor?.nombre;
-  const businessName = productor?.nombre_negocio;
-  const firstName = producerName?.trim().split(/\s+/)[0] ?? "";
+  const [productCount, setProductCount] = useState(0);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProducts(true);
+    void listProducts()
+      .then((products) => {
+        if (!cancelled) setProductCount(products.length);
+      })
+      .catch(() => {
+        if (!cancelled) setProductCount(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProducts(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  function handleNavigate(page: AppSection) {
+  function handleDashboardNavigate(page: AppSection) {
+    if (page === "productos") {
+      navigate("/productos");
+      return;
+    }
     if (page === "perfil") {
-      navigate("/perfil");
+      handleNavigate(page);
+      return;
+    }
+    if (page === "inicio") {
+      setActivePage("inicio");
+      handleNavigate(page);
       return;
     }
     setActivePage(page);
+    handleNavigate(page);
   }
 
   return (
     <AppShell
-      activePage={activePage}
-      onNavigate={handleNavigate}
+      activePage={activePage === "ingredientes" ? "ingredientes" : "inicio"}
+      onNavigate={handleDashboardNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       {activePage === "inicio" && (
-        <HomePage firstName={firstName} onNavigate={handleNavigate} />
-      )}
-      {activePage === "productos" && (
-        <ComingSoonPage
-          icon={<BoxIcon large />}
-          title="Productos"
-          description="Aquí podrás registrar y gestionar todos los productos que elaboras."
-          onBack={() => setActivePage("inicio")}
+        <HomePage
+          producerName={producerName}
+          businessName={businessName}
+          productCount={productCount}
+          loadingProducts={loadingProducts}
+          onGoToProducts={() => navigate("/productos")}
+          onGoToIngredients={() => setActivePage("ingredientes")}
         />
       )}
       {activePage === "ingredientes" && (
@@ -57,12 +82,25 @@ export default function Dashboard() {
 }
 
 function HomePage({
-  firstName,
-  onNavigate,
+  producerName,
+  businessName,
+  productCount,
+  loadingProducts,
+  onGoToProducts,
+  onGoToIngredients,
 }: {
-  firstName: string;
-  onNavigate: (page: AppSection) => void;
+  producerName?: string | null;
+  businessName?: string | null;
+  productCount: number;
+  loadingProducts: boolean;
+  onGoToProducts: () => void;
+  onGoToIngredients: () => void;
 }) {
+  const hasProducts = productCount > 0;
+  const productsCta = hasProducts
+    ? "Gestionar productos"
+    : "Registrar primer producto";
+
   return (
     <div className="max-w-3xl space-y-8">
       <div>
@@ -70,13 +108,44 @@ function HomePage({
           Panel de inicio
         </p>
         <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-          {firstName ? `Bienvenida, ${firstName}` : "Bienvenida"}
+          {producerName?.trim()
+            ? `Bienvenida, ${producerName.trim()}`
+            : "Bienvenida"}
         </h1>
+        {businessName?.trim() && (
+          <p className="text-sm font-medium text-text-primary mb-1.5">
+            {businessName.trim()}
+          </p>
+        )}
         <p className="text-text-secondary text-sm leading-relaxed">
           Desde aquí podrás gestionar la información de trazabilidad de tus
           productos.
         </p>
       </div>
+
+      <section
+        className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4"
+        aria-label="Resumen de productos"
+      >
+        {loadingProducts ? (
+          <p className="text-sm text-text-secondary" aria-live="polite">
+            Cargando productos...
+          </p>
+        ) : hasProducts ? (
+          <p className="text-sm text-text-secondary">
+            {productCountLabel(productCount)}
+          </p>
+        ) : (
+          <p className="text-sm text-text-secondary">
+            Aún no has registrado productos.
+          </p>
+        )}
+        {!loadingProducts && (
+          <Button type="button" onClick={onGoToProducts}>
+            {productsCta}
+          </Button>
+        )}
+      </section>
 
       <div>
         <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">
@@ -86,14 +155,16 @@ function HomePage({
           <QuickCard
             icon={<BoxIcon large />}
             title="Productos"
-            description="Registra y organiza los productos que elaboras."
-            onClick={() => onNavigate("productos")}
+            description="Administra los productos de tu negocio."
+            actionLabel={loadingProducts ? "Ir a productos" : productsCta}
+            onClick={onGoToProducts}
           />
           <QuickCard
             icon={<LeafIcon large />}
             title="Ingredientes"
             description="Define los ingredientes que conforman tus recetas."
-            onClick={() => onNavigate("ingredientes")}
+            actionLabel="Ir a ingredientes"
+            onClick={onGoToIngredients}
           />
         </div>
       </div>
@@ -149,15 +220,18 @@ function QuickCard({
   icon,
   title,
   description,
+  actionLabel,
   onClick,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
+  actionLabel: string;
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="group text-left bg-card border border-border rounded-xl p-5 hover:border-brand-600 hover:shadow-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
     >
@@ -169,7 +243,7 @@ function QuickCard({
         {description}
       </p>
       <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand-600 group-hover:gap-2 transition-all">
-        Ir a {title.toLowerCase()}
+        {actionLabel}
         <ArrowRightIcon />
       </div>
     </button>
@@ -190,6 +264,7 @@ function ComingSoonPage({
   return (
     <div className="max-w-lg">
       <button
+        type="button"
         onClick={onBack}
         className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary mb-6 transition-colors"
       >

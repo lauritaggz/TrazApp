@@ -1,3 +1,4 @@
+from app.models import Producto
 from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.schemas.lote import (
     LoteIngredienteCreate,
@@ -35,9 +36,7 @@ class TrazabilidadService:
         producto_id: int,
         payload: VersionProductoCreate,
     ) -> VersionProductoRead:
-        producto = self.repository.get_producto(producto_id)
-        if producto is None:
-            raise LookupError("Producto no encontrado")
+        self._require_legacy_producto(producto_id)
         version = self.repository.create_version_producto(
             producto_id=producto_id,
             descripcion=payload.descripcion,
@@ -46,9 +45,7 @@ class TrazabilidadService:
         return VersionProductoRead.model_validate(version)
 
     def listar_versiones_producto(self, producto_id: int) -> list[VersionProductoRead]:
-        producto = self.repository.get_producto(producto_id)
-        if producto is None:
-            raise LookupError("Producto no encontrado")
+        self._require_legacy_producto(producto_id)
         versiones = self.repository.list_versiones_producto(producto_id)
         return [VersionProductoRead.model_validate(v) for v in versiones]
 
@@ -93,6 +90,7 @@ class TrazabilidadService:
         version = self.repository.get_version_producto(payload.version_producto_id)
         if version is None:
             raise LookupError("Versión de producto no encontrada")
+        self._require_legacy_producto(version.producto_id)
         try:
             lote = self.repository.create_lote_producto(
                 codigo_lote=payload.codigo_lote,
@@ -110,6 +108,9 @@ class TrazabilidadService:
 
         version_producto = lote_producto.version_producto
         producto = version_producto.producto
+        if producto.productor_id is not None:
+            # Owned HU01 products are outside the unauthenticated RT-01 surface.
+            raise LookupError("Lote de producto no encontrado")
 
         ingredientes_utilizados: list[TrazabilidadIngredienteRead] = []
         for uso in lote_producto.usos_ingredientes:
@@ -135,3 +136,10 @@ class TrazabilidadService:
             ),
             ingredientes_utilizados=ingredientes_utilizados,
         )
+
+    def _require_legacy_producto(self, producto_id: int) -> Producto:
+        """Allow RT-01 legacy operations only on products without an owner."""
+        producto = self.repository.get_producto(producto_id)
+        if producto is None or producto.productor_id is not None:
+            raise LookupError("Producto no encontrado")
+        return producto
