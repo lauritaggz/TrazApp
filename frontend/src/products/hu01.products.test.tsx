@@ -1316,7 +1316,7 @@ describe("Productos HU01 — detalle y edición", () => {
       await screen.findByRole("heading", { name: "Productos", level: 1 }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Producto eliminado correctamente."),
+      await screen.findByText("Producto eliminado correctamente."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Galleta de chocolate")).not.toBeInTheDocument();
 
