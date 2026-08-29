@@ -89,6 +89,21 @@ def actualizar_producto(
         ) from exc
 
 
+@router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_producto(
+    producto_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ProductoService = Depends(get_producto_service),
+) -> None:
+    try:
+        service.delete_mine(current_productor, producto_id)
+    except ProductoNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
 @router.post("/{producto_id}/imagen", response_model=ProductoGestionRead)
 async def subir_imagen_producto(
     producto_id: int,

@@ -55,10 +55,19 @@ export default function Products() {
   }, [loadProducts]);
 
   useEffect(() => {
-    const state = location.state as { productCreated?: boolean } | null;
-    if (!state?.productCreated) return;
-    setSuccessMessage("Producto creado correctamente.");
-    navigate(location.pathname, { replace: true, state: null });
+    const state = location.state as {
+      productCreated?: boolean;
+      productDeleted?: boolean;
+    } | null;
+    if (state?.productCreated) {
+      setSuccessMessage("Producto creado correctamente.");
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
+    if (state?.productDeleted) {
+      setSuccessMessage("Producto eliminado correctamente.");
+      navigate(location.pathname, { replace: true, state: null });
+    }
   }, [location.pathname, location.state, navigate]);
 
   const filteredProducts = useMemo(

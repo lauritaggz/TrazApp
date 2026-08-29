@@ -23,6 +23,7 @@ vi.mock("@/services/productService", () => ({
   getProduct: vi.fn(),
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
+  deleteProduct: vi.fn(),
 }));
 
 const mockProducts: Product[] = [
@@ -774,6 +775,7 @@ describe("Productos HU01 — detalle y edición", () => {
     vi.mocked(productService.getProduct).mockReset();
     vi.mocked(productService.updateProduct).mockReset();
     vi.mocked(productService.uploadProductImage).mockReset();
+    vi.mocked(productService.deleteProduct).mockReset();
   });
 
   it("requiere autenticación para detalle", async () => {
@@ -1269,5 +1271,82 @@ describe("Productos HU01 — detalle y edición", () => {
     expect(
       await screen.findByRole("heading", { name: "Producto no disponible." }),
     ).toBeInTheDocument();
+  });
+
+  it("cancelar eliminación no llama al servicio", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(productService.deleteProduct).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Galleta de chocolate", level: 1 }),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
+  it("confirmar eliminación vuelve al listado con mensaje de éxito", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const remaining = mockProducts.filter((item) => item.id !== galeta.id);
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+    vi.mocked(productService.deleteProduct).mockResolvedValue(undefined);
+    vi.mocked(productService.listProducts).mockResolvedValue(remaining);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+
+    await waitFor(() => {
+      expect(productService.deleteProduct).toHaveBeenCalledWith(1);
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Producto eliminado correctamente."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Galleta de chocolate")).not.toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
+  it("muestra error si falla la eliminación", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(productService.getProduct).mockResolvedValue(galeta);
+    vi.mocked(productService.deleteProduct).mockRejectedValue(
+      new ApiError("fallo", 500),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+
+    expect(
+      await screen.findByText(
+        "No pudimos eliminar el producto. Inténtalo nuevamente.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Galleta de chocolate", level: 1 }),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
   });
 });

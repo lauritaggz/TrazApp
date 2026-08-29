@@ -45,4 +45,12 @@ export async function updateProduct(
   );
 }
 
+export async function deleteProduct(id: number): Promise<void> {
+  return apiRequest<void>(
+    `/gestion/productos/${id}`,
+    { method: "DELETE" },
+    true,
+  );
+}
+
 export { uploadProductImage } from "@/lib/productImageUpload";

@@ -22,6 +22,7 @@ vi.mock("@/services/productService", () => ({
   getProduct: vi.fn(),
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
+  deleteProduct: vi.fn(),
 }));
 
 async function fillRegisterForm(

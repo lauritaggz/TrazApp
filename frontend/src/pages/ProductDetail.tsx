@@ -7,7 +7,8 @@ import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
 import { formatProductContent, formatProductMoney } from "@/lib/productListUtils";
 import { resolveProductImageUrl } from "@/lib/productImageUpload";
-import { getProduct } from "@/services/productService";
+import { getProduct, deleteProduct } from "@/services/productService";
+import { ApiError } from "@/types/auth";
 import type { Product, Categoria } from "@/types/product";
 
 function parseProductId(raw: string | undefined): number | null {
@@ -29,6 +30,8 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const loadProduct = useCallback(async (id: number) => {
     setLoading(true);
@@ -60,6 +63,30 @@ export default function ProductDetail() {
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
 
+  async function handleDelete() {
+    if (!product) return;
+
+    const confirmed = window.confirm(
+      "¿Eliminar este producto?\n\nSe ocultará del catálogo, pero conservaremos su información histórica de trazabilidad.",
+    );
+    if (!confirmed) return;
+
+    setDeleteError("");
+    setDeleting(true);
+    try {
+      await deleteProduct(product.id);
+      navigate("/productos", { state: { productDeleted: true } });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setUnavailable(true);
+        return;
+      }
+      setDeleteError("No pudimos eliminar el producto. Inténtalo nuevamente.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <AppShell
       activePage="productos"
@@ -90,6 +117,7 @@ export default function ProductDetail() {
             </header>
 
             {successMessage && <Alert type="success">{successMessage}</Alert>}
+            {deleteError && <Alert type="error">{deleteError}</Alert>}
 
             <ProductMainImage
               imagenUrl={product.imagen_url}
@@ -156,6 +184,26 @@ export default function ProductDetail() {
                 onClick={() => navigate(`/productos/${product.id}/editar`)}
               >
                 Editar producto
+              </Button>
+            </div>
+
+            <div className="border-t border-border pt-5">
+              <h2 className="text-sm font-semibold text-text-primary mb-2">
+                Zona de eliminación
+              </h2>
+              <p className="text-sm text-text-secondary leading-relaxed mb-4">
+                Al eliminar, el producto dejará de aparecer en tu catálogo. La
+                información histórica de trazabilidad se conservará.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
+                onClick={() => void handleDelete()}
+                loading={deleting}
+                disabled={deleting}
+              >
+                {deleting ? "Eliminando…" : "Eliminar producto"}
               </Button>
             </div>
           </>

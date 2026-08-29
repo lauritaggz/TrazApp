@@ -64,7 +64,10 @@ class ProductoRepository:
         stmt = (
             select(Producto)
             .options(selectinload(Producto.categorias))
-            .where(Producto.productor_id == productor_id)
+            .where(
+                Producto.productor_id == productor_id,
+                Producto.activo.is_(True),
+            )
             .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
         )
         return list(self.db.scalars(stmt).all())
@@ -73,6 +76,8 @@ class ProductoRepository:
         self,
         producto_id: int,
         productor_id: int,
+        *,
+        active_only: bool = True,
     ) -> Producto | None:
         stmt = (
             select(Producto)
@@ -82,6 +87,8 @@ class ProductoRepository:
                 Producto.productor_id == productor_id,
             )
         )
+        if active_only:
+            stmt = stmt.where(Producto.activo.is_(True))
         return self.db.scalar(stmt)
 
     def exists_codigo_for_productor(
@@ -115,6 +122,13 @@ class ProductoRepository:
             ) from exc
         self.db.refresh(producto)
         return self._reload_with_categorias(producto.id)
+
+    def deactivate(self, producto: Producto) -> Producto:
+        producto.activo = False
+        self.db.add(producto)
+        self.db.commit()
+        self.db.refresh(producto)
+        return producto
 
     def _resolve_categorias(self, categoria_ids: list[int]) -> list[Categoria]:
         if not categoria_ids:
