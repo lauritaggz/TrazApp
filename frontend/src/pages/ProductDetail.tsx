@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -119,22 +120,17 @@ export default function ProductDetail() {
             {successMessage && <Alert type="success">{successMessage}</Alert>}
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
-            <ProductMainImage
-              imagenUrl={product.imagen_url}
-              nombre={product.nombre}
-            />
+            <ProductDetailSection id="product-detail-image" title="Imagen principal">
+              <ProductMainImage
+                imagenUrl={product.imagen_url}
+                nombre={product.nombre}
+              />
+            </ProductDetailSection>
 
-            <section
-              className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-5"
-              aria-labelledby="product-general-info"
+            <ProductDetailSection
+              id="product-detail-general"
+              title="Información general"
             >
-              <h2
-                id="product-general-info"
-                className="text-sm font-semibold text-text-primary uppercase tracking-wide"
-              >
-                Información general
-              </h2>
-
               <dl className="grid grid-cols-1 gap-4 sm:gap-5">
                 <DetailField label="Código interno">
                   {product.codigo_interno ?? "—"}
@@ -148,64 +144,97 @@ export default function ProductDetail() {
                     product.unidad_medida,
                   )}
                 </DetailField>
-                <DetailField label="Presentación">
-                  {product.presentacion?.trim()
-                    ? product.presentacion
-                    : "No especificada"}
-                </DetailField>
+              </dl>
+            </ProductDetailSection>
+
+            <ProductDetailSection
+              id="product-detail-presentation"
+              title="Presentación"
+            >
+              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+                {product.presentacion?.trim()
+                  ? product.presentacion
+                  : "No especificada"}
+              </p>
+            </ProductDetailSection>
+
+            <ProductDetailSection
+              id="product-detail-categories"
+              title="Categorías"
+            >
+              {product.categorias.length > 0 ? (
+                <CategoryBadges categorias={product.categorias} />
+              ) : (
+                <p className="text-sm text-text-secondary">Sin categorías</p>
+              )}
+            </ProductDetailSection>
+
+            <ProductDetailSection
+              id="product-detail-commercial"
+              title="Información comercial"
+            >
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <DetailField label="Costo de producción">
                   {formatProductMoney(product.costo_produccion)}
                 </DetailField>
                 <DetailField label="Precio de venta">
                   {formatProductMoney(product.precio_venta)}
                 </DetailField>
-                <DetailField label="Categorías">
-                  {product.categorias.length > 0 ? (
-                    <CategoryBadges categorias={product.categorias} />
-                  ) : (
-                    "Sin categorías"
-                  )}
-                </DetailField>
               </dl>
-            </section>
+            </ProductDetailSection>
 
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={() => navigate("/productos")}
-              >
-                Volver a productos
-              </Button>
-              <Button
-                type="button"
-                className="w-full sm:w-auto"
-                onClick={() => navigate(`/productos/${product.id}/editar`)}
-              >
-                Editar producto
-              </Button>
-            </div>
-
-            <div className="border-t border-border pt-5">
-              <h2 className="text-sm font-semibold text-text-primary mb-2">
-                Zona de eliminación
+            <section
+              aria-label="Acciones del producto"
+              className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4"
+            >
+              <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
+                Acciones
               </h2>
-              <p className="text-sm text-text-secondary leading-relaxed mb-4">
-                Al eliminar, el producto dejará de aparecer en tu catálogo. La
-                información histórica de trazabilidad se conservará.
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
-                onClick={() => void handleDelete()}
-                loading={deleting}
-                disabled={deleting}
-              >
-                {deleting ? "Eliminando…" : "Eliminar producto"}
-              </Button>
-            </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => navigate("/productos")}
+                >
+                  Volver a productos
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  onClick={() => navigate(`/productos/${product.id}/editar`)}
+                >
+                  Editar producto
+                </Button>
+              </div>
+
+              <div className="border-t border-border pt-4 space-y-3">
+                <div>
+                  <h3 className="text-sm font-medium text-text-primary">
+                    Eliminar producto
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed mt-1">
+                    Al eliminar, el producto dejará de aparecer en tu catálogo.
+                    La información histórica de trazabilidad se conservará.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
+                  onClick={() => void handleDelete()}
+                  loading={deleting}
+                  disabled={deleting}
+                  aria-describedby="product-delete-help"
+                >
+                  {deleting ? "Eliminando…" : "Eliminar producto"}
+                </Button>
+                <p id="product-delete-help" className="sr-only">
+                  Acción irreversible para el catálogo. La trazabilidad histórica
+                  se mantiene.
+                </p>
+              </div>
+            </section>
           </>
         )}
       </div>
@@ -234,10 +263,12 @@ function DetailField({
 
 function ProductDetailLoading() {
   return (
-    <div className="space-y-4" aria-live="polite" aria-busy="true">
+    <div className="space-y-6" aria-live="polite" aria-busy="true">
       <p className="text-sm text-text-secondary">Cargando producto...</p>
       <div className="h-8 w-2/3 rounded-lg bg-card border border-border animate-pulse" />
-      <div className="h-40 rounded-xl bg-card border border-border animate-pulse" />
+      <div className="h-48 rounded-xl bg-card border border-border animate-pulse" />
+      <div className="h-36 rounded-xl bg-card border border-border animate-pulse" />
+      <div className="h-24 rounded-xl bg-card border border-border animate-pulse" />
     </div>
   );
 }

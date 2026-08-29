@@ -267,9 +267,6 @@ function ProductsTable({
         <thead>
           <tr className="border-b border-border bg-surface/60">
             <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Código
-            </th>
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
               Producto
             </th>
             <th className="text-left font-semibold text-text-secondary px-4 py-3">
@@ -318,21 +315,23 @@ function ProductRow({
       role="link"
       aria-label={`Ver producto ${product.nombre}`}
     >
-      <td className="px-4 py-3 font-medium text-text-primary">
-        {product.codigo_interno ?? "—"}
-      </td>
       <td className="px-4 py-3 text-text-primary">
         <div className="flex items-center gap-3 min-w-0">
           <ProductListThumbnail
             imagenUrl={product.imagen_url}
             nombre={product.nombre}
           />
-          <div className="space-y-1 min-w-0">
-            <p className="truncate">{product.nombre}</p>
-            {formatCategoriasCompact(product.categorias) && (
+          <div className="space-y-0.5 min-w-0">
+            <p className="font-medium truncate">{product.nombre}</p>
+            <p className="text-xs text-text-secondary truncate">
+              {product.codigo_interno ?? "—"}
+            </p>
+            {formatCategoriasCompact(product.categorias) ? (
               <p className="text-xs text-text-secondary truncate">
                 {formatCategoriasCompact(product.categorias)}
               </p>
+            ) : (
+              <p className="text-xs text-text-muted">Sin categorías</p>
             )}
           </div>
         </div>
@@ -383,17 +382,19 @@ function ProductsCards({
                 imagenUrl={product.imagen_url}
                 nombre={product.nombre}
               />
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">
-                  {product.codigo_interno ?? "—"}
-                </p>
-                <h2 className="text-sm font-semibold text-text-primary">
+              <div className="min-w-0 space-y-0.5">
+                <h2 className="text-sm font-semibold text-text-primary truncate">
                   {product.nombre}
                 </h2>
-                {formatCategoriasCompact(product.categorias) && (
+                <p className="text-xs font-medium text-brand-600 uppercase tracking-wide">
+                  {product.codigo_interno ?? "—"}
+                </p>
+                {formatCategoriasCompact(product.categorias) ? (
                   <p className="text-xs text-text-secondary">
                     {formatCategoriasCompact(product.categorias)}
                   </p>
+                ) : (
+                  <p className="text-xs text-text-muted">Sin categorías</p>
                 )}
                 <p className="text-sm text-text-secondary">
                   {formatProductContent(
@@ -489,21 +490,54 @@ function ErrorState({
 
 function ProductListThumbnail({
   imagenUrl,
+  nombre,
 }: {
   imagenUrl: string | null;
   nombre: string;
 }) {
   const src = resolveProductImageUrl(imagenUrl);
-  if (!src) return null;
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        className="h-10 w-10 shrink-0 rounded-md border border-border object-cover bg-surface"
+        loading="lazy"
+      />
+    );
+  }
 
   return (
-    <img
-      src={src}
-      alt=""
+    <div
+      className="h-10 w-10 shrink-0 rounded-md border border-dashed border-border bg-surface flex items-center justify-center"
       aria-hidden="true"
-      className="h-10 w-10 shrink-0 rounded-md border border-border object-cover bg-surface"
-      loading="lazy"
-    />
+      title={`Sin imagen de ${nombre}`}
+    >
+      <ProductPlaceholderIcon />
+    </div>
+  );
+}
+
+function ProductPlaceholderIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-text-muted"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
   );
 }
 

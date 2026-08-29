@@ -6,6 +6,7 @@ interface ProductImageFieldProps {
   currentImageUrl?: string | null;
   disabled?: boolean;
   error?: string;
+  hideLegend?: boolean;
   onChange: (file: File | null) => void;
 }
 
@@ -13,6 +14,7 @@ export default function ProductImageField({
   currentImageUrl = null,
   disabled = false,
   error,
+  hideLegend = false,
   onChange,
 }: ProductImageFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,12 +60,21 @@ export default function ProductImageField({
 
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium text-text-primary">
-        Imagen principal
-      </legend>
-      <p className="text-xs text-text-secondary">
-        Opcional. JPG, JPEG, PNG o WEBP. Máximo 5 MB.
-      </p>
+      {!hideLegend && (
+        <>
+          <legend className="text-sm font-medium text-text-primary">
+            Imagen principal
+          </legend>
+          <p className="text-xs text-text-secondary">
+            Opcional. JPG, JPEG, PNG o WEBP. Máximo 5 MB.
+          </p>
+        </>
+      )}
+      {hideLegend && (
+        <p className="text-xs text-text-secondary">
+          JPG, JPEG, PNG o WEBP. Máximo 5 MB.
+        </p>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div
@@ -91,6 +102,7 @@ export default function ProductImageField({
             type="file"
             accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             disabled={disabled}
+            aria-label="Seleccionar imagen del producto"
             onChange={(event) =>
               handleFileChange(event.target.files?.[0] ?? null)
             }
