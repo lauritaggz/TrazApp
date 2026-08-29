@@ -34,6 +34,14 @@ class Producto(Base):
             "contenido_neto IS NULL OR contenido_neto > 0",
             name="ck_producto_contenido_neto_positivo",
         ),
+        CheckConstraint(
+            "costo_produccion IS NULL OR costo_produccion >= 0",
+            name="ck_producto_costo_produccion_no_negativo",
+        ),
+        CheckConstraint(
+            "precio_venta IS NULL OR precio_venta >= 0",
+            name="ck_producto_precio_venta_no_negativo",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -47,6 +55,15 @@ class Producto(Base):
     contenido_neto: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
     unidad_medida: Mapped[str | None] = mapped_column(String(20), nullable=True)
     presentacion: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    costo_produccion: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+    )
+    precio_venta: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+    )
+    imagen_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
@@ -55,6 +72,10 @@ class Producto(Base):
     )
 
     productor: Mapped["Productor | None"] = relationship(back_populates="productos")
+    categorias: Mapped[list["Categoria"]] = relationship(
+        secondary="productos_categorias",
+        back_populates="productos",
+    )
     versiones: Mapped[list["VersionProducto"]] = relationship(
         back_populates="producto",
         cascade="all, delete-orphan",

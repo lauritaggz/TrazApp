@@ -12,10 +12,11 @@ import {
   validateProductForm,
   type ProductFormFieldErrors,
 } from "@/lib/productFormValidation";
-import { getProduct, updateProduct } from "@/services/productService";
+import { getProduct, listCategories, updateProduct, uploadProductImage } from "@/services/productService";
 import { ApiError } from "@/types/auth";
 import {
   EMPTY_PRODUCT_FORM_VALUES,
+  type Categoria,
   type ProductFormValues,
 } from "@/types/product";
 
@@ -23,6 +24,8 @@ const DUPLICATE_CODE_MESSAGE =
   "Ya existe un producto con este código interno.";
 const SAVE_ERROR_MESSAGE =
   "No pudimos guardar los cambios. Inténtalo nuevamente.";
+const IMAGE_UPLOAD_ERROR_MESSAGE =
+  "Los cambios se guardaron, pero no pudimos subir la imagen.";
 
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -51,6 +54,34 @@ export default function ProductEdit() {
   const [errors, setErrors] = useState<ProductFormFieldErrors>({});
   const [errorFocusToken, setErrorFocusToken] = useState(0);
   const [globalError, setGlobalError] = useState("");
+  const [categories, setCategories] = useState<Categoria[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      setCategoriesLoading(true);
+      try {
+        const data = await listCategories();
+        if (!cancelled) setCategories(data);
+      } catch {
+        if (!cancelled) {
+          setGlobalError("No pudimos cargar las categorías disponibles.");
+        }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    }
+
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadProduct = useCallback(async (id: number) => {
     setLoadingProduct(true);
@@ -61,6 +92,9 @@ export default function ProductEdit() {
       setBaseline(formValues);
       setValues(formValues);
       setProductName(product.nombre);
+      setCurrentImageUrl(product.imagen_url);
+      setImageFile(null);
+      setImageError("");
     } catch {
       setUnavailable(true);
     } finally {
@@ -97,6 +131,11 @@ export default function ProductEdit() {
     if (globalError) setGlobalError("");
   }
 
+  function handleImageChange(file: File | null) {
+    setImageFile(file);
+    if (imageError) setImageError("");
+  }
+
   function goToDetail() {
     if (productId == null) {
       navigate("/productos");
@@ -107,7 +146,7 @@ export default function ProductEdit() {
 
   function handleCancel() {
     if (saving) return;
-    if (isProductFormDirtyComparedTo(values, baseline)) {
+    if (isProductFormDirtyComparedTo(values, baseline) || imageFile) {
       const confirmed = window.confirm(
         "Tienes cambios sin guardar. ¿Deseas salir sin guardar?",
       );
@@ -127,7 +166,9 @@ export default function ProductEdit() {
     }
 
     const payload = buildUpdatePayload(baseline, values);
-    if (Object.keys(payload).length === 0) {
+    const hasPayloadChanges = Object.keys(payload).length > 0;
+    const hasImageChange = imageFile !== null;
+    if (!hasPayloadChanges && !hasImageChange) {
       navigate(`/productos/${productId}`, {
         state: { productUpdated: true },
       });
@@ -138,7 +179,22 @@ export default function ProductEdit() {
     setSaving(true);
 
     try {
-      await updateProduct(productId, payload);
+      if (hasPayloadChanges) {
+        await updateProduct(productId, payload);
+      }
+      if (hasImageChange && imageFile) {
+        try {
+          await uploadProductImage(productId, imageFile);
+        } catch (err) {
+          if (err instanceof ApiError) {
+            setImageError(err.message);
+            setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
+            return;
+          }
+          setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
+          return;
+        }
+      }
       navigate(`/productos/${productId}`, {
         state: { productUpdated: true },
       });
@@ -206,6 +262,12 @@ export default function ProductEdit() {
               mode="edit"
               values={values}
               errors={errors}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              currentImageUrl={currentImageUrl}
+              imageFile={imageFile}
+              imageError={imageError}
+              onImageChange={handleImageChange}
               loading={saving}
               errorFocusToken={errorFocusToken}
               onChange={handleChange}

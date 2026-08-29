@@ -43,6 +43,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - product_uploads:/uploads
     command: >
       sh -c "alembic upgrade head &&
       uvicorn app.main:app
@@ -71,3 +72,4 @@ services:
 volumes:
   postgres_data:
   frontend_node_modules:
+  product_uploads:

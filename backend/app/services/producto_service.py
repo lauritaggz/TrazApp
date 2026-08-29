@@ -20,14 +20,12 @@ class ProductoService:
         productor: Productor,
         payload: ProductoGestionCreate,
     ) -> ProductoGestionRead:
+        data = payload.model_dump()
+        categoria_ids = data.pop("categoria_ids", [])
         producto = self.repository.create(
             productor_id=productor.id,
-            codigo_interno=payload.codigo_interno,
-            nombre=payload.nombre,
-            descripcion=payload.descripcion,
-            contenido_neto=payload.contenido_neto,
-            unidad_medida=payload.unidad_medida,
-            presentacion=payload.presentacion,
+            categoria_ids=categoria_ids,
+            **data,
         )
         return ProductoGestionRead.model_validate(producto)
 
@@ -53,6 +51,10 @@ class ProductoService:
         updates = payload.model_dump(exclude_unset=True)
         updated = self.repository.update(producto, **updates)
         return ProductoGestionRead.model_validate(updated)
+
+    def delete_mine(self, productor: Productor, producto_id: int) -> None:
+        producto = self._get_owned_or_raise(productor.id, producto_id)
+        self.repository.deactivate(producto)
 
     def _get_owned_or_raise(self, productor_id: int, producto_id: int) -> Producto:
         producto = self.repository.get_by_id_and_productor(producto_id, productor_id)

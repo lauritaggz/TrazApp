@@ -17,9 +17,12 @@ vi.mock("@/services/authService", () => ({
 
 vi.mock("@/services/productService", () => ({
   listProducts: vi.fn(),
+  listCategories: vi.fn(),
   createProduct: vi.fn(),
   getProduct: vi.fn(),
   updateProduct: vi.fn(),
+  uploadProductImage: vi.fn(),
+  deleteProduct: vi.fn(),
 }));
 
 async function fillRegisterForm(
@@ -50,6 +53,7 @@ describe("Login HU12", () => {
       new ApiError("No autenticado", 401),
     );
     vi.mocked(productService.listProducts).mockResolvedValue([]);
+    vi.mocked(productService.listCategories).mockResolvedValue([]);
   });
 
   it("valida campos obligatorios", async () => {
@@ -253,6 +257,7 @@ describe("Protección y logout HU12", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(productService.listProducts).mockResolvedValue([]);
+    vi.mocked(productService.listCategories).mockResolvedValue([]);
   });
 
   it("usuario sin sesión no puede acceder al Dashboard", async () => {

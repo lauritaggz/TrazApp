@@ -2,9 +2,10 @@
 
 from decimal import Decimal
 
+import pytest
 from sqlalchemy import func, select
 
-from app.models import Producto, VersionProducto
+from app.models import Categoria, Producto, VersionProducto
 
 PRODUCTOR_A = {
     "nombre": "Productor A",
@@ -469,8 +470,219 @@ def test_endpoints_sin_autenticacion_son_rechazados(client) -> None:
     list_response = client.get("/gestion/productos")
     get_response = client.get("/gestion/productos/1")
     patch_response = client.patch("/gestion/productos/1", json={"nombre": "X"})
+    categorias_response = client.get("/gestion/categorias")
 
     assert create_response.status_code == 401
     assert list_response.status_code == 401
     assert get_response.status_code == 401
     assert patch_response.status_code == 401
+    assert categorias_response.status_code == 401
+
+
+def _create_categorias(db_session, nombres: list[str]) -> list[Categoria]:
+    categorias = [Categoria(nombre=nombre) for nombre in nombres]
+    db_session.add_all(categorias)
+    db_session.commit()
+    for categoria in categorias:
+        db_session.refresh(categoria)
+    return categorias
+
+
+def test_producto_con_costo_precio_imagen_y_categorias(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    categorias = _create_categorias(
+        db_session,
+        ["Pastelería", "Dulce", "Bebidas"],
+    )
+
+    response = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={
+            **PRODUCTO_BASE,
+            "costo_produccion": "12.50",
+            "precio_venta": "25.00",
+            "imagen_url": "https://cdn.ejemplo.com/galleta.jpg",
+            "categoria_ids": [categorias[0].id, categorias[1].id],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert Decimal(body["costo_produccion"]) == Decimal("12.50")
+    assert Decimal(body["precio_venta"]) == Decimal("25.00")
+    assert body["imagen_url"] == "https://cdn.ejemplo.com/galleta.jpg"
+    assert [item["nombre"] for item in body["categorias"]] == ["Pastelería", "Dulce"]
+
+
+def test_producto_sin_categorias_devuelve_lista_vacia(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+
+    response = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json=PRODUCTO_BASE,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["categorias"] == []
+    assert response.json()["costo_produccion"] is None
+    assert response.json()["precio_venta"] is None
+    assert response.json()["imagen_url"] is None
+
+
+@pytest.mark.parametrize("field_name", ["costo_produccion", "precio_venta"])
+def test_valores_negativos_son_rechazados(client, field_name: str) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+
+    response = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={**PRODUCTO_BASE, field_name: "-0.01"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_patch_permite_null_en_costo_precio_e_imagen(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    created = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={
+            **PRODUCTO_BASE,
+            "costo_produccion": "10.00",
+            "precio_venta": "20.00",
+            "imagen_url": "https://cdn.ejemplo.com/galleta.jpg",
+        },
+    ).json()
+
+    response = client.patch(
+        f"/gestion/productos/{created['id']}",
+        headers=headers,
+        json={
+            "costo_produccion": None,
+            "precio_venta": None,
+            "imagen_url": None,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["costo_produccion"] is None
+    assert body["precio_venta"] is None
+    assert body["imagen_url"] is None
+
+
+def test_patch_actualiza_categorias(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    categorias = _create_categorias(
+        db_session,
+        ["Panadería", "Salado", "Otros"],
+    )
+    created = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={**PRODUCTO_BASE, "categoria_ids": [categorias[0].id]},
+    ).json()
+
+    response = client.patch(
+        f"/gestion/productos/{created['id']}",
+        headers=headers,
+        json={"categoria_ids": [categorias[1].id, categorias[2].id]},
+    )
+
+    assert response.status_code == 200
+    assert [item["nombre"] for item in response.json()["categorias"]] == [
+        "Salado",
+        "Otros",
+    ]
+
+
+def test_patch_quitar_todas_las_categorias(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    categorias = _create_categorias(db_session, ["Pastelería", "Dulce"])
+    created = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={**PRODUCTO_BASE, "categoria_ids": [categorias[0].id, categorias[1].id]},
+    ).json()
+
+    response = client.patch(
+        f"/gestion/productos/{created['id']}",
+        headers=headers,
+        json={"categoria_ids": []},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["categorias"] == []
+
+
+def test_categoria_ids_invalidos_devuelven_422(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+
+    response = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={**PRODUCTO_BASE, "categoria_ids": [9999]},
+    )
+
+    assert response.status_code == 422
+
+
+def test_cambios_comerciales_no_generan_version_producto(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    categorias = _create_categorias(db_session, ["Pastelería", "Dulce"])
+
+    created = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json={
+            **PRODUCTO_BASE,
+            "costo_produccion": "5.00",
+            "precio_venta": "12.00",
+            "imagen_url": "https://cdn.ejemplo.com/galleta.jpg",
+            "categoria_ids": [categorias[0].id],
+        },
+    ).json()
+    assert _count_versiones(db_session, created["id"]) == 0
+
+    patched = client.patch(
+        f"/gestion/productos/{created['id']}",
+        headers=headers,
+        json={
+            "costo_produccion": "6.50",
+            "precio_venta": "15.00",
+            "imagen_url": "https://cdn.ejemplo.com/galleta-nueva.jpg",
+            "categoria_ids": [categorias[1].id],
+        },
+    )
+    assert patched.status_code == 200
+    db_session.expire_all()
+    assert _count_versiones(db_session, created["id"]) == 0
+
+
+def test_patch_rechaza_activo_desde_cliente(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    created = client.post(
+        "/gestion/productos",
+        headers=headers,
+        json=PRODUCTO_BASE,
+    ).json()
+
+    response = client.patch(
+        f"/gestion/productos/{created['id']}",
+        headers=headers,
+        json={"activo": False},
+    )
+
+    assert response.status_code == 422

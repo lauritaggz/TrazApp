@@ -8,6 +8,9 @@ const FRIENDLY_FIELD_MESSAGES: Record<string, string> = {
   contenido_neto: "Revisa el contenido neto.",
   unidad_medida: "Revisa la unidad de medida.",
   presentacion: "Revisa la presentación.",
+  costo_produccion: "Revisa el costo de producción.",
+  precio_venta: "Revisa el precio de venta.",
+  categoria_ids: "Revisa las categorías seleccionadas.",
 };
 
 export function getApiBaseUrl(): string {
@@ -62,11 +65,9 @@ async function parseError(response: Response): Promise<ApiError> {
     return new ApiError(message, 409);
   }
   if (response.status === 422) {
-    return new ApiError(
-      "Revisa los datos enviados.",
-      422,
-      extractFieldErrors(detail),
-    );
+    const message =
+      typeof detail === "string" ? detail : "Revisa los datos enviados.";
+    return new ApiError(message, 422, extractFieldErrors(detail));
   }
 
   return new ApiError(

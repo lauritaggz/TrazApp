@@ -24,9 +24,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     # Comma-separated list, e.g. "http://localhost:5173,http://127.0.0.1:5173"
     cors_origins: str = "http://localhost:5173"
+    uploads_root: str = "/uploads"
 
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    def get_uploads_products_dir(self) -> str:
+        return f"{self.uploads_root.rstrip('/')}/products"
 
 
 @lru_cache

@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.producto import (
+    CategoriaRead,
     ProductoCreate,
     ProductoGestionCreate,
     ProductoGestionRead,
@@ -89,6 +90,45 @@ def test_create_rechaza_productor_id_e_id_en_payload() -> None:
 
     with pytest.raises(ValidationError):
         ProductoGestionCreate.model_validate({**VALID_CREATE, "id": 1})
+
+    with pytest.raises(ValidationError):
+        ProductoGestionCreate.model_validate({**VALID_CREATE, "activo": False})
+
+
+def test_create_acepta_costo_precio_imagen_y_categorias_opcionales() -> None:
+    producto = ProductoGestionCreate.model_validate(
+        {
+            **VALID_CREATE,
+            "costo_produccion": "12.50",
+            "precio_venta": "25.00",
+            "imagen_url": "https://cdn.ejemplo.com/galleta.jpg",
+            "categoria_ids": [1, 2, 2],
+        }
+    )
+
+    assert producto.costo_produccion == Decimal("12.50")
+    assert producto.precio_venta == Decimal("25.00")
+    assert producto.imagen_url == "https://cdn.ejemplo.com/galleta.jpg"
+    assert producto.categoria_ids == [1, 2]
+
+
+@pytest.mark.parametrize("field_name", ["costo_produccion", "precio_venta"])
+def test_create_rechaza_valores_negativos(field_name: str) -> None:
+    with pytest.raises(ValidationError):
+        ProductoGestionCreate.model_validate({**VALID_CREATE, field_name: "-0.01"})
+
+
+def test_create_permite_costo_y_precio_null() -> None:
+    producto = ProductoGestionCreate.model_validate(
+        {
+            **VALID_CREATE,
+            "costo_produccion": None,
+            "precio_venta": None,
+        }
+    )
+
+    assert producto.costo_produccion is None
+    assert producto.precio_venta is None
 
 
 def test_producto_gestion_update_parcial_valido() -> None:
@@ -185,6 +225,32 @@ def test_update_rechaza_id_y_productor_id() -> None:
     with pytest.raises(ValidationError):
         ProductoGestionUpdate.model_validate({"productor_id": 1, "nombre": "X"})
 
+    with pytest.raises(ValidationError):
+        ProductoGestionUpdate.model_validate({"activo": False})
+
+
+def test_update_permite_null_en_costo_precio_e_imagen() -> None:
+    update = ProductoGestionUpdate.model_validate(
+        {
+            "costo_produccion": None,
+            "precio_venta": None,
+            "imagen_url": None,
+        }
+    )
+
+    assert "costo_produccion" in update.model_fields_set
+    assert "precio_venta" in update.model_fields_set
+    assert "imagen_url" in update.model_fields_set
+    assert update.costo_produccion is None
+    assert update.precio_venta is None
+    assert update.imagen_url is None
+
+
+@pytest.mark.parametrize("field_name", ["costo_produccion", "precio_venta"])
+def test_update_rechaza_valores_negativos(field_name: str) -> None:
+    with pytest.raises(ValidationError):
+        ProductoGestionUpdate.model_validate({field_name: "-1"})
+
 
 def test_update_normaliza_codigo_interno() -> None:
     update = ProductoGestionUpdate.model_validate({"codigo_interno": "  gal-002  "})
@@ -202,6 +268,10 @@ def test_producto_gestion_read_from_attributes() -> None:
         contenido_neto = Decimal("100.5")
         unidad_medida = "g"
         presentacion = None
+        costo_produccion = None
+        precio_venta = None
+        imagen_url = None
+        categorias = []
         activo = True
         created_at = None
 
@@ -212,7 +282,38 @@ def test_producto_gestion_read_from_attributes() -> None:
     assert read.codigo_interno == "GAL-001"
     assert read.contenido_neto == Decimal("100.5")
     assert read.presentacion is None
+    assert read.categorias == []
+    assert read.costo_produccion is None
+    assert read.precio_venta is None
+    assert read.imagen_url is None
     assert read.created_at is None
+
+
+def test_producto_gestion_read_incluye_categorias() -> None:
+    class _CategoriaRow:
+        id = 1
+        nombre = "Pastelería"
+
+    class _Row:
+        id = 12
+        productor_id = 1
+        codigo_interno = "GAL-001"
+        nombre = "Galleta"
+        descripcion = "Descripción"
+        contenido_neto = Decimal("100")
+        unidad_medida = "g"
+        presentacion = None
+        costo_produccion = Decimal("10.00")
+        precio_venta = Decimal("20.00")
+        imagen_url = "https://cdn.ejemplo.com/galleta.jpg"
+        categorias = [_CategoriaRow()]
+        activo = True
+        created_at = None
+
+    read = ProductoGestionRead.model_validate(_Row())
+
+    assert len(read.categorias) == 1
+    assert read.categorias[0] == CategoriaRead(id=1, nombre="Pastelería")
 
 
 def test_producto_gestion_read_incluye_created_at_cuando_existe() -> None:
@@ -227,6 +328,10 @@ def test_producto_gestion_read_incluye_created_at_cuando_existe() -> None:
         contenido_neto = Decimal("100")
         unidad_medida = "g"
         presentacion = None
+        costo_produccion = None
+        precio_venta = None
+        imagen_url = None
+        categorias = []
         activo = True
         created_at = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
 

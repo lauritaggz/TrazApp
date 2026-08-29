@@ -1,9 +1,14 @@
 import { apiRequest } from "@/lib/apiClient";
 import type {
+  Categoria,
   Product,
   ProductCreatePayload,
   ProductUpdatePayload,
 } from "@/types/product";
+
+export async function listCategories(): Promise<Categoria[]> {
+  return apiRequest<Categoria[]>("/gestion/categorias", { method: "GET" }, true);
+}
 
 export async function listProducts(): Promise<Product[]> {
   return apiRequest<Product[]>("/gestion/productos", { method: "GET" }, true);
@@ -39,3 +44,13 @@ export async function updateProduct(
     true,
   );
 }
+
+export async function deleteProduct(id: number): Promise<void> {
+  return apiRequest<void>(
+    `/gestion/productos/${id}`,
+    { method: "DELETE" },
+    true,
+  );
+}
+
+export { uploadProductImage } from "@/lib/productImageUpload";
