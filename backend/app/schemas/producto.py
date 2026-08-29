@@ -30,6 +30,13 @@ def _normalize_optional_presentacion(value: str | None) -> str | None:
     return normalized or None
 
 
+def _normalize_optional_url(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 # --- Contratos legacy RT-01 (prototipo de trazabilidad) ---
 
 
@@ -52,6 +59,15 @@ class ProductoRead(BaseModel):
 # --- Contratos de gestión HU01 ---
 
 
+class CategoriaRead(BaseModel):
+    """Read payload for product categories."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nombre: str
+
+
 class ProductoGestionCreate(BaseModel):
     """Create payload for authenticated product management (HU01).
 
@@ -67,6 +83,20 @@ class ProductoGestionCreate(BaseModel):
     contenido_neto: Decimal = Field(gt=0, max_digits=12, decimal_places=3)
     unidad_medida: UnidadMedida
     presentacion: str | None = Field(default=None, max_length=255)
+    costo_produccion: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    precio_venta: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    imagen_url: str | None = Field(default=None, max_length=2048)
+    categoria_ids: list[int] = Field(default_factory=list)
 
     @field_validator("codigo_interno")
     @classmethod
@@ -87,6 +117,16 @@ class ProductoGestionCreate(BaseModel):
     @classmethod
     def normalize_presentacion(cls, value: str | None) -> str | None:
         return _normalize_optional_presentacion(value)
+
+    @field_validator("imagen_url")
+    @classmethod
+    def normalize_imagen_url(cls, value: str | None) -> str | None:
+        return _normalize_optional_url(value)
+
+    @field_validator("categoria_ids")
+    @classmethod
+    def normalize_categoria_ids(cls, value: list[int]) -> list[int]:
+        return list(dict.fromkeys(value))
 
 
 class ProductoGestionUpdate(BaseModel):
@@ -110,6 +150,20 @@ class ProductoGestionUpdate(BaseModel):
     )
     unidad_medida: UnidadMedida | None = None
     presentacion: str | None = Field(default=None, max_length=255)
+    costo_produccion: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    precio_venta: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    imagen_url: str | None = Field(default=None, max_length=2048)
+    categoria_ids: list[int] | None = None
 
     @field_validator("codigo_interno")
     @classmethod
@@ -137,6 +191,18 @@ class ProductoGestionUpdate(BaseModel):
     def normalize_presentacion(cls, value: str | None) -> str | None:
         return _normalize_optional_presentacion(value)
 
+    @field_validator("imagen_url")
+    @classmethod
+    def normalize_imagen_url(cls, value: str | None) -> str | None:
+        return _normalize_optional_url(value)
+
+    @field_validator("categoria_ids")
+    @classmethod
+    def normalize_categoria_ids(cls, value: list[int] | None) -> list[int] | None:
+        if value is None:
+            return None
+        return list(dict.fromkeys(value))
+
     @model_validator(mode="after")
     def reject_explicit_null_for_required_fields(self) -> Self:
         for field_name in _REQUIRED_UPDATE_FIELDS:
@@ -158,6 +224,10 @@ class ProductoGestionRead(BaseModel):
     contenido_neto: Decimal | None
     unidad_medida: str | None
     presentacion: str | None
+    costo_produccion: Decimal | None
+    precio_venta: Decimal | None
+    imagen_url: str | None
+    categorias: list[CategoriaRead] = Field(default_factory=list)
     activo: bool
     created_at: datetime | None
 

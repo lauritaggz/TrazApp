@@ -20,14 +20,12 @@ class ProductoService:
         productor: Productor,
         payload: ProductoGestionCreate,
     ) -> ProductoGestionRead:
+        data = payload.model_dump()
+        categoria_ids = data.pop("categoria_ids", [])
         producto = self.repository.create(
             productor_id=productor.id,
-            codigo_interno=payload.codigo_interno,
-            nombre=payload.nombre,
-            descripcion=payload.descripcion,
-            contenido_neto=payload.contenido_neto,
-            unidad_medida=payload.unidad_medida,
-            presentacion=payload.presentacion,
+            categoria_ids=categoria_ids,
+            **data,
         )
         return ProductoGestionRead.model_validate(producto)
 

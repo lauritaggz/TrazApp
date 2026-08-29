@@ -1,5 +1,7 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
+import CategoryMultiSelect from "@/components/products/CategoryMultiSelect";
+import ProductImageField from "@/components/products/ProductImageField";
 import { Input } from "@/components/ui/Input";
 import {
   PRODUCT_FORM_FIELD_ORDER,
@@ -7,6 +9,7 @@ import {
 } from "@/lib/productFormValidation";
 import {
   PRODUCT_FORM_UNIT_OPTIONS,
+  type Categoria,
   type ProductFormMode,
   type ProductFormValues,
 } from "@/types/product";
@@ -14,6 +17,12 @@ import {
 interface ProductFormProps {
   values: ProductFormValues;
   errors: ProductFormFieldErrors;
+  categories?: Categoria[];
+  categoriesLoading?: boolean;
+  currentImageUrl?: string | null;
+  imageFile?: File | null;
+  imageError?: string;
+  onImageChange?: (file: File | null) => void;
   mode?: ProductFormMode;
   loading?: boolean;
   /** Increment after each failed submit to move focus to the first error. */
@@ -28,6 +37,12 @@ interface ProductFormProps {
 export default function ProductForm({
   values,
   errors,
+  categories = [],
+  categoriesLoading = false,
+  currentImageUrl = null,
+  imageFile = null,
+  imageError,
+  onImageChange,
   mode = "create",
   loading = false,
   errorFocusToken = 0,
@@ -224,6 +239,64 @@ export default function ProductForm({
         maxLength={255}
         autoComplete="off"
       />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input
+          id="costo_produccion"
+          name="costo_produccion"
+          label="Costo de producción"
+          type="text"
+          inputMode="decimal"
+          placeholder="Ej.: 12.50"
+          value={values.costo_produccion}
+          onChange={(e) => update("costo_produccion", e.target.value)}
+          error={errors.costo_produccion}
+          hint={
+            errors.costo_produccion
+              ? undefined
+              : "Opcional. Valor estimado de producción."
+          }
+          disabled={loading}
+          autoComplete="off"
+        />
+
+        <Input
+          id="precio_venta"
+          name="precio_venta"
+          label="Precio de venta"
+          type="text"
+          inputMode="decimal"
+          placeholder="Ej.: 25.00"
+          value={values.precio_venta}
+          onChange={(e) => update("precio_venta", e.target.value)}
+          error={errors.precio_venta}
+          hint={
+            errors.precio_venta
+              ? undefined
+              : "Opcional. Precio comercial de referencia."
+          }
+          disabled={loading}
+          autoComplete="off"
+        />
+      </div>
+
+      <CategoryMultiSelect
+        categories={categories}
+        selectedIds={values.categoria_ids}
+        disabled={loading}
+        loading={categoriesLoading}
+        error={errors.categoria_ids}
+        onChange={(categoria_ids) => update("categoria_ids", categoria_ids)}
+      />
+
+      {onImageChange && (
+        <ProductImageField
+          currentImageUrl={imageFile ? null : currentImageUrl}
+          disabled={loading}
+          error={imageError}
+          onChange={onImageChange}
+        />
+      )}
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
         <Button

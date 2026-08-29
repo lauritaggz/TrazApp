@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   filterAndSortProducts,
+  formatCategoriasCompact,
   formatPresentacion,
   formatProductContent,
   hasActiveFilters,
   productCountLabel,
 } from "@/lib/productListUtils";
+import { resolveProductImageUrl } from "@/lib/productImageUpload";
 import { listProducts } from "@/services/productService";
 import {
   DEFAULT_PRODUCT_LIST_FILTERS,
@@ -310,7 +312,22 @@ function ProductRow({
       <td className="px-4 py-3 font-medium text-text-primary">
         {product.codigo_interno ?? "—"}
       </td>
-      <td className="px-4 py-3 text-text-primary">{product.nombre}</td>
+      <td className="px-4 py-3 text-text-primary">
+        <div className="flex items-center gap-3 min-w-0">
+          <ProductListThumbnail
+            imagenUrl={product.imagen_url}
+            nombre={product.nombre}
+          />
+          <div className="space-y-1 min-w-0">
+            <p className="truncate">{product.nombre}</p>
+            {formatCategoriasCompact(product.categorias) && (
+              <p className="text-xs text-text-secondary truncate">
+                {formatCategoriasCompact(product.categorias)}
+              </p>
+            )}
+          </div>
+        </div>
+      </td>
       <td className="px-4 py-3 text-text-secondary">
         {formatProductContent(product.contenido_neto, product.unidad_medida)}
       </td>
@@ -352,22 +369,33 @@ function ProductsCards({
           aria-label={`Ver producto ${product.nombre}`}
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">
-                {product.codigo_interno ?? "—"}
-              </p>
-              <h2 className="text-sm font-semibold text-text-primary">
-                {product.nombre}
-              </h2>
-              <p className="text-sm text-text-secondary">
-                {formatProductContent(
-                  product.contenido_neto,
-                  product.unidad_medida,
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <ProductListThumbnail
+                imagenUrl={product.imagen_url}
+                nombre={product.nombre}
+              />
+              <div className="min-w-0 space-y-1">
+                <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">
+                  {product.codigo_interno ?? "—"}
+                </p>
+                <h2 className="text-sm font-semibold text-text-primary">
+                  {product.nombre}
+                </h2>
+                {formatCategoriasCompact(product.categorias) && (
+                  <p className="text-xs text-text-secondary">
+                    {formatCategoriasCompact(product.categorias)}
+                  </p>
                 )}
-              </p>
-              <p className="text-xs text-text-secondary">
-                {formatPresentacion(product.presentacion)}
-              </p>
+                <p className="text-sm text-text-secondary">
+                  {formatProductContent(
+                    product.contenido_neto,
+                    product.unidad_medida,
+                  )}
+                </p>
+                <p className="text-xs text-text-secondary">
+                  {formatPresentacion(product.presentacion)}
+                </p>
+              </div>
             </div>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0">
               Ver
@@ -447,6 +475,26 @@ function ErrorState({
         Reintentar
       </Button>
     </div>
+  );
+}
+
+function ProductListThumbnail({
+  imagenUrl,
+}: {
+  imagenUrl: string | null;
+  nombre: string;
+}) {
+  const src = resolveProductImageUrl(imagenUrl);
+  if (!src) return null;
+
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      className="h-10 w-10 shrink-0 rounded-md border border-border object-cover bg-surface"
+      loading="lazy"
+    />
   );
 }
 

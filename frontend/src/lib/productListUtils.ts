@@ -1,8 +1,26 @@
 import type {
+  Categoria,
   Product,
   ProductListFilters,
   ProductSortOption,
 } from "@/types/product";
+
+export function formatCategoriasCompact(categorias: Categoria[]): string | null {
+  if (!categorias.length) return null;
+  return categorias.map((categoria) => categoria.nombre).join(", ");
+}
+
+export function formatProductMoney(value: string | null): string {
+  if (!value?.trim()) return "No informado";
+
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return value;
+
+  return numeric.toLocaleString("es-CL", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 export function formatProductContent(
   contenidoNeto: string | null,

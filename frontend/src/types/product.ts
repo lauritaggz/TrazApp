@@ -1,5 +1,10 @@
 export type UnidadMedida = "g" | "kg" | "ml" | "L" | "unidad";
 
+export interface Categoria {
+  id: number;
+  nombre: string;
+}
+
 export interface Product {
   id: number;
   productor_id: number | null;
@@ -9,6 +14,10 @@ export interface Product {
   contenido_neto: string | null;
   unidad_medida: UnidadMedida | null;
   presentacion: string | null;
+  costo_produccion: string | null;
+  precio_venta: string | null;
+  imagen_url: string | null;
+  categorias: Categoria[];
   activo: boolean;
   created_at: string | null;
 }
@@ -22,6 +31,10 @@ export interface ProductCreatePayload {
   contenido_neto: string;
   unidad_medida: UnidadMedida;
   presentacion?: string | null;
+  costo_produccion?: string | null;
+  precio_venta?: string | null;
+  imagen_url?: string | null;
+  categoria_ids?: number[];
 }
 
 /** Partial payload for PATCH /gestion/productos/{id}. */
@@ -32,6 +45,10 @@ export interface ProductUpdatePayload {
   contenido_neto?: string;
   unidad_medida?: UnidadMedida;
   presentacion?: string | null;
+  costo_produccion?: string | null;
+  precio_venta?: string | null;
+  imagen_url?: string | null;
+  categoria_ids?: number[];
 }
 
 export type ProductFormMode = "create" | "edit";
@@ -43,6 +60,9 @@ export interface ProductFormValues {
   contenido_neto: string;
   unidad_medida: "" | UnidadMedida;
   presentacion: string;
+  costo_produccion: string;
+  precio_venta: string;
+  categoria_ids: number[];
 }
 
 export const EMPTY_PRODUCT_FORM_VALUES: ProductFormValues = {
@@ -52,6 +72,9 @@ export const EMPTY_PRODUCT_FORM_VALUES: ProductFormValues = {
   contenido_neto: "",
   unidad_medida: "",
   presentacion: "",
+  costo_produccion: "",
+  precio_venta: "",
+  categoria_ids: [],
 };
 
 export const PRODUCT_FORM_UNIT_OPTIONS: {

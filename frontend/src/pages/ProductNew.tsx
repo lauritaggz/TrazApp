@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import ProductForm from "@/components/products/ProductForm";
@@ -10,10 +10,11 @@ import {
   validateProductForm,
   type ProductFormFieldErrors,
 } from "@/lib/productFormValidation";
-import { createProduct } from "@/services/productService";
+import { createProduct, listCategories, uploadProductImage } from "@/services/productService";
 import { ApiError } from "@/types/auth";
 import {
   EMPTY_PRODUCT_FORM_VALUES,
+  type Categoria,
   type ProductFormValues,
 } from "@/types/product";
 
@@ -21,6 +22,8 @@ const DUPLICATE_CODE_MESSAGE =
   "Ya existe un producto con este código interno.";
 const SAVE_ERROR_MESSAGE =
   "No pudimos guardar el producto. Inténtalo nuevamente.";
+const IMAGE_UPLOAD_ERROR_MESSAGE =
+  "El producto se creó, pero no pudimos subir la imagen. Inténtalo desde edición.";
 
 export default function ProductNew() {
   const navigate = useNavigate();
@@ -34,6 +37,33 @@ export default function ProductNew() {
   const [errorFocusToken, setErrorFocusToken] = useState(0);
   const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Categoria[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      setCategoriesLoading(true);
+      try {
+        const data = await listCategories();
+        if (!cancelled) setCategories(data);
+      } catch {
+        if (!cancelled) {
+          setGlobalError("No pudimos cargar las categorías disponibles.");
+        }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    }
+
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function setFieldErrors(next: ProductFormFieldErrors) {
     setErrors(next);
@@ -55,6 +85,11 @@ export default function ProductNew() {
     if (globalError) setGlobalError("");
   }
 
+  function handleImageChange(file: File | null) {
+    setImageFile(file);
+    if (imageError) setImageError("");
+  }
+
   function goToProducts(options?: { created?: boolean }) {
     navigate("/productos", {
       state: options?.created
@@ -65,7 +100,7 @@ export default function ProductNew() {
 
   function handleCancel() {
     if (loading) return;
-    if (isProductFormDirty(values)) {
+    if (isProductFormDirty(values) || imageFile) {
       const confirmed = window.confirm(
         "Tienes cambios sin guardar. ¿Deseas salir sin guardar?",
       );
@@ -86,7 +121,20 @@ export default function ProductNew() {
     setLoading(true);
 
     try {
-      await createProduct(toCreatePayload(values));
+      const created = await createProduct(toCreatePayload(values));
+      if (imageFile) {
+        try {
+          await uploadProductImage(created.id, imageFile);
+        } catch (err) {
+          if (err instanceof ApiError) {
+            setImageError(err.message);
+            setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
+            return;
+          }
+          setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
+          return;
+        }
+      }
       goToProducts({ created: true });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -135,6 +183,12 @@ export default function ProductNew() {
           mode="create"
           values={values}
           errors={errors}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          currentImageUrl={null}
+          imageFile={imageFile}
+          imageError={imageError}
+          onImageChange={handleImageChange}
           loading={loading}
           errorFocusToken={errorFocusToken}
           onChange={handleChange}

@@ -9,6 +9,7 @@ const MAX_CODIGO = 100;
 const MAX_NOMBRE = 255;
 const MAX_PRESENTACION = 255;
 const DECIMAL_PATTERN = /^\d+(\.\d{1,3})?$/;
+const MONEY_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 export type ProductFormFieldErrors = Partial<
   Record<keyof ProductFormValues, string>
@@ -22,6 +23,40 @@ export function formatContenidoForForm(value: string | null): string {
   return numeric.toString().replace(/\.?0+$/, "");
 }
 
+export function formatMoneyForForm(value: string | null): string {
+  return formatContenidoForForm(value);
+}
+
+function normalizeMoneyInput(value: string): string {
+  return value.trim().replace(",", ".");
+}
+
+function normalizeMoneyValue(value: string): string | null {
+  const normalized = normalizeMoneyInput(value);
+  return normalized || null;
+}
+
+function validateOptionalMoney(
+  value: string,
+  fieldLabel: string,
+): string | undefined {
+  const normalized = normalizeMoneyInput(value);
+  if (!normalized) return undefined;
+
+  if (/^-/.test(normalized) || Number(normalized) < 0) {
+    return `El ${fieldLabel} debe ser mayor o igual que 0.`;
+  }
+
+  if (!MONEY_PATTERN.test(normalized)) {
+    if (/\.\d{3,}/.test(normalized)) {
+      return "Máximo 2 decimales.";
+    }
+    return "Ingresa un número válido (máximo 2 decimales).";
+  }
+
+  return undefined;
+}
+
 export function productToFormValues(product: Product): ProductFormValues {
   return {
     codigo_interno: product.codigo_interno ?? "",
@@ -30,6 +65,9 @@ export function productToFormValues(product: Product): ProductFormValues {
     contenido_neto: formatContenidoForForm(product.contenido_neto),
     unidad_medida: product.unidad_medida ?? "",
     presentacion: product.presentacion ?? "",
+    costo_produccion: formatMoneyForForm(product.costo_produccion),
+    precio_venta: formatMoneyForForm(product.precio_venta),
+    categoria_ids: product.categorias.map((categoria) => categoria.id),
   };
 }
 
@@ -84,6 +122,22 @@ export function validateProductForm(
     errors.presentacion = `Máximo ${MAX_PRESENTACION} caracteres.`;
   }
 
+  const costoError = validateOptionalMoney(
+    values.costo_produccion,
+    "costo de producción",
+  );
+  if (costoError) {
+    errors.costo_produccion = costoError;
+  }
+
+  const precioError = validateOptionalMoney(
+    values.precio_venta,
+    "precio de venta",
+  );
+  if (precioError) {
+    errors.precio_venta = precioError;
+  }
+
   return errors;
 }
 
@@ -94,17 +148,29 @@ export function isProductFormDirty(values: ProductFormValues): boolean {
     values.descripcion.trim() !== "" ||
     values.contenido_neto.trim() !== "" ||
     values.unidad_medida !== "" ||
-    values.presentacion.trim() !== ""
+    values.presentacion.trim() !== "" ||
+    values.costo_produccion.trim() !== "" ||
+    values.precio_venta.trim() !== "" ||
+    values.categoria_ids.length > 0
   );
+}
+
+function sameCategoryIds(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort((left, right) => left - right);
+  const sortedB = [...b].sort((left, right) => left - right);
+  return sortedA.every((id, index) => id === sortedB[index]);
 }
 
 export function isProductFormDirtyComparedTo(
   values: ProductFormValues,
   baseline: ProductFormValues,
 ): boolean {
-  return PRODUCT_FORM_FIELD_ORDER.some(
-    (field) => normalizeComparable(values[field]) !== normalizeComparable(baseline[field]),
+  const scalarDirty = PRODUCT_FORM_SCALAR_FIELDS.some(
+    (field) =>
+      normalizeComparable(values[field]) !== normalizeComparable(baseline[field]),
   );
+  return scalarDirty || !sameCategoryIds(values.categoria_ids, baseline.categoria_ids);
 }
 
 function normalizeComparable(value: string): string {
@@ -128,6 +194,15 @@ export function toCreatePayload(values: ProductFormValues) {
     contenido_neto: normalizeContenido(values.contenido_neto),
     unidad_medida: values.unidad_medida as UnidadMedida,
     presentacion: normalizePresentacion(values.presentacion),
+    ...(normalizeMoneyValue(values.costo_produccion) !== null
+      ? { costo_produccion: normalizeMoneyValue(values.costo_produccion) }
+      : {}),
+    ...(normalizeMoneyValue(values.precio_venta) !== null
+      ? { precio_venta: normalizeMoneyValue(values.precio_venta) }
+      : {}),
+    ...(values.categoria_ids.length > 0
+      ? { categoria_ids: [...values.categoria_ids] }
+      : {}),
   };
 }
 
@@ -169,14 +244,40 @@ export function buildUpdatePayload(
     payload.presentacion = nextPresentacion;
   }
 
+  const nextCosto = normalizeMoneyValue(current.costo_produccion);
+  const prevCosto = normalizeMoneyValue(original.costo_produccion);
+  if (nextCosto !== prevCosto) {
+    payload.costo_produccion = nextCosto;
+  }
+
+  const nextPrecio = normalizeMoneyValue(current.precio_venta);
+  const prevPrecio = normalizeMoneyValue(original.precio_venta);
+  if (nextPrecio !== prevPrecio) {
+    payload.precio_venta = nextPrecio;
+  }
+
+  if (!sameCategoryIds(current.categoria_ids, original.categoria_ids)) {
+    payload.categoria_ids = [...current.categoria_ids];
+  }
+
   return payload;
 }
 
-export const PRODUCT_FORM_FIELD_ORDER: (keyof ProductFormValues)[] = [
+export const PRODUCT_FORM_SCALAR_FIELDS: (keyof Omit<
+  ProductFormValues,
+  "categoria_ids"
+>)[] = [
   "codigo_interno",
   "nombre",
   "descripcion",
   "contenido_neto",
   "unidad_medida",
   "presentacion",
+  "costo_produccion",
+  "precio_venta",
+];
+
+export const PRODUCT_FORM_FIELD_ORDER: (keyof ProductFormValues)[] = [
+  ...PRODUCT_FORM_SCALAR_FIELDS,
+  "categoria_ids",
 ];

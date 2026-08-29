@@ -1,0 +1,122 @@
+import { useEffect, useRef, useState } from "react";
+import { resolveProductImageUrl } from "@/lib/productImageUpload";
+import { validateProductImage } from "@/lib/productImageUtils";
+
+interface ProductImageFieldProps {
+  currentImageUrl?: string | null;
+  disabled?: boolean;
+  error?: string;
+  onChange: (file: File | null) => void;
+}
+
+export default function ProductImageField({
+  currentImageUrl = null,
+  disabled = false,
+  error,
+  onChange,
+}: ProductImageFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [localError, setLocalError] = useState("");
+
+  const existingUrl = resolveProductImageUrl(currentImageUrl);
+  const displayUrl = previewUrl ?? existingUrl;
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  function handleFileChange(file: File | null) {
+    setLocalError("");
+    if (!file) {
+      onChange(null);
+      setPreviewUrl(null);
+      return;
+    }
+
+    const validationError = validateProductImage(file);
+    if (validationError) {
+      setLocalError(validationError);
+      onChange(null);
+      setPreviewUrl(null);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(file));
+    onChange(file);
+  }
+
+  const message = error ?? localError;
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-text-primary">
+        Imagen principal
+      </legend>
+      <p className="text-xs text-text-secondary">
+        Opcional. JPG, JPEG, PNG o WEBP. Máximo 5 MB.
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div
+          className="w-full sm:w-40 h-40 rounded-xl border border-border bg-surface overflow-hidden flex items-center justify-center shrink-0"
+          aria-hidden={!displayUrl}
+        >
+          {displayUrl ? (
+            <img
+              src={displayUrl}
+              alt="Vista previa del producto"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="text-center px-3 text-xs text-text-secondary">
+              Sin imagen
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 space-y-2 w-full">
+          <input
+            ref={inputRef}
+            id="imagen_producto"
+            name="imagen_producto"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+            disabled={disabled}
+            onChange={(event) =>
+              handleFileChange(event.target.files?.[0] ?? null)
+            }
+            className="block w-full text-sm text-text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-50"
+          />
+          {displayUrl && (
+            <button
+              type="button"
+              className="text-sm text-text-secondary hover:text-text-primary underline-offset-2 hover:underline disabled:opacity-50"
+              disabled={disabled}
+              onClick={() => {
+                if (inputRef.current) inputRef.current.value = "";
+                handleFileChange(null);
+              }}
+            >
+              Quitar selección
+            </button>
+          )}
+        </div>
+      </div>
+
+      {message && (
+        <p className="text-xs text-error" role="alert">
+          {message}
+        </p>
+      )}
+    </fieldset>
+  );
+}

@@ -5,9 +5,10 @@ import ProductUnavailable from "@/components/products/ProductUnavailable";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
-import { formatProductContent } from "@/lib/productListUtils";
+import { formatProductContent, formatProductMoney } from "@/lib/productListUtils";
+import { resolveProductImageUrl } from "@/lib/productImageUpload";
 import { getProduct } from "@/services/productService";
-import type { Product } from "@/types/product";
+import type { Product, Categoria } from "@/types/product";
 
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -90,6 +91,11 @@ export default function ProductDetail() {
 
             {successMessage && <Alert type="success">{successMessage}</Alert>}
 
+            <ProductMainImage
+              imagenUrl={product.imagen_url}
+              nombre={product.nombre}
+            />
+
             <section
               className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-5"
               aria-labelledby="product-general-info"
@@ -118,6 +124,19 @@ export default function ProductDetail() {
                   {product.presentacion?.trim()
                     ? product.presentacion
                     : "No especificada"}
+                </DetailField>
+                <DetailField label="Costo de producción">
+                  {formatProductMoney(product.costo_produccion)}
+                </DetailField>
+                <DetailField label="Precio de venta">
+                  {formatProductMoney(product.precio_venta)}
+                </DetailField>
+                <DetailField label="Categorías">
+                  {product.categorias.length > 0 ? (
+                    <CategoryBadges categorias={product.categorias} />
+                  ) : (
+                    "Sin categorías"
+                  )}
                 </DetailField>
               </dl>
             </section>
@@ -171,6 +190,49 @@ function ProductDetailLoading() {
       <p className="text-sm text-text-secondary">Cargando producto...</p>
       <div className="h-8 w-2/3 rounded-lg bg-card border border-border animate-pulse" />
       <div className="h-40 rounded-xl bg-card border border-border animate-pulse" />
+    </div>
+  );
+}
+
+function ProductMainImage({
+  imagenUrl,
+  nombre,
+}: {
+  imagenUrl: string | null;
+  nombre: string;
+}) {
+  const src = resolveProductImageUrl(imagenUrl);
+
+  return (
+    <div className="w-full max-w-xs">
+      <div className="aspect-square rounded-xl border border-border bg-surface overflow-hidden flex items-center justify-center">
+        {src ? (
+          <img
+            src={src}
+            alt={`Imagen de ${nombre}`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="text-center px-4 text-sm text-text-secondary">
+            Sin imagen principal
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CategoryBadges({ categorias }: { categorias: Categoria[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {categorias.map((categoria) => (
+        <span
+          key={categoria.id}
+          className="inline-flex items-center rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
+        >
+          {categoria.nombre}
+        </span>
+      ))}
     </div>
   );
 }
