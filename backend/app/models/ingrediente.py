@@ -68,6 +68,9 @@ class Ingrediente(Base):
         back_populates="componente",
         foreign_keys="ComposicionIngrediente.ingrediente_componente_id",
     )
+    formulaciones_producto: Mapped[list["FormulacionVersionProducto"]] = relationship(
+        back_populates="ingrediente",
+    )
 
 
 class ComposicionIngrediente(Base):

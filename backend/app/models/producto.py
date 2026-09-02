@@ -106,3 +106,66 @@ class VersionProducto(Base):
     lotes_producto: Mapped[list["LoteProducto"]] = relationship(
         back_populates="version_producto",
     )
+    formulacion: Mapped[list["FormulacionVersionProducto"]] = relationship(
+        back_populates="version_producto",
+        cascade="all, delete-orphan",
+        order_by="FormulacionVersionProducto.orden",
+    )
+
+
+class FormulacionVersionProducto(Base):
+    """Declared ingredient composition for a product version (T02-08)."""
+
+    __tablename__ = "versiones_producto_formulacion"
+    __table_args__ = (
+        UniqueConstraint(
+            "version_producto_id",
+            "ingrediente_id",
+            name="uq_version_producto_formulacion_ingrediente",
+        ),
+        CheckConstraint(
+            "porcentaje IS NULL OR (porcentaje > 0 AND porcentaje <= 100)",
+            name="ck_version_producto_formulacion_porcentaje",
+        ),
+        CheckConstraint(
+            "cantidad IS NULL OR cantidad > 0",
+            name="ck_version_producto_formulacion_cantidad",
+        ),
+        CheckConstraint(
+            "unidad IS NULL OR unidad IN ('g', 'kg', 'ml', 'L', 'unidad')",
+            name="ck_version_producto_formulacion_unidad",
+        ),
+        CheckConstraint(
+            "porcentaje IS NOT NULL OR (cantidad IS NOT NULL AND unidad IS NOT NULL)",
+            name="ck_version_producto_formulacion_cuantificacion",
+        ),
+        CheckConstraint(
+            "orden IS NULL OR orden >= 1",
+            name="ck_version_producto_formulacion_orden",
+        ),
+        CheckConstraint(
+            "ingrediente_tipo IS NULL OR ingrediente_tipo IN ('simple', 'compuesto')",
+            name="ck_version_producto_formulacion_tipo",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version_producto_id: Mapped[int] = mapped_column(
+        ForeignKey("versiones_producto.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    ingrediente_id: Mapped[int] = mapped_column(
+        ForeignKey("ingredientes.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    porcentaje: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
+    cantidad: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    unidad: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    orden: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notas: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ingrediente_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+    ingrediente_codigo_interno: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    ingrediente_tipo: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    version_producto: Mapped["VersionProducto"] = relationship(back_populates="formulacion")
+    ingrediente: Mapped["Ingrediente"] = relationship(back_populates="formulaciones_producto")
