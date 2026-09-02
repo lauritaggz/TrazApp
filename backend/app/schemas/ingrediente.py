@@ -6,6 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 TipoIngrediente = Literal["simple", "compuesto"]
 
+TIPO_SIMPLE: TipoIngrediente = "simple"
+TIPO_COMPUESTO: TipoIngrediente = "compuesto"
+TIPOS_INGREDIENTE_PERMITIDOS = frozenset({TIPO_SIMPLE, TIPO_COMPUESTO})
+
 _REQUIRED_UPDATE_FIELDS = ("codigo_interno", "nombre", "tipo")
 
 
@@ -136,6 +140,6 @@ class IngredienteGestionRead(BaseModel):
     codigo_interno: str | None
     nombre: str
     descripcion: str | None
-    tipo: str | None
+    tipo: TipoIngrediente | None
     activo: bool
     created_at: datetime | None

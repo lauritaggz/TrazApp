@@ -1,8 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Ingrediente
+from app.models import ComposicionIngrediente, Ingrediente
 
 
 class DuplicateCodigoInternoError(Exception):
@@ -40,6 +40,14 @@ class IngredienteRepository:
             ) from exc
         self.db.refresh(ingrediente)
         return ingrediente
+
+    def has_componentes(self, ingrediente_id: int) -> bool:
+        count = self.db.scalar(
+            select(func.count())
+            .select_from(ComposicionIngrediente)
+            .where(ComposicionIngrediente.ingrediente_compuesto_id == ingrediente_id)
+        )
+        return bool(count)
 
     def list_by_productor(self, productor_id: int) -> list[Ingrediente]:
         stmt = (

@@ -1,6 +1,8 @@
 from app.models import Ingrediente, Productor
 from app.repositories.ingrediente_repository import IngredienteRepository
 from app.schemas.ingrediente import (
+    TIPO_COMPUESTO,
+    TIPO_SIMPLE,
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
@@ -9,6 +11,10 @@ from app.schemas.ingrediente import (
 
 class IngredienteNotFoundError(Exception):
     """Raised when an ingredient is not visible to the authenticated productor."""
+
+
+class InvalidTipoIngredienteError(Exception):
+    """Raised when a tipo change violates HU02 business rules."""
 
 
 class IngredienteService:
@@ -20,6 +26,7 @@ class IngredienteService:
         productor: Productor,
         payload: IngredienteGestionCreate,
     ) -> IngredienteGestionRead:
+        self._validate_tipo_on_create(payload.tipo)
         ingrediente = self.repository.create(
             productor_id=productor.id,
             **payload.model_dump(),
@@ -46,6 +53,8 @@ class IngredienteService:
     ) -> IngredienteGestionRead:
         ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
         updates = payload.model_dump(exclude_unset=True)
+        if "tipo" in updates:
+            self._validate_tipo_on_update(ingrediente, updates["tipo"])
         updated = self.repository.update(ingrediente, **updates)
         return IngredienteGestionRead.model_validate(updated)
 
@@ -61,3 +70,21 @@ class IngredienteService:
         if ingrediente is None:
             raise IngredienteNotFoundError("Ingrediente no encontrado")
         return ingrediente
+
+    @staticmethod
+    def _validate_tipo_on_create(tipo: str) -> None:
+        if tipo == TIPO_SIMPLE:
+            return
+        if tipo == TIPO_COMPUESTO:
+            return
+        raise InvalidTipoIngredienteError("El tipo de ingrediente no es válido.")
+
+    def _validate_tipo_on_update(self, ingrediente: Ingrediente, nuevo_tipo: str) -> None:
+        if nuevo_tipo not in {TIPO_SIMPLE, TIPO_COMPUESTO}:
+            raise InvalidTipoIngredienteError("El tipo de ingrediente no es válido.")
+        if nuevo_tipo == ingrediente.tipo:
+            return
+        if nuevo_tipo == TIPO_SIMPLE and self.repository.has_componentes(ingrediente.id):
+            raise InvalidTipoIngredienteError(
+                "No se puede cambiar a simple mientras el ingrediente tenga componentes asociados."
+            )

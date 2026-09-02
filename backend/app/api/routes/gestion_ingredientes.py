@@ -8,7 +8,11 @@ from app.schemas.ingrediente import (
     IngredienteGestionRead,
     IngredienteGestionUpdate,
 )
-from app.services.ingrediente_service import IngredienteNotFoundError, IngredienteService
+from app.services.ingrediente_service import (
+    IngredienteNotFoundError,
+    IngredienteService,
+    InvalidTipoIngredienteError,
+)
 
 router = APIRouter(prefix="/gestion/ingredientes", tags=["gestion-ingredientes"])
 
@@ -28,6 +32,11 @@ def crear_ingrediente(
     except DuplicateCodigoInternoError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except InvalidTipoIngredienteError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
 
@@ -72,6 +81,11 @@ def actualizar_ingrediente(
     except DuplicateCodigoInternoError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except InvalidTipoIngredienteError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
 
