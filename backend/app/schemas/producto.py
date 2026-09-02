@@ -249,3 +249,97 @@ class VersionProductoRead(BaseModel):
     descripcion: str
     fecha_creacion: datetime
     vigente: bool
+
+
+# --- Formulación versionada HU02 / T02-09 ---
+
+
+class FormulacionComponenteCreate(BaseModel):
+    """Add an ingredient line to a product version's declared formulation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ingrediente_id: int = Field(gt=0)
+    porcentaje: Decimal | None = Field(
+        default=None,
+        gt=0,
+        le=100,
+        max_digits=6,
+        decimal_places=3,
+    )
+    cantidad: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=3,
+    )
+    unidad: UnidadMedida | None = None
+    orden: int | None = Field(default=None, ge=1)
+    notas: str | None = None
+
+    @model_validator(mode="after")
+    def validate_cuantificacion(self) -> Self:
+        has_porcentaje = self.porcentaje is not None
+        has_cantidad = self.cantidad is not None
+        has_unidad = self.unidad is not None
+
+        if has_porcentaje and (has_cantidad or has_unidad):
+            raise ValueError("Indique porcentaje o cantidad con unidad, no ambos.")
+        if not has_porcentaje and not (has_cantidad and has_unidad):
+            raise ValueError("Debe indicar porcentaje o cantidad con unidad.")
+        if has_cantidad != has_unidad:
+            raise ValueError("cantidad y unidad deben indicarse juntas.")
+        return self
+
+
+class FormulacionComponenteUpdate(BaseModel):
+    """Partial update for a formulation line."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    porcentaje: Decimal | None = Field(
+        default=None,
+        gt=0,
+        le=100,
+        max_digits=6,
+        decimal_places=3,
+    )
+    cantidad: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=3,
+    )
+    unidad: UnidadMedida | None = None
+    orden: int | None = Field(default=None, ge=1)
+    notas: str | None = None
+
+
+class FormulacionComponenteRead(BaseModel):
+    """Read payload for a product version formulation line."""
+
+    id: int
+    ingrediente_id: int
+    ingrediente_nombre: str
+    ingrediente_codigo_interno: str | None
+    ingrediente_tipo: str | None
+    porcentaje: Decimal | None
+    cantidad: Decimal | None
+    unidad: str | None
+    orden: int | None
+    notas: str | None
+
+    @classmethod
+    def from_formulacion(cls, linea: object) -> "FormulacionComponenteRead":
+        return cls(
+            id=linea.id,  # type: ignore[attr-defined]
+            ingrediente_id=linea.ingrediente_id,  # type: ignore[attr-defined]
+            ingrediente_nombre=linea.ingrediente_nombre,  # type: ignore[attr-defined]
+            ingrediente_codigo_interno=linea.ingrediente_codigo_interno,  # type: ignore[attr-defined]
+            ingrediente_tipo=linea.ingrediente_tipo,  # type: ignore[attr-defined]
+            porcentaje=linea.porcentaje,  # type: ignore[attr-defined]
+            cantidad=linea.cantidad,  # type: ignore[attr-defined]
+            unidad=linea.unidad,  # type: ignore[attr-defined]
+            orden=linea.orden,  # type: ignore[attr-defined]
+            notas=linea.notas,  # type: ignore[attr-defined]
+        )

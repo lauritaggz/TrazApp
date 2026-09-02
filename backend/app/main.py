@@ -8,6 +8,7 @@ from app.api.routes import (
     auth,
     gestion_categorias,
     gestion_ingredientes,
+    gestion_producto_formulacion,
     gestion_productos,
     health,
     ingredientes,
@@ -38,6 +39,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(gestion_productos.router)
+app.include_router(gestion_producto_formulacion.router)
 app.include_router(gestion_categorias.router)
 app.include_router(gestion_ingredientes.router)
 app.include_router(productos.router)
