@@ -20,7 +20,7 @@ export function useAppShell() {
         navigate("/productos");
         break;
       case "ingredientes":
-        navigate("/dashboard");
+        navigate("/ingredientes");
         break;
       case "perfil":
         navigate("/perfil");

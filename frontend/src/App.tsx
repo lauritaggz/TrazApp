@@ -1,6 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute } from "@/auth/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
+import IngredientDetail from "@/pages/IngredientDetail";
+import IngredientEdit from "@/pages/IngredientEdit";
+import IngredientNew from "@/pages/IngredientNew";
+import Ingredients from "@/pages/Ingredients";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import ProductDetail from "@/pages/ProductDetail";
@@ -25,6 +29,10 @@ export default function App() {
         <Route path="/productos/nuevo" element={<ProductNew />} />
         <Route path="/productos/:id/editar" element={<ProductEdit />} />
         <Route path="/productos/:id" element={<ProductDetail />} />
+        <Route path="/ingredientes" element={<Ingredients />} />
+        <Route path="/ingredientes/nuevo" element={<IngredientNew />} />
+        <Route path="/ingredientes/:id/editar" element={<IngredientEdit />} />
+        <Route path="/ingredientes/:id" element={<IngredientDetail />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

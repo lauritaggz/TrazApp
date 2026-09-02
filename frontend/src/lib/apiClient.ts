@@ -11,6 +11,8 @@ const FRIENDLY_FIELD_MESSAGES: Record<string, string> = {
   costo_produccion: "Revisa el costo de producción.",
   precio_venta: "Revisa el precio de venta.",
   categoria_ids: "Revisa las categorías seleccionadas.",
+  tipo: "Revisa el tipo de ingrediente.",
+  alergeno_id: "Revisa el alérgeno seleccionado.",
 };
 
 export function getApiBaseUrl(): string {
