@@ -4,18 +4,23 @@ from app.api.dependencies import get_current_productor, get_ingrediente_service
 from app.models import Productor
 from app.repositories.ingrediente_repository import DuplicateCodigoInternoError
 from app.schemas.ingrediente import (
+    AlergenoRead,
     ComposicionComponenteCreate,
     ComposicionComponenteRead,
     ComposicionComponenteUpdate,
+    IngredienteAlergenoCreate,
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
 )
 from app.services.ingrediente_service import (
+    AlergenoNotFoundError,
     ComposicionNotFoundError,
+    IngredienteAlergenoNotFoundError,
     IngredienteNotFoundError,
     IngredienteService,
     InvalidComposicionError,
+    InvalidIngredienteAlergenoError,
     InvalidTipoIngredienteError,
 )
 
@@ -226,5 +231,82 @@ def eliminar_componente_composicion(
     except InvalidComposicionError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/{ingrediente_id}/alergenos",
+    response_model=list[AlergenoRead],
+)
+def listar_alergenos_ingrediente(
+    ingrediente_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> list[AlergenoRead]:
+    try:
+        return service.list_alergenos_mine(current_productor, ingrediente_id)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/{ingrediente_id}/alergenos",
+    response_model=AlergenoRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def agregar_alergeno_ingrediente(
+    ingrediente_id: int,
+    payload: IngredienteAlergenoCreate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> AlergenoRead:
+    try:
+        return service.add_alergeno_mine(current_productor, ingrediente_id, payload)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except AlergenoNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidIngredienteAlergenoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.delete(
+    "/{ingrediente_id}/alergenos/{alergeno_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def eliminar_alergeno_ingrediente(
+    ingrediente_id: int,
+    alergeno_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> None:
+    try:
+        service.delete_alergeno_mine(current_productor, ingrediente_id, alergeno_id)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except AlergenoNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except IngredienteAlergenoNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc

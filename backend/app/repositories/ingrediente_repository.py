@@ -4,7 +4,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import ComposicionIngrediente, Ingrediente
+from app.models import Alergeno, ComposicionIngrediente, Ingrediente
+from app.models.alergeno import ingredientes_alergenos
 
 
 class DuplicateCodigoInternoError(Exception):
@@ -13,6 +14,10 @@ class DuplicateCodigoInternoError(Exception):
 
 class DuplicateComposicionComponenteError(Exception):
     """Raised when a component is already part of the composition."""
+
+
+class DuplicateIngredienteAlergenoError(Exception):
+    """Raised when an allergen is already associated with the ingredient."""
 
 
 class IngredienteRepository:
@@ -200,3 +205,55 @@ class IngredienteRepository:
         self.db.commit()
         self.db.refresh(ingrediente)
         return ingrediente
+
+    def get_alergeno_by_id(self, alergeno_id: int) -> Alergeno | None:
+        return self.db.get(Alergeno, alergeno_id)
+
+    def list_alergenos_for_ingrediente(self, ingrediente_id: int) -> list[Alergeno]:
+        stmt = (
+            select(Alergeno)
+            .join(
+                ingredientes_alergenos,
+                ingredientes_alergenos.c.alergeno_id == Alergeno.id,
+            )
+            .where(ingredientes_alergenos.c.ingrediente_id == ingrediente_id)
+            .order_by(Alergeno.codigo.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def has_alergeno_association(self, ingrediente_id: int, alergeno_id: int) -> bool:
+        stmt = select(ingredientes_alergenos.c.ingrediente_id).where(
+            ingredientes_alergenos.c.ingrediente_id == ingrediente_id,
+            ingredientes_alergenos.c.alergeno_id == alergeno_id,
+        )
+        return self.db.scalar(stmt) is not None
+
+    def add_alergeno_association(
+        self,
+        ingrediente: Ingrediente,
+        alergeno: Alergeno,
+    ) -> None:
+        if self.has_alergeno_association(ingrediente.id, alergeno.id):
+            raise DuplicateIngredienteAlergenoError(
+                "El alérgeno ya está asociado al ingrediente."
+            )
+        ingrediente.alergenos.append(alergeno)
+        self.db.add(ingrediente)
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise DuplicateIngredienteAlergenoError(
+                "El alérgeno ya está asociado al ingrediente."
+            ) from exc
+
+    def remove_alergeno_association(
+        self,
+        ingrediente: Ingrediente,
+        alergeno: Alergeno,
+    ) -> None:
+        if not self.has_alergeno_association(ingrediente.id, alergeno.id):
+            return
+        ingrediente.alergenos.remove(alergeno)
+        self.db.add(ingrediente)
+        self.db.commit()

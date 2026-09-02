@@ -1,14 +1,17 @@
 from app.models import Ingrediente, Productor
 from app.repositories.ingrediente_repository import (
     DuplicateComposicionComponenteError,
+    DuplicateIngredienteAlergenoError,
     IngredienteRepository,
 )
 from app.schemas.ingrediente import (
     TIPO_COMPUESTO,
     TIPO_SIMPLE,
+    AlergenoRead,
     ComposicionComponenteCreate,
     ComposicionComponenteRead,
     ComposicionComponenteUpdate,
+    IngredienteAlergenoCreate,
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
@@ -21,6 +24,18 @@ class IngredienteNotFoundError(Exception):
 
 class ComposicionNotFoundError(Exception):
     """Raised when a composition row is not found for the compound ingredient."""
+
+
+class AlergenoNotFoundError(Exception):
+    """Raised when an allergen is not in the global catalog."""
+
+
+class IngredienteAlergenoNotFoundError(Exception):
+    """Raised when an allergen association is not found for the ingredient."""
+
+
+class InvalidIngredienteAlergenoError(Exception):
+    """Raised when an allergen association violates HU02 business rules."""
 
 
 class InvalidTipoIngredienteError(Exception):
@@ -142,6 +157,47 @@ class IngredienteService:
         if composicion is None:
             raise ComposicionNotFoundError("Componente de composición no encontrado.")
         self.repository.delete_composicion(composicion)
+
+    def list_alergenos_mine(
+        self,
+        productor: Productor,
+        ingrediente_id: int,
+    ) -> list[AlergenoRead]:
+        ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
+        alergenos = self.repository.list_alergenos_for_ingrediente(ingrediente.id)
+        return [AlergenoRead.model_validate(item) for item in alergenos]
+
+    def add_alergeno_mine(
+        self,
+        productor: Productor,
+        ingrediente_id: int,
+        payload: IngredienteAlergenoCreate,
+    ) -> AlergenoRead:
+        ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
+        alergeno = self.repository.get_alergeno_by_id(payload.alergeno_id)
+        if alergeno is None:
+            raise AlergenoNotFoundError("Alérgeno no encontrado.")
+        try:
+            self.repository.add_alergeno_association(ingrediente, alergeno)
+        except DuplicateIngredienteAlergenoError as exc:
+            raise InvalidIngredienteAlergenoError(str(exc)) from exc
+        return AlergenoRead.model_validate(alergeno)
+
+    def delete_alergeno_mine(
+        self,
+        productor: Productor,
+        ingrediente_id: int,
+        alergeno_id: int,
+    ) -> None:
+        ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
+        if not self.repository.has_alergeno_association(ingrediente.id, alergeno_id):
+            raise IngredienteAlergenoNotFoundError(
+                "Asociación de alérgeno no encontrada."
+            )
+        alergeno = self.repository.get_alergeno_by_id(alergeno_id)
+        if alergeno is None:
+            raise AlergenoNotFoundError("Alérgeno no encontrado.")
+        self.repository.remove_alergeno_association(ingrediente, alergeno)
 
     def _get_owned_or_raise(self, productor_id: int, ingrediente_id: int) -> Ingrediente:
         ingrediente = self.repository.get_by_id_and_productor(

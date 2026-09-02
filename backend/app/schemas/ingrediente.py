@@ -197,3 +197,24 @@ class ComposicionComponenteRead(BaseModel):
             porcentaje=composicion.porcentaje,  # type: ignore[attr-defined]
             orden=composicion.orden,  # type: ignore[attr-defined]
         )
+
+
+# --- Alérgenos HU02 (T02-05) ---
+
+
+class AlergenoRead(BaseModel):
+    """Read-only payload for a global allergen catalog entry."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    codigo: str
+    nombre: str
+
+
+class IngredienteAlergenoCreate(BaseModel):
+    """Associate an allergen from the global catalog with an ingredient."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    alergeno_id: int = Field(gt=0)
