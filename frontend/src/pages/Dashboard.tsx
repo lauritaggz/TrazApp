@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppShell } from "@/hooks/useAppShell";
 import AppShell from "@/components/layout/AppShell";
@@ -14,24 +14,24 @@ export default function Dashboard() {
   const [activePage, setActivePage] = useState<AppSection>("inicio");
   const [productCount, setProductCount] = useState(0);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
+
+  const loadProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    setProductsError("");
+    try {
+      const products = await listProducts();
+      setProductCount(products.length);
+    } catch {
+      setProductsError("No pudimos cargar tus productos.");
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoadingProducts(true);
-    void listProducts()
-      .then((products) => {
-        if (!cancelled) setProductCount(products.length);
-      })
-      .catch(() => {
-        if (!cancelled) setProductCount(0);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingProducts(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadProducts();
+  }, [loadProducts]);
 
   function handleDashboardNavigate(page: AppSection) {
     if (page === "productos") {
@@ -65,6 +65,8 @@ export default function Dashboard() {
           businessName={businessName}
           productCount={productCount}
           loadingProducts={loadingProducts}
+          productsError={productsError}
+          onRetryProducts={() => void loadProducts()}
           onGoToProducts={() => navigate("/productos")}
           onGoToIngredients={() => setActivePage("ingredientes")}
         />
@@ -86,6 +88,8 @@ function HomePage({
   businessName,
   productCount,
   loadingProducts,
+  productsError,
+  onRetryProducts,
   onGoToProducts,
   onGoToIngredients,
 }: {
@@ -93,10 +97,12 @@ function HomePage({
   businessName?: string | null;
   productCount: number;
   loadingProducts: boolean;
+  productsError: string;
+  onRetryProducts: () => void;
   onGoToProducts: () => void;
   onGoToIngredients: () => void;
 }) {
-  const hasProducts = productCount > 0;
+  const hasProducts = productCount > 0 && !productsError;
   const productsCta = hasProducts
     ? "Gestionar productos"
     : "Registrar primer producto";
@@ -131,6 +137,18 @@ function HomePage({
           <p className="text-sm text-text-secondary" aria-live="polite">
             Cargando productos...
           </p>
+        ) : productsError ? (
+          <div className="space-y-3" role="alert">
+            <p className="text-sm text-error">{productsError}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={onRetryProducts}
+            >
+              Reintentar
+            </Button>
+          </div>
         ) : hasProducts ? (
           <p className="text-sm text-text-secondary">
             {productCountLabel(productCount)}
@@ -140,7 +158,7 @@ function HomePage({
             Aún no has registrado productos.
           </p>
         )}
-        {!loadingProducts && (
+        {!loadingProducts && !productsError && (
           <Button type="button" onClick={onGoToProducts}>
             {productsCta}
           </Button>
@@ -156,7 +174,13 @@ function HomePage({
             icon={<BoxIcon large />}
             title="Productos"
             description="Administra los productos de tu negocio."
-            actionLabel={loadingProducts ? "Ir a productos" : productsCta}
+            actionLabel={
+              loadingProducts
+                ? "Ir a productos"
+                : productsError
+                  ? "Ir a productos"
+                  : productsCta
+            }
             onClick={onGoToProducts}
           />
           <QuickCard

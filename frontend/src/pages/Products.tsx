@@ -58,6 +58,7 @@ export default function Products() {
     const state = location.state as {
       productCreated?: boolean;
       productDeleted?: boolean;
+      productUpdated?: boolean;
     } | null;
     if (state?.productCreated) {
       setSuccessMessage("Producto creado correctamente.");
@@ -66,6 +67,11 @@ export default function Products() {
     }
     if (state?.productDeleted) {
       setSuccessMessage("Producto eliminado correctamente.");
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
+    if (state?.productUpdated) {
+      setSuccessMessage("Producto actualizado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate]);

@@ -20,10 +20,15 @@ interface ProductFormProps {
   errors: ProductFormFieldErrors;
   categories?: Categoria[];
   categoriesLoading?: boolean;
+  categoriesLoadError?: string;
+  onCategoriesRetry?: () => void;
   currentImageUrl?: string | null;
+  removeExistingImage?: boolean;
   imageFile?: File | null;
   imageError?: string;
   onImageChange?: (file: File | null) => void;
+  onRemoveExistingImage?: () => void;
+  onUndoRemoveExistingImage?: () => void;
   mode?: ProductFormMode;
   loading?: boolean;
   /** Increment after each failed submit to move focus to the first error. */
@@ -40,10 +45,15 @@ export default function ProductForm({
   errors,
   categories = [],
   categoriesLoading = false,
+  categoriesLoadError,
+  onCategoriesRetry,
   currentImageUrl = null,
+  removeExistingImage = false,
   imageFile = null,
   imageError,
   onImageChange,
+  onRemoveExistingImage,
+  onUndoRemoveExistingImage,
   mode = "create",
   loading = false,
   errorFocusToken = 0,
@@ -258,6 +268,8 @@ export default function ProductForm({
           selectedIds={values.categoria_ids}
           disabled={loading}
           loading={categoriesLoading}
+          loadError={categoriesLoadError}
+          onRetry={onCategoriesRetry}
           error={errors.categoria_ids}
           onChange={(categoria_ids) => update("categoria_ids", categoria_ids)}
         />
@@ -317,9 +329,12 @@ export default function ProductForm({
         >
           <ProductImageField
             currentImageUrl={imageFile ? null : currentImageUrl}
+            removeExistingImage={removeExistingImage}
             disabled={loading}
             error={imageError}
             onChange={onImageChange}
+            onRemoveExistingImage={onRemoveExistingImage}
+            onUndoRemoveExistingImage={onUndoRemoveExistingImage}
             hideLegend
           />
         </ProductFormSection>

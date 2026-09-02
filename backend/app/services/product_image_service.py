@@ -104,6 +104,9 @@ class ProductImageService:
             return ""
         return Path(filename).suffix.lower()
 
+    def delete_stored_image(self, imagen_url: str | None) -> None:
+        self._delete_stored_image(imagen_url)
+
     def _delete_stored_image(self, imagen_url: str | None) -> None:
         if not imagen_url or not imagen_url.startswith(PRODUCTS_UPLOAD_PREFIX):
             return

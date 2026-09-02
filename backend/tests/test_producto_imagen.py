@@ -174,3 +174,32 @@ def test_subir_imagen_no_genera_version_producto(
         select(func.count()).select_from(VersionProducto)
     )
     assert count == 0
+
+
+def test_patch_quitar_imagen_elimina_archivo_subido(
+    client,
+    uploads_products_dir,
+) -> None:
+    created = _create_product(client)
+    producto_id = created["producto"]["id"]
+    headers = created["headers"]
+
+    upload = client.post(
+        f"/gestion/productos/{producto_id}/imagen",
+        headers=headers,
+        files={"file": ("galleta.png", PNG_1X1, "image/png")},
+    )
+    assert upload.status_code == 200
+    imagen_url = upload.json()["imagen_url"]
+    stored_file = uploads_products_dir / imagen_url.split("/")[-1]
+    assert stored_file.exists()
+
+    response = client.patch(
+        f"/gestion/productos/{producto_id}",
+        headers=headers,
+        json={"imagen_url": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["imagen_url"] is None
+    assert not stored_file.exists()

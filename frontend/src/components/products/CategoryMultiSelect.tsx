@@ -1,10 +1,13 @@
 import type { Categoria } from "@/types/product";
+import Button from "@/components/ui/Button";
 
 interface CategoryMultiSelectProps {
   categories?: Categoria[];
   selectedIds: number[];
   disabled?: boolean;
   loading?: boolean;
+  loadError?: string;
+  onRetry?: () => void;
   error?: string;
   onChange: (selectedIds: number[]) => void;
 }
@@ -14,6 +17,8 @@ export default function CategoryMultiSelect({
   selectedIds,
   disabled = false,
   loading = false,
+  loadError,
+  onRetry,
   error,
   onChange,
 }: CategoryMultiSelectProps) {
@@ -43,6 +48,24 @@ export default function CategoryMultiSelect({
         <p className="text-sm text-text-secondary" aria-live="polite">
           Cargando categorías...
         </p>
+      ) : loadError ? (
+        <div
+          className="rounded-lg border border-error bg-error-bg p-3 space-y-3"
+          role="alert"
+        >
+          <p className="text-sm text-error">{loadError}</p>
+          {onRetry && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={onRetry}
+              disabled={disabled}
+            >
+              Reintentar
+            </Button>
+          )}
+        </div>
       ) : (
         <div
           className={`

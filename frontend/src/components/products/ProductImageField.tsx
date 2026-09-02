@@ -4,25 +4,37 @@ import { validateProductImage } from "@/lib/productImageUtils";
 
 interface ProductImageFieldProps {
   currentImageUrl?: string | null;
+  removeExistingImage?: boolean;
   disabled?: boolean;
   error?: string;
   hideLegend?: boolean;
   onChange: (file: File | null) => void;
+  onRemoveExistingImage?: () => void;
+  onUndoRemoveExistingImage?: () => void;
 }
 
 export default function ProductImageField({
   currentImageUrl = null,
+  removeExistingImage = false,
   disabled = false,
   error,
   hideLegend = false,
   onChange,
+  onRemoveExistingImage,
+  onUndoRemoveExistingImage,
 }: ProductImageFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [localError, setLocalError] = useState("");
 
-  const existingUrl = resolveProductImageUrl(currentImageUrl);
+  const existingUrl =
+    removeExistingImage ? null : resolveProductImageUrl(currentImageUrl);
   const displayUrl = previewUrl ?? existingUrl;
+  const canRemoveExisting =
+    Boolean(onRemoveExistingImage) &&
+    Boolean(resolveProductImageUrl(currentImageUrl)) &&
+    !previewUrl &&
+    !removeExistingImage;
 
   useEffect(() => {
     return () => {
@@ -108,7 +120,7 @@ export default function ProductImageField({
             }
             className="block w-full text-sm text-text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-50"
           />
-          {displayUrl && (
+          {previewUrl && (
             <button
               type="button"
               className="text-sm text-text-secondary hover:text-text-primary underline-offset-2 hover:underline disabled:opacity-50"
@@ -119,6 +131,26 @@ export default function ProductImageField({
               }}
             >
               Quitar selección
+            </button>
+          )}
+          {canRemoveExisting && (
+            <button
+              type="button"
+              className="text-sm text-text-secondary hover:text-text-primary underline-offset-2 hover:underline disabled:opacity-50"
+              disabled={disabled}
+              onClick={onRemoveExistingImage}
+            >
+              Quitar imagen
+            </button>
+          )}
+          {removeExistingImage && onUndoRemoveExistingImage && (
+            <button
+              type="button"
+              className="text-sm text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline disabled:opacity-50"
+              disabled={disabled}
+              onClick={onUndoRemoveExistingImage}
+            >
+              Deshacer
             </button>
           )}
         </div>

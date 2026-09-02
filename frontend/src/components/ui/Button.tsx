@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost";
@@ -6,14 +6,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-export default function Button({
-  variant = "primary",
-  loading = false,
-  disabled,
-  children,
-  className = "",
-  ...props
-}: ButtonProps) {
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = "primary",
+    loading = false,
+    disabled,
+    children,
+    className = "",
+    ...props
+  },
+  ref,
+) {
   const base =
     "inline-flex items-center justify-center gap-2 font-medium text-sm rounded-lg px-4 py-2.5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none";
 
@@ -28,6 +31,7 @@ export default function Button({
 
   return (
     <button
+      ref={ref}
       disabled={disabled || loading}
       className={`${base} ${variants[variant]} ${className}`}
       {...props}
@@ -42,7 +46,9 @@ export default function Button({
       )}
     </button>
   );
-}
+});
+
+export default Button;
 
 function Spinner() {
   return (

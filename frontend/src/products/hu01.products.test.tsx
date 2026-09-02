@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
@@ -761,6 +761,73 @@ describe("Productos HU01 — creación", () => {
     });
     expect(productService.uploadProductImage).not.toHaveBeenCalled();
   });
+
+  it("muestra error y reintento cuando falla la carga de categorías", async () => {
+    const user = userEvent.setup();
+    vi.mocked(productService.listCategories)
+      .mockRejectedValueOnce(new ApiError("fallo", 500))
+      .mockResolvedValueOnce(mockCategories);
+
+    await openNewProductPage();
+
+    expect(
+      await screen.findByText("No pudimos cargar las categorías disponibles."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Nombre/)).not.toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByLabelText("Pastelería")).toBeInTheDocument();
+  });
+
+  it("permite reintentar o continuar si falla la subida de imagen tras crear", async () => {
+    const user = userEvent.setup();
+    const created: Product = {
+      id: 20,
+      productor_id: 1,
+      codigo_interno: "GAL-001",
+      nombre: "Galleta de chocolate",
+      descripcion: "Galleta horneada con chips de chocolate",
+      contenido_neto: "250.000",
+      unidad_medida: "g",
+      presentacion: "Bolsa de 10 unidades",
+      ...EMPTY_PRODUCT_COMMERCIAL_FIELDS,
+      activo: true,
+      created_at: "2026-08-26T12:00:00Z",
+    };
+    const imageFile = new File(["png"], "galleta.png", { type: "image/png" });
+    vi.mocked(productService.createProduct).mockResolvedValue(created);
+    vi.mocked(productService.uploadProductImage)
+      .mockRejectedValueOnce(new ApiError("fallo imagen", 422))
+      .mockResolvedValueOnce({ ...created, imagen_url: "/uploads/products/p20.png" });
+    vi.mocked(productService.listProducts).mockResolvedValue([created]);
+
+    await openNewProductPage();
+    await fillValidProductForm(user);
+    await user.upload(
+      document.getElementById("imagen_producto") as HTMLInputElement,
+      imageFile,
+    );
+    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+
+    expect(
+      await screen.findByText(
+        "El producto se creó, pero no pudimos subir la imagen.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar subida" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar al producto" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reintentar subida" }));
+
+    await waitFor(() => {
+      expect(productService.uploadProductImage).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("Productos HU01 — detalle y edición", () => {
@@ -1182,6 +1249,9 @@ describe("Productos HU01 — detalle y edición", () => {
     expect(
       await screen.findByRole("heading", { name: "Productos", level: 1 }),
     ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Producto actualizado correctamente."),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Galleta premium listado").length).toBeGreaterThan(
       0,
     );
@@ -1261,6 +1331,75 @@ describe("Productos HU01 — detalle y edición", () => {
     expect(productService.uploadProductImage).not.toHaveBeenCalled();
   });
 
+  it("permite quitar la imagen existente y envía imagen_url null", async () => {
+    const user = userEvent.setup();
+    const withImage: Product = {
+      ...galeta,
+      imagen_url: "/uploads/products/p1_actual.png",
+    };
+    const withoutImage: Product = {
+      ...withImage,
+      imagen_url: null,
+    };
+    vi.mocked(productService.getProduct).mockResolvedValue(withImage);
+    vi.mocked(productService.updateProduct).mockResolvedValue(withoutImage);
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Quitar imagen" }));
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => {
+      expect(productService.updateProduct).toHaveBeenCalledWith(1, {
+        imagen_url: null,
+      });
+    });
+    expect(productService.uploadProductImage).not.toHaveBeenCalled();
+  });
+
+  it("permite continuar al producto si falla la subida de imagen tras editar", async () => {
+    const user = userEvent.setup();
+    const withImage: Product = {
+      ...galeta,
+      imagen_url: "/uploads/products/p1_actual.png",
+    };
+    const imageFile = new File(["png"], "nueva.png", { type: "image/png" });
+    vi.mocked(productService.getProduct).mockResolvedValue(withImage);
+    vi.mocked(productService.updateProduct).mockResolvedValue(withImage);
+    vi.mocked(productService.uploadProductImage).mockRejectedValue(
+      new ApiError("fallo imagen", 422),
+    );
+
+    renderWithProviders(<App />, { initialEntries: ["/productos/1/editar"] });
+    expect(
+      await screen.findByRole("heading", { name: "Editar producto" }),
+    ).toBeInTheDocument();
+
+    await user.upload(
+      document.getElementById("imagen_producto") as HTMLInputElement,
+      imageFile,
+    );
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(
+      await screen.findByText(
+        "Los cambios se guardaron, pero no pudimos subir la imagen.",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Continuar al producto" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Producto actualizado correctamente."),
+    ).toBeInTheDocument();
+  });
+
   it("edición 404 muestra producto no disponible", async () => {
     vi.mocked(productService.getProduct).mockRejectedValue(
       new ApiError("No encontrado", 404),
@@ -1275,7 +1414,6 @@ describe("Productos HU01 — detalle y edición", () => {
 
   it("cancelar eliminación no llama al servicio", async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     vi.mocked(productService.getProduct).mockResolvedValue(galeta);
 
     renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
@@ -1284,19 +1422,19 @@ describe("Productos HU01 — detalle y edición", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+    expect(
+      screen.getByRole("alertdialog", { name: "Eliminar producto" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(productService.deleteProduct).not.toHaveBeenCalled();
     expect(
       screen.getByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
-
-    confirmSpy.mockRestore();
   });
 
   it("confirmar eliminación vuelve al listado con mensaje de éxito", async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const remaining = mockProducts.filter((item) => item.id !== galeta.id);
     vi.mocked(productService.getProduct).mockResolvedValue(galeta);
     vi.mocked(productService.deleteProduct).mockResolvedValue(undefined);
@@ -1308,6 +1446,11 @@ describe("Productos HU01 — detalle y edición", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", {
+        name: "Eliminar producto",
+      }),
+    );
 
     await waitFor(() => {
       expect(productService.deleteProduct).toHaveBeenCalledWith(1);
@@ -1319,13 +1462,10 @@ describe("Productos HU01 — detalle y edición", () => {
       await screen.findByText("Producto eliminado correctamente."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Galleta de chocolate")).not.toBeInTheDocument();
-
-    confirmSpy.mockRestore();
   });
 
   it("muestra error si falla la eliminación", async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(productService.getProduct).mockResolvedValue(galeta);
     vi.mocked(productService.deleteProduct).mockRejectedValue(
       new ApiError("fallo", 500),
@@ -1337,6 +1477,11 @@ describe("Productos HU01 — detalle y edición", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Eliminar producto" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", {
+        name: "Eliminar producto",
+      }),
+    );
 
     expect(
       await screen.findByText(
@@ -1346,7 +1491,5 @@ describe("Productos HU01 — detalle y edición", () => {
     expect(
       screen.getByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
-
-    confirmSpy.mockRestore();
   });
 });

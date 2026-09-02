@@ -295,6 +295,30 @@ describe("Protección y logout HU12", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("muestra error explícito si falla la carga de productos en el Dashboard", async () => {
+    const user = userEvent.setup();
+    setAccessToken("valid-token");
+    vi.mocked(authService.getCurrentProductor).mockResolvedValue(mockProductor);
+    vi.mocked(productService.listProducts)
+      .mockRejectedValueOnce(new ApiError("fallo", 500))
+      .mockResolvedValueOnce([]);
+
+    renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
+
+    expect(
+      await screen.findByText("No pudimos cargar tus productos."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Aún no has registrado productos."),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(
+      await screen.findByText("Aún no has registrado productos."),
+    ).toBeInTheDocument();
+  });
+
   it("cerrar sesión elimina el token y vuelve a Login", async () => {
     const user = userEvent.setup();
     setAccessToken("valid-token");

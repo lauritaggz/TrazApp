@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import ImageUploadRecovery from "@/components/products/ImageUploadRecovery";
 import ProductForm from "@/components/products/ProductForm";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import Alert from "@/components/ui/Alert";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   buildUpdatePayload,
@@ -18,6 +20,7 @@ import {
   EMPTY_PRODUCT_FORM_VALUES,
   type Categoria,
   type ProductFormValues,
+  type ProductUpdatePayload,
 } from "@/types/product";
 
 const DUPLICATE_CODE_MESSAGE =
@@ -26,6 +29,8 @@ const SAVE_ERROR_MESSAGE =
   "No pudimos guardar los cambios. Inténtalo nuevamente.";
 const IMAGE_UPLOAD_ERROR_MESSAGE =
   "Los cambios se guardaron, pero no pudimos subir la imagen.";
+const CATEGORIES_LOAD_ERROR_MESSAGE =
+  "No pudimos cargar las categorías disponibles.";
 
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -56,32 +61,34 @@ export default function ProductEdit() {
   const [globalError, setGlobalError] = useState("");
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesLoadError, setCategoriesLoadError] = useState("");
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [pendingImageUpload, setPendingImageUpload] = useState<{
+    productId: number;
+    file: File;
+  } | null>(null);
+  const [retryingImageUpload, setRetryingImageUpload] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const loadCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    setCategoriesLoadError("");
+    try {
+      const data = await listCategories();
+      setCategories(data);
+    } catch {
+      setCategoriesLoadError(CATEGORIES_LOAD_ERROR_MESSAGE);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadCategories() {
-      setCategoriesLoading(true);
-      try {
-        const data = await listCategories();
-        if (!cancelled) setCategories(data);
-      } catch {
-        if (!cancelled) {
-          setGlobalError("No pudimos cargar las categorías disponibles.");
-        }
-      } finally {
-        if (!cancelled) setCategoriesLoading(false);
-      }
-    }
-
     void loadCategories();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [loadCategories]);
 
   const loadProduct = useCallback(async (id: number) => {
     setLoadingProduct(true);
@@ -94,7 +101,9 @@ export default function ProductEdit() {
       setProductName(product.nombre);
       setCurrentImageUrl(product.imagen_url);
       setImageFile(null);
+      setRemoveExistingImage(false);
       setImageError("");
+      setPendingImageUpload(null);
     } catch {
       setUnavailable(true);
     } finally {
@@ -134,29 +143,89 @@ export default function ProductEdit() {
   function handleImageChange(file: File | null) {
     setImageFile(file);
     if (imageError) setImageError("");
+    if (pendingImageUpload) setPendingImageUpload(null);
+    if (file) setRemoveExistingImage(false);
   }
 
-  function goToDetail() {
+  function handleRemoveExistingImage() {
+    setRemoveExistingImage(true);
+    setImageFile(null);
+    if (imageError) setImageError("");
+    if (pendingImageUpload) setPendingImageUpload(null);
+  }
+
+  function handleUndoRemoveExistingImage() {
+    setRemoveExistingImage(false);
+  }
+
+  function hasUnsavedChanges() {
+    return (
+      isProductFormDirtyComparedTo(values, baseline) ||
+      imageFile !== null ||
+      removeExistingImage
+    );
+  }
+
+  function goToDetail(options?: { productUpdated?: boolean }) {
     if (productId == null) {
       navigate("/productos");
       return;
     }
-    navigate(`/productos/${productId}`);
+    navigate(`/productos/${productId}`, {
+      state: options?.productUpdated ? { productUpdated: true } : undefined,
+    });
   }
 
   function handleCancel() {
-    if (saving) return;
-    if (isProductFormDirtyComparedTo(values, baseline) || imageFile) {
-      const confirmed = window.confirm(
-        "Tienes cambios sin guardar. ¿Deseas salir sin guardar?",
-      );
-      if (!confirmed) return;
+    if (saving || retryingImageUpload) return;
+    if (hasUnsavedChanges()) {
+      setShowCancelConfirm(true);
+      return;
     }
     goToDetail();
   }
 
+  function buildPayloadWithImageRemoval(payload: ProductUpdatePayload) {
+    if (!removeExistingImage || imageFile) return payload;
+    return { ...payload, imagen_url: null };
+  }
+
+  async function uploadImageForProduct(id: number, file: File) {
+    try {
+      await uploadProductImage(id, file);
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setImageError(err.message);
+      }
+      setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
+      setPendingImageUpload({ productId: id, file });
+      return false;
+    }
+  }
+
+  async function handleRetryImageUpload() {
+    if (!pendingImageUpload) return;
+    setRetryingImageUpload(true);
+    setGlobalError("");
+    setImageError("");
+    const uploaded = await uploadImageForProduct(
+      pendingImageUpload.productId,
+      pendingImageUpload.file,
+    );
+    setRetryingImageUpload(false);
+    if (uploaded) {
+      goToDetail({ productUpdated: true });
+    }
+  }
+
+  function handleContinueWithoutImage() {
+    if (!pendingImageUpload) return;
+    goToDetail({ productUpdated: true });
+  }
+
   async function handleSubmit() {
-    if (productId == null) return;
+    if (productId == null || pendingImageUpload) return;
 
     setGlobalError("");
     const validationErrors = validateProductForm(values);
@@ -165,13 +234,13 @@ export default function ProductEdit() {
       return;
     }
 
-    const payload = buildUpdatePayload(baseline, values);
+    const payload = buildPayloadWithImageRemoval(
+      buildUpdatePayload(baseline, values),
+    );
     const hasPayloadChanges = Object.keys(payload).length > 0;
     const hasImageChange = imageFile !== null;
     if (!hasPayloadChanges && !hasImageChange) {
-      navigate(`/productos/${productId}`, {
-        state: { productUpdated: true },
-      });
+      goToDetail({ productUpdated: true });
       return;
     }
 
@@ -181,23 +250,16 @@ export default function ProductEdit() {
     try {
       if (hasPayloadChanges) {
         await updateProduct(productId, payload);
-      }
-      if (hasImageChange && imageFile) {
-        try {
-          await uploadProductImage(productId, imageFile);
-        } catch (err) {
-          if (err instanceof ApiError) {
-            setImageError(err.message);
-            setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
-            return;
-          }
-          setGlobalError(IMAGE_UPLOAD_ERROR_MESSAGE);
-          return;
+        if (payload.imagen_url === null) {
+          setCurrentImageUrl(null);
+          setRemoveExistingImage(false);
         }
       }
-      navigate(`/productos/${productId}`, {
-        state: { productUpdated: true },
-      });
+      if (hasImageChange && imageFile) {
+        const uploaded = await uploadImageForProduct(productId, imageFile);
+        if (!uploaded) return;
+      }
+      goToDetail({ productUpdated: true });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 404) {
@@ -256,7 +318,16 @@ export default function ProductEdit() {
               </p>
             </header>
 
-            {globalError && <Alert type="error">{globalError}</Alert>}
+            {pendingImageUpload ? (
+              <ImageUploadRecovery
+                message={globalError || IMAGE_UPLOAD_ERROR_MESSAGE}
+                retrying={retryingImageUpload}
+                onRetry={() => void handleRetryImageUpload()}
+                onContinue={handleContinueWithoutImage}
+              />
+            ) : (
+              globalError && <Alert type="error">{globalError}</Alert>
+            )}
 
             <ProductForm
               mode="edit"
@@ -264,11 +335,16 @@ export default function ProductEdit() {
               errors={errors}
               categories={categories}
               categoriesLoading={categoriesLoading}
+              categoriesLoadError={categoriesLoadError}
+              onCategoriesRetry={() => void loadCategories()}
               currentImageUrl={currentImageUrl}
+              removeExistingImage={removeExistingImage}
               imageFile={imageFile}
               imageError={imageError}
               onImageChange={handleImageChange}
-              loading={saving}
+              onRemoveExistingImage={handleRemoveExistingImage}
+              onUndoRemoveExistingImage={handleUndoRemoveExistingImage}
+              loading={saving || retryingImageUpload || Boolean(pendingImageUpload)}
               errorFocusToken={errorFocusToken}
               onChange={handleChange}
               onSubmit={() => void handleSubmit()}
@@ -277,6 +353,20 @@ export default function ProductEdit() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showCancelConfirm}
+        title="Salir sin guardar"
+        description="Tienes cambios sin guardar. ¿Deseas salir sin guardar?"
+        confirmLabel="Salir sin guardar"
+        cancelLabel="Seguir editando"
+        destructive
+        onConfirm={() => {
+          setShowCancelConfirm(false);
+          goToDetail();
+        }}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
     </AppShell>
   );
 }

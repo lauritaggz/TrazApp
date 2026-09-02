@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
@@ -33,6 +34,8 @@ export default function ProductDetail() {
   const [successMessage, setSuccessMessage] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
 
   const loadProduct = useCallback(async (id: number) => {
     setLoading(true);
@@ -61,16 +64,17 @@ export default function ProductDetail() {
     const state = location.state as { productUpdated?: boolean } | null;
     if (!state?.productUpdated) return;
     setSuccessMessage("Producto actualizado correctamente.");
+    setJustUpdated(true);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
 
-  async function handleDelete() {
-    if (!product) return;
+  function handleDeleteRequest() {
+    if (!product || deleting) return;
+    setShowDeleteConfirm(true);
+  }
 
-    const confirmed = window.confirm(
-      "¿Eliminar este producto?\n\nSe ocultará del catálogo, pero conservaremos su información histórica de trazabilidad.",
-    );
-    if (!confirmed) return;
+  async function handleDeleteConfirm() {
+    if (!product) return;
 
     setDeleteError("");
     setDeleting(true);
@@ -85,7 +89,14 @@ export default function ProductDetail() {
       setDeleteError("No pudimos eliminar el producto. Inténtalo nuevamente.");
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
+  }
+
+  function handleBackToProducts() {
+    navigate("/productos", {
+      state: justUpdated ? { productUpdated: true } : undefined,
+    });
   }
 
   return (
@@ -195,7 +206,7 @@ export default function ProductDetail() {
                   type="button"
                   variant="secondary"
                   className="w-full sm:w-auto"
-                  onClick={() => navigate("/productos")}
+                  onClick={handleBackToProducts}
                 >
                   Volver a productos
                 </Button>
@@ -222,7 +233,7 @@ export default function ProductDetail() {
                   type="button"
                   variant="secondary"
                   className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
-                  onClick={() => void handleDelete()}
+                  onClick={handleDeleteRequest}
                   loading={deleting}
                   disabled={deleting}
                   aria-describedby="product-delete-help"
@@ -238,6 +249,22 @@ export default function ProductDetail() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Eliminar producto"
+        description={
+          "¿Eliminar este producto?\n\nSe ocultará del catálogo, pero conservaremos su información histórica de trazabilidad."
+        }
+        confirmLabel="Eliminar producto"
+        cancelLabel="Cancelar"
+        destructive
+        loading={deleting}
+        onConfirm={() => void handleDeleteConfirm()}
+        onCancel={() => {
+          if (!deleting) setShowDeleteConfirm(false);
+        }}
+      />
     </AppShell>
   );
 }

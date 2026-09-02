@@ -37,8 +37,13 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 
 def get_producto_service(db: Session = Depends(get_db)) -> ProductoService:
+    settings = get_settings()
     repository = ProductoRepository(db)
-    return ProductoService(repository)
+    image_service = ProductImageService(
+        repository,
+        Path(settings.get_uploads_products_dir()),
+    )
+    return ProductoService(repository, image_service=image_service)
 
 
 def get_categoria_service(db: Session = Depends(get_db)) -> CategoriaService:
