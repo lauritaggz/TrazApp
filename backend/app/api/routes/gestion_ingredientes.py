@@ -4,13 +4,18 @@ from app.api.dependencies import get_current_productor, get_ingrediente_service
 from app.models import Productor
 from app.repositories.ingrediente_repository import DuplicateCodigoInternoError
 from app.schemas.ingrediente import (
+    ComposicionComponenteCreate,
+    ComposicionComponenteRead,
+    ComposicionComponenteUpdate,
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
 )
 from app.services.ingrediente_service import (
+    ComposicionNotFoundError,
     IngredienteNotFoundError,
     IngredienteService,
+    InvalidComposicionError,
     InvalidTipoIngredienteError,
 )
 
@@ -101,5 +106,125 @@ def desactivar_ingrediente(
     except IngredienteNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/{ingrediente_id}/composicion",
+    response_model=list[ComposicionComponenteRead],
+)
+def listar_composicion(
+    ingrediente_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> list[ComposicionComponenteRead]:
+    try:
+        return service.list_composicion_mine(current_productor, ingrediente_id)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidComposicionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/{ingrediente_id}/composicion",
+    response_model=ComposicionComponenteRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def agregar_componente_composicion(
+    ingrediente_id: int,
+    payload: ComposicionComponenteCreate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> ComposicionComponenteRead:
+    try:
+        return service.add_composicion_component_mine(
+            current_productor,
+            ingrediente_id,
+            payload,
+        )
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidComposicionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.patch(
+    "/{ingrediente_id}/composicion/{composicion_id}",
+    response_model=ComposicionComponenteRead,
+)
+def actualizar_componente_composicion(
+    ingrediente_id: int,
+    composicion_id: int,
+    payload: ComposicionComponenteUpdate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> ComposicionComponenteRead:
+    try:
+        return service.update_composicion_component_mine(
+            current_productor,
+            ingrediente_id,
+            composicion_id,
+            payload,
+        )
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ComposicionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidComposicionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.delete(
+    "/{ingrediente_id}/composicion/{composicion_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def eliminar_componente_composicion(
+    ingrediente_id: int,
+    composicion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> None:
+    try:
+        service.delete_composicion_component_mine(
+            current_productor,
+            ingrediente_id,
+            composicion_id,
+        )
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ComposicionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidComposicionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc

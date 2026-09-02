@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -143,3 +144,56 @@ class IngredienteGestionRead(BaseModel):
     tipo: TipoIngrediente | None
     activo: bool
     created_at: datetime | None
+
+
+# --- Composición declarada HU02 (T02-04) ---
+
+
+class ComposicionComponenteCreate(BaseModel):
+    """Add a component to a compound ingredient's declared composition."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ingrediente_componente_id: int = Field(gt=0)
+    porcentaje: Decimal = Field(gt=0, le=100, max_digits=6, decimal_places=3)
+    orden: int | None = Field(default=None, ge=1)
+
+
+class ComposicionComponenteUpdate(BaseModel):
+    """Partial update for a composition row."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    porcentaje: Decimal | None = Field(
+        default=None,
+        gt=0,
+        le=100,
+        max_digits=6,
+        decimal_places=3,
+    )
+    orden: int | None = Field(default=None, ge=1)
+
+
+class ComposicionComponenteRead(BaseModel):
+    """Read payload for a composition row with component summary."""
+
+    id: int
+    ingrediente_componente_id: int
+    codigo_interno: str | None
+    nombre: str
+    tipo: TipoIngrediente | None
+    porcentaje: Decimal
+    orden: int | None
+
+    @classmethod
+    def from_composicion(cls, composicion: object) -> "ComposicionComponenteRead":
+        componente = composicion.componente  # type: ignore[attr-defined]
+        return cls(
+            id=composicion.id,  # type: ignore[attr-defined]
+            ingrediente_componente_id=composicion.ingrediente_componente_id,  # type: ignore[attr-defined]
+            codigo_interno=componente.codigo_interno,
+            nombre=componente.nombre,
+            tipo=componente.tipo,
+            porcentaje=composicion.porcentaje,  # type: ignore[attr-defined]
+            orden=composicion.orden,  # type: ignore[attr-defined]
+        )
