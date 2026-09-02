@@ -4,7 +4,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, gestion_categorias, gestion_productos, health, ingredientes, lotes, productos
+from app.api.routes import (
+    auth,
+    gestion_categorias,
+    gestion_ingredientes,
+    gestion_productos,
+    health,
+    ingredientes,
+    lotes,
+    productos,
+)
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -30,6 +39,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(gestion_productos.router)
 app.include_router(gestion_categorias.router)
+app.include_router(gestion_ingredientes.router)
 app.include_router(productos.router)
 app.include_router(ingredientes.router)
 app.include_router(lotes.router)

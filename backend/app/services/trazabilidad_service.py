@@ -1,4 +1,4 @@
-from app.models import Producto
+from app.models import Ingrediente, Producto
 from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.schemas.lote import (
     LoteIngredienteCreate,
@@ -58,9 +58,7 @@ class TrazabilidadService:
         ingrediente_id: int,
         payload: VersionIngredienteCreate,
     ) -> VersionIngredienteRead:
-        ingrediente = self.repository.get_ingrediente(ingrediente_id)
-        if ingrediente is None:
-            raise LookupError("Ingrediente no encontrado")
+        self._require_legacy_ingrediente(ingrediente_id)
         version = self.repository.create_version_ingrediente(
             ingrediente_id=ingrediente_id,
             composicion_declarada=payload.composicion_declarada,
@@ -70,9 +68,7 @@ class TrazabilidadService:
         return VersionIngredienteRead.model_validate(version)
 
     def listar_versiones_ingrediente(self, ingrediente_id: int) -> list[VersionIngredienteRead]:
-        ingrediente = self.repository.get_ingrediente(ingrediente_id)
-        if ingrediente is None:
-            raise LookupError("Ingrediente no encontrado")
+        self._require_legacy_ingrediente(ingrediente_id)
         versiones = self.repository.list_versiones_ingrediente(ingrediente_id)
         return [VersionIngredienteRead.model_validate(v) for v in versiones]
 
@@ -80,6 +76,7 @@ class TrazabilidadService:
         version = self.repository.get_version_ingrediente(payload.version_ingrediente_id)
         if version is None:
             raise LookupError("Versión de ingrediente no encontrada")
+        self._require_legacy_ingrediente(version.ingrediente_id)
         lote = self.repository.create_lote_ingrediente(
             codigo_lote=payload.codigo_lote,
             version_ingrediente_id=payload.version_ingrediente_id,
@@ -143,3 +140,10 @@ class TrazabilidadService:
         if producto is None or producto.productor_id is not None:
             raise LookupError("Producto no encontrado")
         return producto
+
+    def _require_legacy_ingrediente(self, ingrediente_id: int) -> Ingrediente:
+        """Allow RT-01 legacy operations only on ingredients without an owner."""
+        ingrediente = self.repository.get_ingrediente(ingrediente_id)
+        if ingrediente is None or ingrediente.productor_id is not None:
+            raise LookupError("Ingrediente no encontrado")
+        return ingrediente
