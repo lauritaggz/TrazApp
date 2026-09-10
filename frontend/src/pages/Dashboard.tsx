@@ -108,7 +108,7 @@ export default function Dashboard() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="mx-auto max-w-4xl space-y-7">
+      <div className="w-full space-y-7">
         <DashboardHeader firstName={firstName} businessName={businessName} />
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

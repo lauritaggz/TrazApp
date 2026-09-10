@@ -108,7 +108,7 @@ export default function Products() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-5xl space-y-6">
+      <div className="w-full space-y-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
@@ -268,34 +268,36 @@ function ProductsTable({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-surface/60">
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Producto
-            </th>
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Contenido
-            </th>
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Presentación
-            </th>
-            <th className="text-right font-semibold text-text-secondary px-4 py-3">
-              Acción
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              onSelect={() => onSelect(product.id)}
-            />
-          ))}
-        </tbody>
-      </table>
+    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[40rem] table-auto text-sm">
+          <thead>
+            <tr className="border-b border-border bg-surface/60">
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Producto
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Contenido
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Presentación
+              </th>
+              <th className="px-4 py-3 text-right font-semibold text-text-secondary">
+                Acción
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => (
+              <ProductRow
+                key={product.id}
+                product={product}
+                onSelect={() => onSelect(product.id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
