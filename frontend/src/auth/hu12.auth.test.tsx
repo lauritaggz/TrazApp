@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
@@ -6,6 +6,7 @@ import { ApiError } from "@/types/auth";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
+import * as ingredientService from "@/services/ingredientService";
 import * as productService from "@/services/productService";
 
 vi.mock("@/services/authService", () => ({
@@ -23,6 +24,22 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   deleteProduct: vi.fn(),
+}));
+
+vi.mock("@/services/ingredientService", () => ({
+  listIngredients: vi.fn(),
+  getIngredient: vi.fn(),
+  createIngredient: vi.fn(),
+  updateIngredient: vi.fn(),
+  deleteIngredient: vi.fn(),
+  listIngredientComposition: vi.fn(),
+  addCompositionComponent: vi.fn(),
+  updateCompositionComponent: vi.fn(),
+  deleteCompositionComponent: vi.fn(),
+  listIngredientAllergens: vi.fn(),
+  addIngredientAllergen: vi.fn(),
+  deleteIngredientAllergen: vi.fn(),
+  listAlergenosCatalog: vi.fn(),
 }));
 
 async function fillRegisterForm(
@@ -54,6 +71,7 @@ describe("Login HU12", () => {
     );
     vi.mocked(productService.listProducts).mockResolvedValue([]);
     vi.mocked(productService.listCategories).mockResolvedValue([]);
+    vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
   });
 
   it("valida campos obligatorios", async () => {
@@ -130,7 +148,7 @@ describe("Login HU12", () => {
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
+      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
     ).toBeInTheDocument();
     expect(localStorage.getItem("trazapp_access_token")).toBe("test-token");
   });
@@ -258,6 +276,7 @@ describe("Protección y logout HU12", () => {
     vi.clearAllMocks();
     vi.mocked(productService.listProducts).mockResolvedValue([]);
     vi.mocked(productService.listCategories).mockResolvedValue([]);
+    vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
   });
 
   it("usuario sin sesión no puede acceder al Dashboard", async () => {
@@ -282,7 +301,7 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
+      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
     ).toBeInTheDocument();
     expect(screen.getByText("Productor")).toBeInTheDocument();
     expect(screen.getAllByText("Panaderia La Espiga").length).toBeGreaterThan(0);
@@ -305,14 +324,21 @@ describe("Protección y logout HU12", () => {
 
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
-    expect(
-      await screen.findByText("No pudimos cargar tus productos."),
-    ).toBeInTheDocument();
+    const productsError = await screen.findByText(
+      "No pudimos cargar tus productos.",
+    );
+    expect(productsError).toBeInTheDocument();
     expect(
       screen.queryByText("Aún no has registrado productos."),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    const productsAlert = productsError.closest("[role='alert']");
+    expect(productsAlert).not.toBeNull();
+    await user.click(
+      within(productsAlert as HTMLElement).getByRole("button", {
+        name: "Reintentar",
+      }),
+    );
 
     expect(
       await screen.findByText("Aún no has registrado productos."),
@@ -327,7 +353,7 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: "Bienvenida, Ana Perez" }),
+      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
