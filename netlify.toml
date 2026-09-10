@@ -1,0 +1,19 @@
+# Netlify — monorepo TrazApp
+# Conectar el repositorio completo; este archivo fija el subdirectorio frontend.
+#
+# En Netlify → Site settings → Environment variables, definir:
+#   VITE_API_URL = https://<tu-api-publica>   (sin barra final)
+#   CORS del backend debe incluir https://<tu-sitio>.netlify.app
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

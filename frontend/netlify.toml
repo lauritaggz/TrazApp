@@ -1,7 +1,13 @@
+# Usado cuando en Netlify el "Base directory" ya es `frontend`.
+# Si el sitio apunta a la raíz del repo, preferir el netlify.toml de la raíz.
+
 [build]
-  base = "frontend"
   command = "npm run build"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
