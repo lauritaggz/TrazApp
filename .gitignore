@@ -55,6 +55,7 @@ Thumbs.db
 # Docker / local data
 *.log
 docker-data/
+/figmamake
 
 # Alembic (runtime only; keep versions/)
 alembic/versions/*.pyc
