@@ -97,7 +97,7 @@ export default function Ingredients() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-5xl space-y-6">
+      <div className="w-full space-y-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
@@ -246,24 +246,25 @@ function IngredientsTable({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-surface/60">
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Ingrediente
-            </th>
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Tipo
-            </th>
-            <th className="text-left font-semibold text-text-secondary px-4 py-3">
-              Estado
-            </th>
-            <th className="text-right font-semibold text-text-secondary px-4 py-3">
-              Acción
-            </th>
-          </tr>
-        </thead>
+    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[40rem] table-auto text-sm">
+          <thead>
+            <tr className="border-b border-border bg-surface/60">
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Ingrediente
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Tipo
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+                Estado
+              </th>
+              <th className="px-4 py-3 text-right font-semibold text-text-secondary">
+                Acción
+              </th>
+            </tr>
+          </thead>
         <tbody>
           {ingredientes.map((ingrediente) => (
             <tr
@@ -297,7 +298,8 @@ function IngredientsTable({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
@@ -317,9 +319,11 @@ function IngredientsCards({
           className="bg-card border border-border rounded-xl p-4 cursor-pointer"
           onClick={() => onSelect(ingrediente.id)}
         >
-          <div className="flex justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold">{ingrediente.nombre}</h2>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold break-words">
+                {ingrediente.nombre}
+              </h2>
               <p className="text-xs text-brand-600 uppercase">
                 {ingrediente.codigo_interno ?? "—"}
               </p>
@@ -338,7 +342,7 @@ function IngredientsCards({
 function StatusBadge({ activo }: { activo: boolean }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
         activo
           ? "bg-success-bg text-success border border-success/20"
           : "bg-surface text-text-secondary border border-border"

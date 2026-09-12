@@ -37,42 +37,46 @@ export default function AppShell({
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
-        <header className="h-16 flex items-center justify-between px-5 lg:px-8 bg-card border-b border-border shrink-0">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-1.5 rounded-md text-text-secondary hover:bg-surface transition-colors"
-              aria-label="Abrir menú"
-            >
-              <MenuIcon />
-            </button>
-            <span className="text-sm text-text-secondary hidden sm:block">
-              Panel de gestión
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end hidden sm:flex">
-              {producerName ? (
-                <span className="text-sm font-medium text-text-primary leading-tight">
-                  {producerName}
-                </span>
-              ) : null}
-              {businessName ? (
-                <span className="text-xs text-text-secondary leading-tight">
-                  {businessName}
-                </span>
-              ) : null}
-              <span className="text-xs text-text-secondary">Productor</span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="shrink-0 border-b border-border bg-card">
+          <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-5 lg:px-8">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface lg:hidden"
+                aria-label="Abrir menú"
+              >
+                <MenuIcon />
+              </button>
+              <span className="hidden text-sm text-text-secondary sm:block">
+                Panel de gestión
+              </span>
             </div>
-            <div className="h-9 w-9 rounded-full bg-brand-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-              {producerName?.trim()?.[0]?.toUpperCase() ?? <UserIcon />}
+
+            <div className="flex items-center gap-3">
+              <div className="hidden flex-col items-end sm:flex">
+                {producerName ? (
+                  <span className="text-sm font-medium leading-tight text-text-primary">
+                    {producerName}
+                  </span>
+                ) : null}
+                {businessName ? (
+                  <span className="text-xs leading-tight text-text-secondary">
+                    {businessName}
+                  </span>
+                ) : null}
+                <span className="text-xs text-text-secondary">Productor</span>
+              </div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
+                {producerName?.trim()?.[0]?.toUpperCase() ?? <UserIcon />}
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-5 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-5 lg:p-8">
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+        </main>
       </div>
     </div>
   );
