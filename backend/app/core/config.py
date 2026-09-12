@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-me-dev-only-jwt-secret"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-    # Comma-separated list, e.g. "http://localhost:5173,http://127.0.0.1:5173"
-    cors_origins: str = "http://localhost:5173"
+    # Comma-separated browser origins (local Vite and/or Netlify in production).
+    # Example prod: "https://tu-app.netlify.app"
+    cors_origins: str = "http://localhost:5175"
     uploads_root: str = "/uploads"
 
     def get_cors_origins(self) -> list[str]:
