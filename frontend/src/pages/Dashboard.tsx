@@ -6,11 +6,7 @@ import DashboardProductPreviewCard from "@/components/dashboard/DashboardProduct
 import DashboardRecentIngredients from "@/components/dashboard/DashboardRecentIngredients";
 import DashboardSection from "@/components/dashboard/DashboardSection";
 import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
-import {
-  BoxIcon,
-  CheckCircleIcon,
-  LeafIcon,
-} from "@/components/dashboard/dashboardIcons";
+import { BoxIcon, LeafIcon } from "@/components/dashboard/dashboardIcons";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
@@ -94,9 +90,6 @@ export default function Dashboard() {
     [ingredients],
   );
 
-  const compoundCount = ingredients.filter((item) => item.tipo === "compuesto").length;
-  const simpleCount = ingredients.filter((item) => item.tipo === "simple").length;
-
   const hasProducts = products.length > 0 && !productsError;
   const hasIngredients = ingredients.length > 0 && !ingredientsError;
 
@@ -111,7 +104,7 @@ export default function Dashboard() {
       <div className="w-full space-y-7">
         <DashboardHeader firstName={firstName} businessName={businessName} />
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4">
           <DashboardStatCard
             label="Productos registrados"
             value={productsError ? "—" : products.length}
@@ -122,20 +115,6 @@ export default function Dashboard() {
           <DashboardStatCard
             label="Ingredientes"
             value={ingredientsError ? "—" : ingredients.length}
-            icon={<LeafIcon />}
-            accent="#2f6b57"
-            loading={loadingIngredients}
-          />
-          <DashboardStatCard
-            label="Ingredientes compuestos"
-            value={ingredientsError ? "—" : compoundCount}
-            icon={<CheckCircleIcon />}
-            accent="#027a48"
-            loading={loadingIngredients}
-          />
-          <DashboardStatCard
-            label="Ingredientes simples"
-            value={ingredientsError ? "—" : simpleCount}
             icon={<LeafIcon />}
             accent="#2f6b57"
             loading={loadingIngredients}

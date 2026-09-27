@@ -2,14 +2,12 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
-import IngredientCompositionSection from "@/components/ingredients/IngredientCompositionSection";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
-import { formatIngredienteTipo } from "@/lib/ingredientListUtils";
 import { deleteIngredient, getIngredient } from "@/services/ingredientService";
 import { ApiError } from "@/types/auth";
 import type { Ingrediente } from "@/types/ingredient";
@@ -128,26 +126,11 @@ export default function IngredientDetail() {
                 <DetailField label="Descripción">
                   {ingredient.descripcion?.trim() || "—"}
                 </DetailField>
-                <DetailField label="Tipo">
-                  {formatIngredienteTipo(ingredient.tipo)}
-                </DetailField>
                 <DetailField label="Estado">
                   {ingredient.activo ? "Activo" : "Inactivo"}
                 </DetailField>
               </dl>
             </ProductDetailSection>
-
-            {ingredient.tipo === "compuesto" && (
-              <ProductDetailSection
-                id="ingredient-detail-composition"
-                title="Composición declarada"
-              >
-                <IngredientCompositionSection
-                  ingredienteId={ingredientId}
-                  ingredienteTipo={ingredient.tipo}
-                />
-              </ProductDetailSection>
-            )}
 
             <ProductDetailSection id="ingredient-detail-allergens" title="Alérgenos">
               <IngredientAllergensSection ingredienteId={ingredientId} />

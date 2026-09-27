@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   filterAndSortIngredientes,
-  formatIngredienteTipo,
   hasActiveIngredientFilters,
   ingredientCountLabel,
 } from "@/lib/ingredientListUtils";
@@ -15,7 +14,6 @@ import { listIngredients } from "@/services/ingredientService";
 import {
   DEFAULT_INGREDIENTE_LIST_FILTERS,
   INGREDIENTE_SORT_OPTIONS,
-  INGREDIENTE_TIPO_FILTER_OPTIONS,
   type Ingrediente,
   type IngredienteListFilters,
 } from "@/types/ingredient";
@@ -189,26 +187,6 @@ function IngredientListControls({
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Tipo</span>
-          <select
-            value={filters.tipo}
-            onChange={(e) =>
-              onChange({
-                ...filters,
-                tipo: e.target.value as IngredienteListFilters["tipo"],
-              })
-            }
-            disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5"
-          >
-            {INGREDIENTE_TIPO_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-text-primary">Ordenar</span>
           <select
             value={filters.sort}
@@ -255,9 +233,6 @@ function IngredientsTable({
                 Ingrediente
               </th>
               <th className="px-4 py-3 text-left font-semibold text-text-secondary">
-                Tipo
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
                 Estado
               </th>
               <th className="px-4 py-3 text-right font-semibold text-text-secondary">
@@ -285,9 +260,6 @@ function IngredientsTable({
                 <p className="text-xs text-text-secondary">
                   {ingrediente.codigo_interno ?? "—"}
                 </p>
-              </td>
-              <td className="px-4 py-3 text-text-secondary">
-                {formatIngredienteTipo(ingrediente.tipo)}
               </td>
               <td className="px-4 py-3">
                 <StatusBadge activo={ingrediente.activo} />
@@ -326,9 +298,6 @@ function IngredientsCards({
               </h2>
               <p className="text-xs text-brand-600 uppercase">
                 {ingrediente.codigo_interno ?? "—"}
-              </p>
-              <p className="text-sm text-text-secondary mt-1">
-                {formatIngredienteTipo(ingrediente.tipo)}
               </p>
             </div>
             <StatusBadge activo={ingrediente.activo} />

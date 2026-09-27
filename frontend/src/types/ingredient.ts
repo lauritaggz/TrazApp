@@ -11,18 +11,18 @@ export interface Ingrediente {
   created_at: string | null;
 }
 
+// `tipo` is intentionally absent: the UI no longer manages it, and sending it on
+// PATCH would clear the compound type of existing ingredients (HT03).
 export interface IngredienteCreatePayload {
   codigo_interno: string;
   nombre: string;
   descripcion?: string | null;
-  tipo: IngredienteTipo;
 }
 
 export interface IngredienteUpdatePayload {
   codigo_interno?: string;
   nombre?: string;
   descripcion?: string | null;
-  tipo?: IngredienteTipo;
 }
 
 export type IngredienteFormMode = "create" | "edit";
@@ -31,14 +31,12 @@ export interface IngredienteFormValues {
   codigo_interno: string;
   nombre: string;
   descripcion: string;
-  tipo: "" | IngredienteTipo;
 }
 
 export const EMPTY_INGREDIENTE_FORM_VALUES: IngredienteFormValues = {
   codigo_interno: "",
   nombre: "",
   descripcion: "",
-  tipo: "",
 };
 
 export const INGREDIENTE_TIPO_OPTIONS: {
