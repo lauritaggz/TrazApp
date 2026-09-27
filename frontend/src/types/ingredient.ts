@@ -86,6 +86,10 @@ export interface Alergeno {
   nombre: string;
 }
 
+export interface AlergenoCatalogo extends Alergeno {
+  obligatorio_chile: boolean;
+}
+
 export interface ComposicionComponente {
   id: number;
   ingrediente_componente_id: number;
