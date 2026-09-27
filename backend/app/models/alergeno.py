@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -27,6 +27,12 @@ class Alergeno(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     codigo: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    obligatorio_chile: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
 
     ingredientes: Mapped[list["Ingrediente"]] = relationship(
         secondary=ingredientes_alergenos,
