@@ -2,7 +2,6 @@ import type {
   Ingrediente,
   IngredienteCreatePayload,
   IngredienteFormValues,
-  IngredienteTipo,
   IngredienteUpdatePayload,
 } from "@/types/ingredient";
 
@@ -17,7 +16,6 @@ export const INGREDIENTE_FORM_FIELD_ORDER: (keyof IngredienteFormValues)[] = [
   "codigo_interno",
   "nombre",
   "descripcion",
-  "tipo",
 ];
 
 export function ingredienteToFormValues(
@@ -27,7 +25,6 @@ export function ingredienteToFormValues(
     codigo_interno: ingrediente.codigo_interno ?? "",
     nombre: ingrediente.nombre,
     descripcion: ingrediente.descripcion ?? "",
-    tipo: ingrediente.tipo ?? "",
   };
 }
 
@@ -50,10 +47,6 @@ export function validateIngredienteForm(
     errors.nombre = `Máximo ${MAX_NOMBRE} caracteres.`;
   }
 
-  if (!values.tipo) {
-    errors.tipo = "El tipo es obligatorio.";
-  }
-
   return errors;
 }
 
@@ -65,7 +58,6 @@ export function toCreatePayload(
     codigo_interno: values.codigo_interno.trim(),
     nombre: values.nombre.trim(),
     descripcion: descripcion || null,
-    tipo: values.tipo as IngredienteTipo,
   };
 }
 
@@ -91,10 +83,6 @@ export function buildUpdatePayload(
     payload.descripcion = descripcion || null;
   }
 
-  if (values.tipo && values.tipo !== baseline.tipo) {
-    payload.tipo = values.tipo;
-  }
-
   return payload;
 }
 
@@ -102,8 +90,7 @@ export function isIngredienteFormDirty(values: IngredienteFormValues): boolean {
   return (
     values.codigo_interno.trim() !== "" ||
     values.nombre.trim() !== "" ||
-    values.descripcion.trim() !== "" ||
-    values.tipo !== ""
+    values.descripcion.trim() !== ""
   );
 }
 
@@ -114,7 +101,6 @@ export function isIngredienteFormDirtyComparedTo(
   return (
     values.codigo_interno.trim() !== baseline.codigo_interno.trim() ||
     values.nombre.trim() !== baseline.nombre.trim() ||
-    values.descripcion.trim() !== baseline.descripcion.trim() ||
-    values.tipo !== baseline.tipo
+    values.descripcion.trim() !== baseline.descripcion.trim()
   );
 }
