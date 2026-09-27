@@ -212,6 +212,12 @@ class AlergenoRead(BaseModel):
     nombre: str
 
 
+class AlergenoCatalogoRead(AlergenoRead):
+    """Catalog entry flagged with Chilean mandatory declaration (HT03)."""
+
+    obligatorio_chile: bool
+
+
 class IngredienteAlergenoCreate(BaseModel):
     """Associate an allergen from the global catalog with an ingredient."""
 

@@ -209,6 +209,13 @@ class IngredienteRepository:
     def get_alergeno_by_id(self, alergeno_id: int) -> Alergeno | None:
         return self.db.get(Alergeno, alergeno_id)
 
+    def list_alergenos_catalogo(self) -> list[Alergeno]:
+        stmt = select(Alergeno).order_by(
+            Alergeno.obligatorio_chile.desc(),
+            Alergeno.nombre.asc(),
+        )
+        return list(self.db.scalars(stmt).all())
+
     def list_alergenos_for_ingrediente(self, ingrediente_id: int) -> list[Alergeno]:
         stmt = (
             select(Alergeno)

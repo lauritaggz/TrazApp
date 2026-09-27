@@ -7,6 +7,7 @@ from app.repositories.ingrediente_repository import (
 from app.schemas.ingrediente import (
     TIPO_COMPUESTO,
     TIPO_SIMPLE,
+    AlergenoCatalogoRead,
     AlergenoRead,
     ComposicionComponenteCreate,
     ComposicionComponenteRead,
@@ -157,6 +158,10 @@ class IngredienteService:
         if composicion is None:
             raise ComposicionNotFoundError("Componente de composición no encontrado.")
         self.repository.delete_composicion(composicion)
+
+    def list_alergenos_catalogo(self) -> list[AlergenoCatalogoRead]:
+        alergenos = self.repository.list_alergenos_catalogo()
+        return [AlergenoCatalogoRead.model_validate(item) for item in alergenos]
 
     def list_alergenos_mine(
         self,
