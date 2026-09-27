@@ -11,7 +11,7 @@ TIPO_SIMPLE: TipoIngrediente = "simple"
 TIPO_COMPUESTO: TipoIngrediente = "compuesto"
 TIPOS_INGREDIENTE_PERMITIDOS = frozenset({TIPO_SIMPLE, TIPO_COMPUESTO})
 
-_REQUIRED_UPDATE_FIELDS = ("codigo_interno", "nombre", "tipo")
+_REQUIRED_UPDATE_FIELDS = ("codigo_interno", "nombre")
 
 
 def _normalize_required_text(value: str, field_name: str) -> str:
@@ -76,7 +76,7 @@ class IngredienteGestionCreate(BaseModel):
     codigo_interno: str = Field(min_length=1, max_length=100)
     nombre: str = Field(min_length=1, max_length=255)
     descripcion: str | None = Field(default=None)
-    tipo: TipoIngrediente
+    tipo: TipoIngrediente | None = None
 
     @field_validator("codigo_interno")
     @classmethod

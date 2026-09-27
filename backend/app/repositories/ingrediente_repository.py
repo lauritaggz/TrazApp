@@ -31,7 +31,7 @@ class IngredienteRepository:
         codigo_interno: str,
         nombre: str,
         descripcion: str | None,
-        tipo: str,
+        tipo: str | None = None,
     ) -> Ingrediente:
         ingrediente = Ingrediente(
             productor_id=productor_id,
