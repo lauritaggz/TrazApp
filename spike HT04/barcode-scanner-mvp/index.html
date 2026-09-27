@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Escáner de Código de Barras</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --text: #14161a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #2563eb;
+    --accent-text: #ffffff;
+    --link: #2563eb;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115;
+      --surface: #1a1d24;
+      --text: #f1f2f4;
+      --muted: #9aa1ac;
+      --border: #2a2e37;
+      --accent: #1d4ed8;
+      --accent-text: #ffffff;
+      --link: #60a5fa;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --surface: #1a1d24;
+    --text: #f1f2f4;
+    --muted: #9aa1ac;
+    --border: #2a2e37;
+    --accent: #1d4ed8;
+    --accent-text: #ffffff;
+    --link: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 12px 0 20px;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  #reader {
+    width: 100%;
+    min-height: 260px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+  }
+  #reader video {
+    width: 100%;
+    display: block;
+    max-height: 60vh;
+    object-fit: cover;
+  }
+  .scan-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 82%;
+    height: 42%;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  button {
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    padding: 13px 16px;
+    cursor: pointer;
+    flex: 1;
+    min-height: 46px;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-text); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+  #camera-status {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 10px;
+    min-height: 1.1em;
+  }
+  .scan-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 6px 0 0;
+  }
+  #manual-form { display: flex; gap: 8px; }
+  #manual-code {
+    flex: 1;
+    font-size: 0.95rem;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    min-width: 0;
+  }
+  #manual-form button { flex: 0 0 auto; padding: 12px 18px; }
+  h2 { font-size: 1rem; margin: 0 0 12px; }
+  #result-section[hidden], #history-section[hidden], #manual-section[hidden] { display: none; }
+  .result-card { display: flex; gap: 14px; }
+  .result-card img {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    background: var(--bg);
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .result-info { flex: 1; min-width: 0; }
+  .result-info h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .result-info .brand { color: var(--muted); font-size: 0.85rem; margin: 0 0 6px; }
+  .result-info .code { font-size: 0.75rem; color: var(--muted); font-family: monospace; }
+  .badge-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .grade-a { background: #16a34a; color: #0f172a; border-color: #16a34a; }
+  .grade-b { background: #65a30d; color: #0f172a; border-color: #65a30d; }
+  .grade-c { background: #ca8a04; color: #0f172a; border-color: #ca8a04; }
+  .grade-d { background: #ea580c; color: #0f172a; border-color: #ea580c; }
+  .grade-e { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .ingredients {
+    margin-top: 10px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .not-found { text-align: center; padding: 8px 0; }
+  .not-found .code-big { font-family: monospace; font-size: 1.1rem; margin: 6px 0 10px; }
+  .not-found a { color: var(--link); font-size: 0.85rem; text-decoration: none; }
+  .source-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  #history-list { list-style: none; margin: 0; padding: 0; }
+  #history-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  #history-list li:last-child { border-bottom: none; }
+  #history-list img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    background: var(--bg);
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  #history-list .h-info { flex: 1; min-width: 0; }
+  #history-list .h-name {
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #history-list .h-code { font-size: 0.72rem; color: var(--muted); font-family: monospace; }
+  .empty-hint { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 6px 0; }
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>📷 Escáner de código de barras</h1>
+    <p>MVP · escanea un producto y trae su información</p>
+  </header>
+
+  <main>
+    <section id="scanner-section">
+      <div id="reader">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="scan-frame" id="scan-frame" hidden></div>
+      </div>
+      <div class="btn-row">
+        <button id="start-btn" class="btn-primary">Iniciar cámara</button>
+        <button id="stop-btn" class="btn-secondary" hidden>Detener</button>
+        <button id="torch-btn" class="btn-secondary" hidden>💡 Linterna</button>
+      </div>
+      <div id="camera-status"></div>
+      <p class="scan-hint">Acerca el código a ~10-15 cm, con buena luz y sin reflejos, llenando el recuadro de forma horizontal.</p>
+    </section>
+
+    <section id="manual-section">
+      <h2>O ingresa el código manualmente</h2>
+      <form id="manual-form">
+        <input id="manual-code" type="text" inputmode="numeric" placeholder="Ej: 5449000000996" autocomplete="off">
+        <button type="submit" class="btn-primary">Buscar</button>
+      </form>
+    </section>
+
+    <section id="result-section" hidden>
+      <h2>Resultado</h2>
+      <div id="result-content"></div>
+    </section>
+
+    <section id="history-section">
+      <h2>Historial</h2>
+      <ul id="history-list"></ul>
+      <p id="history-empty" class="empty-hint">Todavía no has escaneado nada.</p>
+      <div class="btn-row" id="history-actions" hidden>
+        <button id="clear-history" class="btn-danger">Limpiar historial</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var HISTORY_KEY = "barcodeMvp.history";
+  var MAX_HISTORY = 25;
+  var ALLOWED_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "codabar", "itf", "qr_code"];
+  var lastCode = null;
+  var lastCodeAt = 0;
+  var mediaStream = null;
+  var detector = null;
+  var detecting = false;
+  var loopHandle = null;
+  var scanning = false;
+  var torchOn = false;
+
+  var videoEl = document.getElementById("video");
+  var scanFrameEl = document.getElementById("scan-frame");
+  var startBtn = document.getElementById("start-btn");
+  var stopBtn = document.getElementById("stop-btn");
+  var torchBtn = document.getElementById("torch-btn");
+  var statusEl = document.getElementById("camera-status");
+  var manualForm = document.getElementById("manual-form");
+  var manualInput = document.getElementById("manual-code");
+  var resultSection = document.getElementById("result-section");
+  var resultContent = document.getElementById("result-content");
+  var historyList = document.getElementById("history-list");
+  var historyEmpty = document.getElementById("history-empty");
+  var historyActions = document.getElementById("history-actions");
+  var clearHistoryBtn = document.getElementById("clear-history");
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg || "";
+    statusEl.style.color = isError ? "var(--danger)" : "var(--muted)";
+  }
+
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(items) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+    } catch (e) { /* storage unavailable, ignore */ }
+  }
+
+  function addToHistory(entry) {
+    var items = loadHistory();
+    items = items.filter(function (i) { return i.code !== entry.code; });
+    items.unshift(entry);
+    if (items.length > MAX_HISTORY) items = items.slice(0, MAX_HISTORY);
+    saveHistory(items);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var items = loadHistory();
+    historyList.innerHTML = "";
+    if (!items.length) {
+      historyEmpty.style.display = "block";
+      historyActions.hidden = true;
+      return;
+    }
+    historyEmpty.style.display = "none";
+    historyActions.hidden = false;
+    items.forEach(function (item) {
+      var li = document.createElement("li");
+      var img = document.createElement("img");
+      img.src = item.image || "";
+      img.alt = "";
+      img.onerror = function () { img.style.visibility = "hidden"; };
+      var info = document.createElement("div");
+      info.className = "h-info";
+      var name = document.createElement("div");
+      name.className = "h-name";
+      name.textContent = item.name || "(no encontrado)";
+      var code = document.createElement("div");
+      code.className = "h-code";
+      code.textContent = item.code;
+      info.appendChild(name);
+      info.appendChild(code);
+      li.appendChild(img);
+      li.appendChild(info);
+      li.addEventListener("click", function () {
+        renderResult(item);
+        resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      historyList.appendChild(li);
+    });
+  }
+
+  function gradeClass(grade) {
+    if (!grade) return "";
+    var g = grade.toLowerCase();
+    if (["a", "b", "c", "d", "e"].indexOf(g) !== -1) return "grade-" + g;
+    return "";
+  }
+
+  function renderResult(data) {
+    resultSection.hidden = false;
+    if (!data.found) {
+      resultContent.innerHTML =
+        '<div class="not-found">' +
+        "<p>No encontramos este código en las bases gratuitas disponibles.</p>" +
+        '<div class="code-big">' + escapeHtml(data.code) + "</div>" +
+        '<a href="https://world.openfoodfacts.org/product/' + encodeURIComponent(data.code) +
+        '" target="_blank" rel="noopener">Ver / agregar en Open Food Facts →</a>' +
+        "</div>";
+      return;
+    }
+    var badges = "";
+    if (data.nutriscore) {
+      badges += '<span class="badge ' + gradeClass(data.nutriscore) + '">Nutri-Score ' + escapeHtml(data.nutriscore) + "</span>";
+    }
+    if (data.ecoscore) {
+      badges += '<span class="badge ' + gradeClass(data.ecoscore) + '">Eco-Score ' + escapeHtml(data.ecoscore) + "</span>";
+    }
+    resultContent.innerHTML =
+      '<div class="result-card">' +
+      (data.image
+        ? '<img src="' + escapeHtml(data.image) + '" alt="">'
+        : '<img alt="" style="visibility:hidden">') +
+      '<div class="result-info">' +
+      "<h3>" + escapeHtml(data.name || "Producto sin nombre") + "</h3>" +
+      (data.brand ? '<p class="brand">' + escapeHtml(data.brand) + "</p>" : "") +
+      '<div class="code">' + escapeHtml(data.code) + "</div>" +
+      (badges ? '<div class="badge-row">' + badges + "</div>" : "") +
+      "</div></div>" +
+      (data.ingredients
+        ? '<div class="ingredients"><strong>Ingredientes:</strong> ' + escapeHtml(data.ingredients) + "</div>"
+        : "") +
+      '<div class="source-tag">Fuente: ' + escapeHtml(data.source) + "</div>";
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function lookupOpenFoodFacts(code) {
+    var url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
+      ".json?fields=product_name,product_name_es,brands,image_front_small_url,image_url,ingredients_text,ingredients_text_es,nutriscore_grade,ecoscore_grade";
+    return fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json && json.status === 1 && json.product) {
+          var p = json.product;
+          return {
+            found: true,
+            code: code,
+            name: p.product_name_es || p.product_name || "",
+            brand: p.brands || "",
+            image: p.image_front_small_url || p.image_url || "",
+            ingredients: p.ingredients_text_es || p.ingredients_text || "",
+            nutriscore: p.nutriscore_grade || "",
+            ecoscore: p.ecoscore_grade || "",
+            source: "Open Food Facts"
+          };
+        }
+        return null;
+      })
+      .catch(function () { return null; });
+  }
+
+  function lookupUpcItemDb(code) {
+    var url = "https://api.upcitemdb.com/prod/trial/lookup?upc=" + encodeURIComponent(code);
+    return fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json && json.code === "OK" && json.items && json.items.length) {
+          var it = json.items[0];
+          return {
+            found: true,
+            code: code,
+            name: it.title || "",
+            brand: it.brand || "",
+            image: (it.images && it.images[0]) || "",
+            ingredients: "",
+            nutriscore: "",
+            ecoscore: "",
+            source: "UPCitemdb"
+          };
+        }
+        return null;
+      })
+      .catch(function () { return null; });
+  }
+
+  function lookupProduct(rawCode) {
+    var code = String(rawCode).trim();
+    if (!code) return;
+
+    var now = Date.now();
+    if (code === lastCode && now - lastCodeAt < 4000) return;
+    lastCode = code;
+    lastCodeAt = now;
+
+    resultSection.hidden = false;
+    resultContent.innerHTML = '<p><span class="spinner"></span>Buscando "' + escapeHtml(code) + '"…</p>';
+
+    lookupOpenFoodFacts(code)
+      .then(function (result) {
+        if (result) return result;
+        return lookupUpcItemDb(code);
+      })
+      .then(function (result) {
+        var data = result || { found: false, code: code };
+        renderResult(data);
+        addToHistory({
+          code: code,
+          name: data.name,
+          image: data.image,
+          found: !!data.found,
+          brand: data.brand,
+          ingredients: data.ingredients,
+          nutriscore: data.nutriscore,
+          ecoscore: data.ecoscore,
+          source: data.source
+        });
+      });
+  }
+
+  function onDetected(barcode) {
+    lookupProduct(barcode.rawValue);
+  }
+
+  function checkNativeDetector() {
+    if (!("BarcodeDetector" in window)) return Promise.resolve(false);
+    return window.BarcodeDetector.getSupportedFormats()
+      .then(function (formats) {
+        return ALLOWED_FORMATS.some(function (f) { return formats.indexOf(f) !== -1; });
+      })
+      .catch(function () { return false; });
+  }
+
+  function setupDetector() {
+    return checkNativeDetector().then(function (native) {
+      if (native) {
+        detector = new window.BarcodeDetector({ formats: ALLOWED_FORMATS });
+        return;
+      }
+      // Safari/iOS has no native BarcodeDetector, and 1D barcodes (EAN/UPC)
+      // need a decoder that's actually reliable there. Loaded lazily (only
+      // once the user starts the camera) so a failed fetch never breaks
+      // the rest of the app, e.g. manual entry.
+      return import("./barcode-detector-polyfill.js").then(function (mod) {
+        detector = new mod.BarcodeDetectorPolyfill({ formats: ALLOWED_FORMATS });
+      });
+    });
+  }
+
+  function detectLoop() {
+    if (!detecting) return;
+    detector
+      .detect(videoEl)
+      .then(function (barcodes) {
+        if (barcodes && barcodes.length) barcodes.forEach(onDetected);
+      })
+      .catch(function () {})
+      .then(function () {
+        if (detecting) loopHandle = setTimeout(detectLoop, 250);
+      });
+  }
+
+  function startScanner() {
+    if (scanning) return;
+    startBtn.disabled = true;
+    setStatus("Cargando motor de decodificación…");
+
+    setupDetector()
+      .then(function () {
+        setStatus("Solicitando acceso a la cámara…");
+        // iOS Safari rejects getUserMedia outright if it can't satisfy every
+        // constraint (Chrome/Android just ignores the ones it can't meet),
+        // so we try a richer constraint set first and fall back to a
+        // minimal one.
+        var idealCameraConstraints = {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+        var fallbackCameraConstraints = { facingMode: "environment" };
+        return navigator.mediaDevices
+          .getUserMedia({ video: idealCameraConstraints })
+          .catch(function () {
+            return navigator.mediaDevices.getUserMedia({ video: fallbackCameraConstraints });
+          });
+      })
+      .then(function (stream) {
+        mediaStream = stream;
+        videoEl.srcObject = stream;
+        return videoEl.play();
+      })
+      .then(function () {
+        scanning = true;
+        detecting = true;
+        startBtn.hidden = true;
+        stopBtn.hidden = false;
+        startBtn.disabled = false;
+        scanFrameEl.hidden = false;
+        setStatus("Apunta al código de barras.");
+        checkTorchSupport();
+        detectLoop();
+      })
+      .catch(function (err) {
+        startBtn.disabled = false;
+        setStatus(
+          "No se pudo iniciar el escáner: " + (err && err.message ? err.message : err) + ". Usa el campo manual mientras tanto.",
+          true
+        );
+      });
+  }
+
+  function checkTorchSupport() {
+    try {
+      var track = mediaStream.getVideoTracks()[0];
+      var caps = track.getCapabilities ? track.getCapabilities() : {};
+      torchBtn.hidden = !(caps && caps.torch);
+    } catch (e) {
+      torchBtn.hidden = true;
+    }
+  }
+
+  function toggleTorch() {
+    if (!mediaStream) return;
+    var track = mediaStream.getVideoTracks()[0];
+    torchOn = !torchOn;
+    track
+      .applyConstraints({ advanced: [{ torch: torchOn }] })
+      .then(function () {
+        torchBtn.textContent = torchOn ? "💡 Apagar linterna" : "💡 Linterna";
+      })
+      .catch(function () {
+        torchOn = !torchOn;
+      });
+  }
+
+  function stopScanner() {
+    if (!scanning) return;
+    detecting = false;
+    if (loopHandle) clearTimeout(loopHandle);
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(function (t) { t.stop(); });
+      mediaStream = null;
+    }
+    videoEl.srcObject = null;
+    scanning = false;
+    torchOn = false;
+    torchBtn.hidden = true;
+    torchBtn.textContent = "💡 Linterna";
+    scanFrameEl.hidden = true;
+    startBtn.hidden = false;
+    stopBtn.hidden = true;
+    setStatus("Cámara detenida.");
+  }
+
+  startBtn.addEventListener("click", startScanner);
+  stopBtn.addEventListener("click", stopScanner);
+  torchBtn.addEventListener("click", toggleTorch);
+
+  manualForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var val = manualInput.value.trim();
+    if (val) {
+      lookupProduct(val);
+      manualInput.value = "";
+    }
+  });
+
+  clearHistoryBtn.addEventListener("click", function () {
+    saveHistory([]);
+    renderHistory();
+  });
+
+  if (!("mediaDevices" in navigator) || !navigator.mediaDevices.getUserMedia) {
+    setStatus("Este navegador no soporta acceso a cámara (o no es un contexto seguro). Usa el campo manual.", true);
+    startBtn.disabled = true;
+  }
+
+  renderHistory();
+})();
+</script>
+</body>
+</html>
