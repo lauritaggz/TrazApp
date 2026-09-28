@@ -116,6 +116,20 @@ class ProductoFormulacionService:
         linea = self._get_formulacion_line_or_raise(version.id, linea_id)
         self.formulacion_repository.delete_formulacion_line(linea)
 
+    def marcar_version_usada(self, version_id: int) -> VersionProducto:
+        """Flag a product version as used by an elaboración.
+
+        Does not commit: the caller must commit in the same transaction that
+        creates the elaboración, so a version is never left unflagged while
+        an elaboración references it. Idempotent.
+        """
+        version = self.formulacion_repository.get_version_by_id(version_id)
+        if version is None:
+            raise VersionProductoNotFoundError("Versión de producto no encontrada.")
+        if version.usada_en_elaboracion:
+            return version
+        return self.formulacion_repository.mark_version_usada(version)
+
     def _get_owned_version_or_raise(
         self,
         productor_id: int,
@@ -217,7 +231,5 @@ class ProductoFormulacionService:
             raise InvalidFormulacionError(
                 "Indique porcentaje o cantidad con unidad, no ambos."
             )
-        if not has_porcentaje and not (has_cantidad and has_unidad):
-            raise InvalidFormulacionError("Debe indicar porcentaje o cantidad con unidad.")
         if has_cantidad != has_unidad:
             raise InvalidFormulacionError("cantidad y unidad deben indicarse juntas.")

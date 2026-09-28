@@ -11,6 +11,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -101,6 +102,12 @@ class VersionProducto(Base):
         server_default=func.now(),
     )
     vigente: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    usada_en_elaboracion: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
 
     producto: Mapped["Producto"] = relationship(back_populates="versiones")
     lotes_producto: Mapped[list["LoteProducto"]] = relationship(
@@ -136,8 +143,8 @@ class FormulacionVersionProducto(Base):
             name="ck_version_producto_formulacion_unidad",
         ),
         CheckConstraint(
-            "porcentaje IS NOT NULL OR (cantidad IS NOT NULL AND unidad IS NOT NULL)",
-            name="ck_version_producto_formulacion_cuantificacion",
+            "(cantidad IS NULL) = (unidad IS NULL)",
+            name="ck_version_producto_formulacion_cantidad_unidad",
         ),
         CheckConstraint(
             "orden IS NULL OR orden >= 1",

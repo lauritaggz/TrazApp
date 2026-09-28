@@ -26,6 +26,15 @@ class ProductoFormulacionRepository:
         )
         return self.db.scalar(stmt)
 
+    def get_version_by_id(self, version_id: int) -> VersionProducto | None:
+        return self.db.get(VersionProducto, version_id)
+
+    def mark_version_usada(self, version: VersionProducto) -> VersionProducto:
+        version.usada_en_elaboracion = True
+        self.db.add(version)
+        self.db.flush()
+        return version
+
     def version_has_lotes(self, version_producto_id: int) -> bool:
         count = self.db.scalar(
             select(func.count())

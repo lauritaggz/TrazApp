@@ -183,6 +183,96 @@ def test_actualizar_cantidad_y_unidad(client, db_session) -> None:
     assert body["unidad"] == "ml"
 
 
+def test_crear_linea_sin_cantidad_ni_unidad(client, db_session) -> None:
+    """HU03: la cantidad y la unidad son opcionales."""
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    sal = _create_ingrediente(client, headers, "sal-hu03", "Sal")
+    version = _create_version_producto(db_session, producto["id"])
+
+    response = _add_linea(
+        client, headers, producto["id"], version.id, sal["id"], porcentaje=None, orden=1
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["porcentaje"] is None
+    assert body["cantidad"] is None
+    assert body["unidad"] is None
+
+
+def test_crear_linea_rechaza_cantidad_o_unidad_sola(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    sal = _create_ingrediente(client, headers, "sal-hu03b", "Sal sola")
+    version = _create_version_producto(db_session, producto["id"])
+
+    solo_cantidad = _add_linea(
+        client, headers, producto["id"], version.id, sal["id"], porcentaje=None, cantidad="5"
+    )
+    solo_unidad = _add_linea(
+        client, headers, producto["id"], version.id, sal["id"], porcentaje=None, unidad="g"
+    )
+
+    assert solo_cantidad.status_code == 422
+    assert solo_unidad.status_code == 422
+    listado = client.get(_formulacion_url(producto["id"], version.id), headers=headers)
+    assert listado.json() == []
+
+
+def test_actualizar_quitando_cantidad_y_unidad(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    agua = _create_ingrediente(client, headers, "agua-hu03", "Agua opcional")
+    version = _create_version_producto(db_session, producto["id"])
+    created = _add_linea(
+        client,
+        headers,
+        producto["id"],
+        version.id,
+        agua["id"],
+        porcentaje=None,
+        cantidad="100",
+        unidad="ml",
+    ).json()
+
+    response = client.patch(
+        _formulacion_url(producto["id"], version.id, created["id"]),
+        headers=headers,
+        json={"cantidad": None, "unidad": None},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cantidad"] is None
+    assert body["unidad"] is None
+    assert body["porcentaje"] is None
+
+
+def test_actualizar_rechaza_cantidad_sin_unidad(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    sal = _create_ingrediente(client, headers, "sal-hu03c", "Sal patch")
+    version = _create_version_producto(db_session, producto["id"])
+    created = _add_linea(
+        client, headers, producto["id"], version.id, sal["id"], porcentaje=None
+    ).json()
+
+    response = client.patch(
+        _formulacion_url(producto["id"], version.id, created["id"]),
+        headers=headers,
+        json={"cantidad": "5"},
+    )
+
+    assert response.status_code == 422
+    listado = client.get(_formulacion_url(producto["id"], version.id), headers=headers)
+    assert listado.json()[0]["cantidad"] is None
+
+
 def test_eliminar_linea_formulacion(client, db_session) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
     headers = _auth_headers(login["access_token"])

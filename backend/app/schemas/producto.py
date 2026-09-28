@@ -285,8 +285,6 @@ class FormulacionComponenteCreate(BaseModel):
 
         if has_porcentaje and (has_cantidad or has_unidad):
             raise ValueError("Indique porcentaje o cantidad con unidad, no ambos.")
-        if not has_porcentaje and not (has_cantidad and has_unidad):
-            raise ValueError("Debe indicar porcentaje o cantidad con unidad.")
         if has_cantidad != has_unidad:
             raise ValueError("cantidad y unidad deben indicarse juntas.")
         return self
