@@ -439,7 +439,18 @@ describe("Ingredientes HU02 — composición y alérgenos", () => {
 
     await openIngredientDetailPage("/ingredientes/1", "Masa base");
     const glutenChip = (await screen.findByText("Gluten")).parentElement as HTMLElement;
-    expect(within(glutenChip).getByText("Obligatorio")).toBeInTheDocument();
+    const etiqueta = within(glutenChip).getByText("Rotulación obligatoria");
+    const ayuda =
+      "Alérgeno de declaración obligatoria en el rotulado según la Resolución Exenta N.º 427 del Minsal.";
+    expect(etiqueta).toHaveAttribute("title", ayuda);
+    expect(etiqueta).toHaveTextContent(ayuda);
+    expect(screen.queryByText("Obligatorio")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Alérgenos de referencia del ingrediente\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/deben declararse en la etiqueta del producto según la Resolución Exenta N\.º 427 del Ministerio de Salud\./),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "+ Agregar alérgeno" }));
     const select = screen.getByLabelText("Alérgeno del catálogo");

@@ -11,6 +11,9 @@ import {
 import { ApiError } from "@/types/auth";
 import type { Alergeno, AlergenoCatalogo } from "@/types/ingredient";
 
+const ROTULACION_OBLIGATORIA_AYUDA =
+  "Alérgeno de declaración obligatoria en el rotulado según la Resolución Exenta N.º 427 del Minsal.";
+
 interface IngredientAllergensSectionProps {
   ingredienteId: number;
 }
@@ -117,6 +120,18 @@ export default function IngredientAllergensSection({
 
   return (
     <div className="space-y-4">
+      <div className="space-y-1 text-xs text-text-secondary leading-relaxed">
+        <p>
+          Alérgenos de referencia del ingrediente. Los alérgenos de cada
+          elaboración se obtienen de los insumos comerciales utilizados.
+        </p>
+        <p>
+          Los marcados con «Rotulación obligatoria» deben declararse en la
+          etiqueta del producto según la Resolución Exenta N.º 427 del
+          Ministerio de Salud.
+        </p>
+      </div>
+
       {loading && (
         <p className="text-sm text-text-secondary">Cargando alérgenos...</p>
       )}
@@ -147,8 +162,12 @@ export default function IngredientAllergensSection({
                 >
                   <span>{alergeno.nombre}</span>
                   {obligatorioIds.has(alergeno.id) && (
-                    <span className="rounded-full border border-text-primary bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary">
-                      Obligatorio
+                    <span
+                      title={ROTULACION_OBLIGATORIA_AYUDA}
+                      className="rounded-full border border-text-primary bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary"
+                    >
+                      Rotulación obligatoria
+                      <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>
                     </span>
                   )}
                   <button
