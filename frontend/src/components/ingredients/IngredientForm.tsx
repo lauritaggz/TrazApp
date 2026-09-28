@@ -37,6 +37,8 @@ interface IngredientFormProps {
   errorFocusToken?: number;
   submitLabel?: string;
   loadingLabel?: string;
+  /** Dentro de otro diálogo: una columna, sin tarjeta, sin próximos pasos ni barra flotante. */
+  embedded?: boolean;
   onChange: (values: IngredienteFormValues) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -50,6 +52,7 @@ export default function IngredientForm({
   errorFocusToken = 0,
   submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar ingrediente",
   loadingLabel = "Guardando…",
+  embedded = false,
   onChange,
   onSubmit,
   onCancel,
@@ -84,13 +87,29 @@ export default function IngredientForm({
   const codeSuggestion = values.codigo_interno.trim()
     ? null
     : suggestInternalCode(values.nombre);
-  const showNextSteps = mode === "create";
+  const actions = (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full sm:w-auto"
+        onClick={onCancel}
+        disabled={loading}
+      >
+        Cancelar
+      </Button>
+      <Button type="submit" className="w-full sm:w-auto" loading={loading}>
+        {loading ? loadingLabel : submitLabel}
+      </Button>
+    </>
+  );
+  const showNextSteps = mode === "create" && !embedded;
 
   return (
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="space-y-6"
+      className={embedded ? "space-y-4" : "space-y-6"}
       noValidate
     >
       <div
@@ -100,7 +119,13 @@ export default function IngredientForm({
             : "max-w-2xl"
         }
       >
-        <div className="rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6">
+        <div
+          className={
+            embedded
+              ? ""
+              : "rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
+          }
+        >
           <ProductFormSection
             id="ingredient-form-general"
             title="Información general"
@@ -194,20 +219,13 @@ export default function IngredientForm({
         )}
       </div>
 
-      <FormActions>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full sm:w-auto"
-          onClick={onCancel}
-          disabled={loading}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" className="w-full sm:w-auto" loading={loading}>
-          {loading ? loadingLabel : submitLabel}
-        </Button>
-      </FormActions>
+      {embedded ? (
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          {actions}
+        </div>
+      ) : (
+        <FormActions>{actions}</FormActions>
+      )}
     </form>
   );
 }

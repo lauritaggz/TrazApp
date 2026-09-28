@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import IngredientCreateDialog from "@/components/ingredients/IngredientCreateDialog";
 import ProductFormulationHistory from "@/components/products/ProductFormulationHistory";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -47,6 +48,7 @@ export default function ProductFormulationSection({
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState("");
   const [selectedIngredienteId, setSelectedIngredienteId] = useState("");
+  const [creatingIngredient, setCreatingIngredient] = useState(false);
 
   const loadFormulacion = useCallback(async () => {
     setLoading(true);
@@ -130,6 +132,17 @@ export default function ProductFormulationSection({
       (item) => item.id === Number(selectedIngredienteId),
     );
     if (!ingrediente) return;
+    appendLine(ingrediente);
+    setSelectedIngredienteId("");
+  }
+
+  function handleIngredientCreated(ingrediente: Ingrediente) {
+    setCatalog((items) => [...items, ingrediente]);
+    appendLine(ingrediente);
+    setCreatingIngredient(false);
+  }
+
+  function appendLine(ingrediente: Ingrediente) {
     setDraft((lines) => [
       ...lines,
       {
@@ -142,7 +155,6 @@ export default function ProductFormulationSection({
         desactivado: false,
       },
     ]);
-    setSelectedIngredienteId("");
     setDraftErrors((current) => ({ ...current, general: undefined }));
   }
 
@@ -234,41 +246,64 @@ export default function ProductFormulationSection({
                 Reintentar
               </Button>
             </div>
-          ) : availableIngredientes.length === 0 ? (
-            <p className="text-sm text-text-secondary">
-              No hay más ingredientes activos para agregar.
-            </p>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <label className="flex flex-col gap-1.5 flex-1 min-w-0">
-                <span className="text-sm font-medium text-text-primary">Ingrediente</span>
-                <select
-                  value={selectedIngredienteId}
-                  onChange={(e) => setSelectedIngredienteId(e.target.value)}
-                  disabled={saving}
-                  aria-label="Ingrediente para agregar"
-                  className="w-full rounded-lg border border-border bg-card text-sm px-3 py-2.5"
-                >
-                  <option value="">Selecciona un ingrediente</option>
-                  {availableIngredientes.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.codigo_interno ? `${item.nombre} (${item.codigo_interno})` : item.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <>
+              {availableIngredientes.length === 0 ? (
+                <p className="text-sm text-text-secondary">
+                  No hay más ingredientes activos para agregar.
+                </p>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <label className="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <span className="text-sm font-medium text-text-primary">Ingrediente</span>
+                    <select
+                      value={selectedIngredienteId}
+                      onChange={(e) => setSelectedIngredienteId(e.target.value)}
+                      disabled={saving}
+                      aria-label="Ingrediente para agregar"
+                      className="w-full rounded-lg border border-border bg-card text-sm px-3 py-2.5"
+                    >
+                      <option value="">Selecciona un ingrediente</option>
+                      {availableIngredientes.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.codigo_interno
+                            ? `${item.nombre} (${item.codigo_interno})`
+                            : item.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={addLine}
+                    disabled={saving || !selectedIngredienteId}
+                  >
+                    + Agregar ingrediente
+                  </Button>
+                </div>
+              )}
               <Button
                 type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={addLine}
-                disabled={saving || !selectedIngredienteId}
+                variant="ghost"
+                className="w-full sm:w-auto px-2"
+                onClick={() => setCreatingIngredient(true)}
+                disabled={saving}
               >
-                + Agregar ingrediente
+                Crear ingrediente nuevo
               </Button>
-            </div>
+            </>
           )}
         </div>
+
+        {creatingIngredient && (
+          <IngredientCreateDialog
+            description="El ingrediente se guardará en tu catálogo y se agregará a esta formulación."
+            onCreated={handleIngredientCreated}
+            onCancel={() => setCreatingIngredient(false)}
+          />
+        )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
           <Button
