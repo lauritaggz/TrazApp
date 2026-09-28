@@ -389,15 +389,11 @@ describe("Ingredientes HU02 — composición y alérgenos", () => {
 
   it("muestra alérgenos asociados y permite agregar", async () => {
     const user = userEvent.setup();
-    vi.mocked(ingredientService.addIngredientAllergen).mockResolvedValue(
-      mockCatalog[1],
-    );
+    const crustaceos = mockCatalog.find((item) => item.codigo === "crustaceos")!;
+    vi.mocked(ingredientService.addIngredientAllergen).mockResolvedValue(crustaceos);
     vi.mocked(ingredientService.listIngredientAllergens)
       .mockResolvedValueOnce(mockAllergens)
-      .mockResolvedValueOnce([
-        ...mockAllergens,
-        mockCatalog[1],
-      ]);
+      .mockResolvedValueOnce([...mockAllergens, crustaceos]);
 
     await openIngredientDetailPage("/ingredientes/1", "Masa base");
     expect(await screen.findByText("Gluten")).toBeInTheDocument();
