@@ -143,6 +143,99 @@ def test_actualizar_de_compuesto_a_simple_con_componentes_devuelve_422(
     assert "componentes asociados" in response.json()["detail"]
 
 
+def _crear_compuesto_con_componente(client, db_session, headers) -> dict:
+    compuesto = _create_ingrediente(
+        client,
+        headers,
+        {**INGREDIENTE_BASE, "codigo_interno": "mas-ht03", "nombre": "Masa base", "tipo": "compuesto"},
+    )
+    componente = _create_ingrediente(
+        client,
+        headers,
+        {**INGREDIENTE_BASE, "codigo_interno": "har-ht03", "nombre": "Harina"},
+    )
+    db_session.add(
+        ComposicionIngrediente(
+            ingrediente_compuesto_id=compuesto["id"],
+            ingrediente_componente_id=componente["id"],
+            porcentaje=Decimal("60.000"),
+        )
+    )
+    db_session.commit()
+    return compuesto
+
+
+def test_crear_ingrediente_sin_tipo(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    payload = {k: v for k, v in INGREDIENTE_BASE.items() if k != "tipo"}
+
+    created = _create_ingrediente(client, headers, payload)
+
+    assert created["tipo"] is None
+    detail = client.get(f"/gestion/ingredientes/{created['id']}", headers=headers)
+    assert detail.status_code == 200
+    assert detail.json()["tipo"] is None
+
+
+def test_editar_compuesto_sin_enviar_tipo_conserva_tipo_y_composicion(
+    client,
+    db_session,
+) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    compuesto = _crear_compuesto_con_componente(client, db_session, headers)
+
+    response = client.patch(
+        f"/gestion/ingredientes/{compuesto['id']}",
+        headers=headers,
+        json={"nombre": "Masa base editada"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["nombre"] == "Masa base editada"
+    assert response.json()["tipo"] == "compuesto"
+    composicion = client.get(
+        f"/gestion/ingredientes/{compuesto['id']}/composicion",
+        headers=headers,
+    )
+    assert composicion.status_code == 200
+    assert [item["nombre"] for item in composicion.json()] == ["Harina"]
+
+
+def test_quitar_tipo_a_compuesto_con_componentes_devuelve_422(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    compuesto = _crear_compuesto_con_componente(client, db_session, headers)
+
+    response = client.patch(
+        f"/gestion/ingredientes/{compuesto['id']}",
+        headers=headers,
+        json={"nombre": "Otro", "tipo": None},
+    )
+
+    assert response.status_code == 422
+    assert "componentes asociados" in response.json()["detail"]
+    detail = client.get(f"/gestion/ingredientes/{compuesto['id']}", headers=headers)
+    assert detail.json()["tipo"] == "compuesto"
+    assert detail.json()["nombre"] == "Masa base"
+
+
+def test_quitar_tipo_a_ingrediente_sin_componentes(client) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    created = _create_ingrediente(client, headers)
+
+    response = client.patch(
+        f"/gestion/ingredientes/{created['id']}",
+        headers=headers,
+        json={"tipo": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["tipo"] is None
+
+
 def test_tipo_ajeno_no_afecta_ingredientes_de_otro_productor(client) -> None:
     login_a = _register_and_login(client, PRODUCTOR_A)
     login_b = _register_and_login(client, PRODUCTOR_B)

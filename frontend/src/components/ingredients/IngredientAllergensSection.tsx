@@ -143,15 +143,11 @@ export default function IngredientAllergensSection({
               {alergenos.map((alergeno) => (
                 <div
                   key={alergeno.id}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium border ${
-                    obligatorioIds.has(alergeno.id)
-                      ? "bg-error-bg text-error border-error-border"
-                      : "bg-brand-50 text-brand-700 border-brand-100"
-                  }`}
+                  className="inline-flex items-center gap-2 rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-3 py-1 text-xs font-medium"
                 >
                   <span>{alergeno.nombre}</span>
                   {obligatorioIds.has(alergeno.id) && (
-                    <span className="rounded-full bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide">
+                    <span className="rounded-full border border-text-primary bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary">
                       Obligatorio
                     </span>
                   )}
