@@ -135,13 +135,13 @@ describe("Productos HU01 — listado y navegación", () => {
   });
 
   it("muestra loading y luego el listado con total registrado", async () => {
+    // Create the pending promise up front: listProducts runs in a useEffect that
+    // may not have fired yet when findByRole returns.
     let resolveProducts!: (value: Product[]) => void;
-    vi.mocked(productService.listProducts).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveProducts = resolve;
-        }),
-    );
+    const pendingProducts = new Promise<Product[]>((resolve) => {
+      resolveProducts = resolve;
+    });
+    vi.mocked(productService.listProducts).mockReturnValue(pendingProducts);
 
     renderWithProviders(<App />, { initialEntries: ["/productos"] });
     expect(
@@ -870,13 +870,13 @@ describe("Productos HU01 — detalle y edición", () => {
   });
 
   it("muestra loading y luego el detalle del producto", async () => {
+    // Create the pending promise up front: getProduct runs in a useEffect that
+    // may not have fired yet when findByText returns.
     let resolveProduct!: (value: Product) => void;
-    vi.mocked(productService.getProduct).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveProduct = resolve;
-        }),
-    );
+    const pendingProduct = new Promise<Product>((resolve) => {
+      resolveProduct = resolve;
+    });
+    vi.mocked(productService.getProduct).mockReturnValue(pendingProduct);
 
     renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
     expect(await screen.findByText("Cargando producto...")).toBeInTheDocument();

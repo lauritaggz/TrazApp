@@ -1,4 +1,3 @@
-import { formatIngredienteTipo } from "@/lib/ingredientListUtils";
 import type { Ingrediente } from "@/types/ingredient";
 import { LeafIcon } from "@/components/dashboard/dashboardIcons";
 
@@ -71,9 +70,6 @@ export default function DashboardRecentIngredients({
                     "Sin descripción"}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-medium text-text-secondary">
-                {formatIngredienteTipo(ingredient.tipo)}
-              </span>
             </li>
           ))}
         </ul>

@@ -1,7 +1,7 @@
-import { listAlergenosCatalog } from "@/lib/alergenoCatalog";
 import { apiRequest } from "@/lib/apiClient";
 import type {
   Alergeno,
+  AlergenoCatalogo,
   ComposicionComponente,
   ComposicionComponenteCreatePayload,
   ComposicionComponenteUpdatePayload,
@@ -142,4 +142,10 @@ export async function deleteIngredientAllergen(
   );
 }
 
-export { listAlergenosCatalog };
+export async function listAlergenosCatalog(): Promise<AlergenoCatalogo[]> {
+  return apiRequest<AlergenoCatalogo[]>(
+    "/gestion/alergenos",
+    { method: "GET" },
+    true,
+  );
+}

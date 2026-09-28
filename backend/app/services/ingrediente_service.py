@@ -7,6 +7,7 @@ from app.repositories.ingrediente_repository import (
 from app.schemas.ingrediente import (
     TIPO_COMPUESTO,
     TIPO_SIMPLE,
+    AlergenoCatalogoRead,
     AlergenoRead,
     ComposicionComponenteCreate,
     ComposicionComponenteRead,
@@ -158,6 +159,10 @@ class IngredienteService:
             raise ComposicionNotFoundError("Componente de composición no encontrado.")
         self.repository.delete_composicion(composicion)
 
+    def list_alergenos_catalogo(self) -> list[AlergenoCatalogoRead]:
+        alergenos = self.repository.list_alergenos_catalogo()
+        return [AlergenoCatalogoRead.model_validate(item) for item in alergenos]
+
     def list_alergenos_mine(
         self,
         productor: Productor,
@@ -209,21 +214,24 @@ class IngredienteService:
         return ingrediente
 
     @staticmethod
-    def _validate_tipo_on_create(tipo: str) -> None:
-        if tipo == TIPO_SIMPLE:
-            return
-        if tipo == TIPO_COMPUESTO:
+    def _validate_tipo_on_create(tipo: str | None) -> None:
+        if tipo is None or tipo in {TIPO_SIMPLE, TIPO_COMPUESTO}:
             return
         raise InvalidTipoIngredienteError("El tipo de ingrediente no es válido.")
 
-    def _validate_tipo_on_update(self, ingrediente: Ingrediente, nuevo_tipo: str) -> None:
-        if nuevo_tipo not in {TIPO_SIMPLE, TIPO_COMPUESTO}:
+    def _validate_tipo_on_update(
+        self,
+        ingrediente: Ingrediente,
+        nuevo_tipo: str | None,
+    ) -> None:
+        if nuevo_tipo is not None and nuevo_tipo not in {TIPO_SIMPLE, TIPO_COMPUESTO}:
             raise InvalidTipoIngredienteError("El tipo de ingrediente no es válido.")
         if nuevo_tipo == ingrediente.tipo:
             return
-        if nuevo_tipo == TIPO_SIMPLE and self.repository.has_componentes(ingrediente.id):
+        if nuevo_tipo != TIPO_COMPUESTO and self.repository.has_componentes(ingrediente.id):
             raise InvalidTipoIngredienteError(
-                "No se puede cambiar a simple mientras el ingrediente tenga componentes asociados."
+                "No se puede quitar el tipo compuesto mientras el ingrediente tenga "
+                "componentes asociados."
             )
 
     def _get_compuesto_owned_or_raise(

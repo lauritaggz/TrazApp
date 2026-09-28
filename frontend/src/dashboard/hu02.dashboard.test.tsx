@@ -111,13 +111,14 @@ describe("Dashboard HT02", () => {
     expect(screen.getAllByText("Panaderia La Espiga").length).toBeGreaterThan(0);
   });
 
-  it("muestra métricas reales de productos e ingredientes", async () => {
+  it("muestra métricas reales de productos e ingredientes sin desglose por tipo", async () => {
     setupDashboardMocks();
 
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(await screen.findByText("Productos registrados")).toBeInTheDocument();
-    expect(screen.getByText("Ingredientes compuestos")).toBeInTheDocument();
+    expect(screen.queryByText("Ingredientes compuestos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ingredientes simples")).not.toBeInTheDocument();
 
     function statCard(label: string) {
       const labelNode = screen.getByText(label, { selector: "p" });
@@ -131,8 +132,6 @@ describe("Dashboard HT02", () => {
     await waitFor(() => {
       expect(within(statCard("Productos registrados")).getByText("1")).toBeInTheDocument();
       expect(within(statCard("Ingredientes")).getByText("2")).toBeInTheDocument();
-      expect(within(statCard("Ingredientes compuestos")).getByText("1")).toBeInTheDocument();
-      expect(within(statCard("Ingredientes simples")).getByText("1")).toBeInTheDocument();
     });
   });
 
@@ -147,15 +146,15 @@ describe("Dashboard HT02", () => {
     expect(screen.getByText("Pastelería")).toBeInTheDocument();
   });
 
-  it("lista ingredientes recientes con datos reales", async () => {
+  it("lista ingredientes recientes con datos reales sin mostrar el tipo", async () => {
     setupDashboardMocks();
 
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(await screen.findByText("Harina de trigo")).toBeInTheDocument();
     expect(screen.getByText("Masa base")).toBeInTheDocument();
-    expect(screen.getByText("Simple")).toBeInTheDocument();
-    expect(screen.getByText("Compuesto")).toBeInTheDocument();
+    expect(screen.queryByText("Simple")).not.toBeInTheDocument();
+    expect(screen.queryByText("Compuesto")).not.toBeInTheDocument();
   });
 
   it("navega a productos e ingredientes desde accesos rápidos", async () => {

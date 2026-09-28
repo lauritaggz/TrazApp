@@ -6,10 +6,9 @@ import {
   INGREDIENTE_FORM_FIELD_ORDER,
   type IngredienteFormFieldErrors,
 } from "@/lib/ingredientFormValidation";
-import {
-  INGREDIENTE_TIPO_OPTIONS,
-  type IngredienteFormMode,
-  type IngredienteFormValues,
+import type {
+  IngredienteFormMode,
+  IngredienteFormValues,
 } from "@/types/ingredient";
 
 interface IngredientFormProps {
@@ -108,33 +107,6 @@ export default function IngredientForm({
             className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50 resize-y min-h-[5rem]"
             placeholder="Opcional"
           />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Tipo</span>
-          <select
-            name="tipo"
-            value={values.tipo}
-            onChange={(e) =>
-              update("tipo", e.target.value as IngredienteFormValues["tipo"])
-            }
-            disabled={loading}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50"
-            aria-invalid={Boolean(errors.tipo)}
-            aria-describedby={errors.tipo ? "tipo-error" : undefined}
-            required
-          >
-            <option value="">Selecciona un tipo</option>
-            {INGREDIENTE_TIPO_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.tipo && (
-            <p id="tipo-error" className="text-xs text-error">
-              {errors.tipo}
-            </p>
-          )}
         </label>
       </ProductFormSection>
 

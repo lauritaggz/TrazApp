@@ -9,7 +9,7 @@ import {
   listIngredientAllergens,
 } from "@/services/ingredientService";
 import { ApiError } from "@/types/auth";
-import type { Alergeno } from "@/types/ingredient";
+import type { Alergeno, AlergenoCatalogo } from "@/types/ingredient";
 
 interface IngredientAllergensSectionProps {
   ingredienteId: number;
@@ -19,9 +19,11 @@ export default function IngredientAllergensSection({
   ingredienteId,
 }: IngredientAllergensSectionProps) {
   const [alergenos, setAlergenos] = useState<Alergeno[]>([]);
-  const [catalog, setCatalog] = useState<Alergeno[]>([]);
+  const [catalog, setCatalog] = useState<AlergenoCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
   const [actionError, setActionError] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedAlergenoId, setSelectedAlergenoId] = useState("");
@@ -33,12 +35,7 @@ export default function IngredientAllergensSection({
     setLoading(true);
     setError("");
     try {
-      const [associated, catalogData] = await Promise.all([
-        listIngredientAllergens(ingredienteId),
-        listAlergenosCatalog(),
-      ]);
-      setAlergenos(associated);
-      setCatalog(catalogData);
+      setAlergenos(await listIngredientAllergens(ingredienteId));
     } catch {
       setError("No pudimos cargar los alérgenos.");
     } finally {
@@ -46,12 +43,37 @@ export default function IngredientAllergensSection({
     }
   }, [ingredienteId]);
 
+  const loadCatalog = useCallback(async () => {
+    setCatalogLoading(true);
+    setCatalogError("");
+    try {
+      setCatalog(await listAlergenosCatalog());
+    } catch {
+      setCatalog([]);
+      setCatalogError("No pudimos cargar el catálogo de alérgenos.");
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
   const associatedIds = new Set(alergenos.map((item) => item.id));
+  const obligatorioIds = new Set(
+    catalog.filter((item) => item.obligatorio_chile).map((item) => item.id),
+  );
+  // Filtering keeps the backend order, which already lists mandatory first.
   const availableCatalog = catalog.filter((item) => !associatedIds.has(item.id));
+  const availableObligatorios = availableCatalog.filter(
+    (item) => item.obligatorio_chile,
+  );
+  const availableOtros = availableCatalog.filter((item) => !item.obligatorio_chile);
 
   async function handleAdd() {
     setActionError("");
@@ -124,6 +146,11 @@ export default function IngredientAllergensSection({
                   className="inline-flex items-center gap-2 rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-3 py-1 text-xs font-medium"
                 >
                   <span>{alergeno.nombre}</span>
+                  {obligatorioIds.has(alergeno.id) && (
+                    <span className="rounded-full border border-text-primary bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary">
+                      Obligatorio
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="text-brand-800 hover:text-error"
@@ -137,7 +164,22 @@ export default function IngredientAllergensSection({
             </div>
           )}
 
-          {!showAddForm ? (
+          {catalogLoading ? (
+            <p className="text-sm text-text-secondary" aria-live="polite">
+              Cargando catálogo de alérgenos...
+            </p>
+          ) : catalogError ? (
+            <div className="space-y-3">
+              <Alert type="error">{catalogError}</Alert>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void loadCatalog()}
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : !showAddForm ? (
             <Button
               type="button"
               onClick={() => setShowAddForm(true)}
@@ -159,11 +201,24 @@ export default function IngredientAllergensSection({
                   className="w-full rounded-lg border border-border bg-card text-sm px-3 py-2.5"
                 >
                   <option value="">Selecciona un alérgeno</option>
-                  {availableCatalog.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nombre}
-                    </option>
-                  ))}
+                  {availableObligatorios.length > 0 && (
+                    <optgroup label="Declaración obligatoria">
+                      {availableObligatorios.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {availableOtros.length > 0 && (
+                    <optgroup label="Otros alérgenos">
+                      {availableOtros.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </label>
               <div className="flex gap-2">

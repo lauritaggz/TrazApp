@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
+import IngredientCompositionSection from "@/components/ingredients/IngredientCompositionSection";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as ingredientService from "@/services/ingredientService";
@@ -9,6 +10,7 @@ import { mockProductor, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type {
   Alergeno,
+  AlergenoCatalogo,
   ComposicionComponente,
   Ingrediente,
 } from "@/types/ingredient";
@@ -76,10 +78,12 @@ const mockAllergens: Alergeno[] = [
   { id: 7, codigo: "lacteos", nombre: "Lácteos" },
 ];
 
-const mockCatalog: Alergeno[] = [
-  { id: 1, codigo: "gluten", nombre: "Gluten" },
-  { id: 2, codigo: "crustaceos", nombre: "Crustáceos" },
-  { id: 7, codigo: "lacteos", nombre: "Lácteos" },
+const mockCatalog: AlergenoCatalogo[] = [
+  { id: 2, codigo: "crustaceos", nombre: "Crustáceos", obligatorio_chile: true },
+  { id: 1, codigo: "gluten", nombre: "Gluten", obligatorio_chile: true },
+  { id: 7, codigo: "lacteos", nombre: "Lácteos", obligatorio_chile: true },
+  { id: 9, codigo: "apio", nombre: "Apio", obligatorio_chile: false },
+  { id: 10, codigo: "mostaza", nombre: "Mostaza", obligatorio_chile: false },
 ];
 
 function setupAuthenticated() {
@@ -125,7 +129,6 @@ async function fillValidIngredientForm(
   await user.type(screen.getByLabelText(/Código interno/), "AZU-001");
   await user.type(screen.getByLabelText(/^Nombre/), "Azúcar");
   await user.type(screen.getByLabelText(/Descripción/), "Azúcar refinada");
-  await user.selectOptions(screen.getByLabelText(/^Tipo/), "simple");
 }
 
 describe("Ingredientes HU02 — listado", () => {
@@ -136,14 +139,16 @@ describe("Ingredientes HU02 — listado", () => {
     setupDefaultMocks();
   });
 
-  it("muestra listado con código, nombre, tipo y estado", async () => {
+  it("muestra listado con código, nombre y estado, sin tipo", async () => {
     await openIngredientsPage();
     expect(screen.getByText("2 ingredientes registrados")).toBeInTheDocument();
     expect(screen.getAllByText("HAR-001").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Harina de trigo").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Simple").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Compuesto").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Activo").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Simple")).not.toBeInTheDocument();
+    expect(screen.queryByText("Compuesto")).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Tipo" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Tipo")).not.toBeInTheDocument();
   });
 
   it("muestra estado vacío y error con reintento", async () => {
@@ -175,19 +180,21 @@ describe("Ingredientes HU02 — creación", () => {
     vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
   });
 
-  it("crea ingrediente válido y muestra feedback", async () => {
+  it("crea ingrediente sin tipo y muestra feedback", async () => {
     const user = userEvent.setup();
     vi.mocked(ingredientService.createIngredient).mockResolvedValue({
       ...mockIngredients[0],
       id: 3,
       codigo_interno: "AZU-001",
       nombre: "Azúcar",
+      tipo: null,
     });
 
     renderWithProviders(<App />, { initialEntries: ["/ingredientes/nuevo"] });
     expect(
       await screen.findByRole("heading", { name: "Nuevo ingrediente" }),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Tipo/)).not.toBeInTheDocument();
 
     await fillValidIngredientForm(user);
     await user.click(screen.getByRole("button", { name: "Guardar ingrediente" }));
@@ -195,12 +202,13 @@ describe("Ingredientes HU02 — creación", () => {
     expect(
       await screen.findByText("Ingrediente creado correctamente."),
     ).toBeInTheDocument();
-    expect(ingredientService.createIngredient).toHaveBeenCalledWith({
+    const [payload] = vi.mocked(ingredientService.createIngredient).mock.calls[0];
+    expect(payload).toStrictEqual({
       codigo_interno: "AZU-001",
       nombre: "Azúcar",
       descripcion: "Azúcar refinada",
-      tipo: "simple",
     });
+    expect(Object.keys(payload)).not.toContain("tipo");
   });
 
   it("muestra error de código duplicado desde API", async () => {
@@ -295,6 +303,32 @@ describe("Ingredientes HU02 — detalle, edición y desactivación", () => {
     expect(ingredientService.deleteIngredient).toHaveBeenCalledWith(2);
   });
 
+  it("edita el nombre de un compuesto existente sin enviar tipo", async () => {
+    const user = userEvent.setup();
+    vi.mocked(ingredientService.updateIngredient).mockResolvedValue({
+      ...mockIngredients[1],
+      nombre: "Masa base editada",
+    });
+
+    renderWithProviders(<App />, { initialEntries: ["/ingredientes/1/editar"] });
+    const nombre = await screen.findByLabelText(/^Nombre/);
+    await waitFor(() => expect(nombre).toHaveValue("Masa base"));
+    expect(screen.queryByLabelText(/^Tipo/)).not.toBeInTheDocument();
+
+    await user.clear(nombre);
+    await user.type(nombre, "Masa base editada");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(
+      await screen.findByText("Ingrediente actualizado correctamente."),
+    ).toBeInTheDocument();
+    expect(ingredientService.updateIngredient).toHaveBeenCalledTimes(1);
+    const [id, payload] = vi.mocked(ingredientService.updateIngredient).mock.calls[0];
+    expect(id).toBe(1);
+    expect(payload).toStrictEqual({ nombre: "Masa base editada" });
+    expect(Object.keys(payload)).not.toContain("tipo");
+  });
+
   it("muestra ingrediente no disponible ante 404", async () => {
     vi.mocked(ingredientService.getIngredient).mockRejectedValue(
       new ApiError("No encontrado", 404),
@@ -321,24 +355,23 @@ describe("Ingredientes HU02 — composición y alérgenos", () => {
     );
   });
 
-  it("muestra composición de ingrediente compuesto", async () => {
+  it("el detalle de un compuesto no muestra tipo ni composición declarada", async () => {
     await openIngredientDetailPage("/ingredientes/1", "Masa base");
-    expect(
-      await screen.findByText("Composición declarada"),
-    ).toBeInTheDocument();
-    expect(await screen.findByText("Harina de trigo")).toBeInTheDocument();
-    expect(screen.getByText(/60/)).toBeInTheDocument();
+    expect(await screen.findByText("Gluten")).toBeInTheDocument();
+    expect(screen.queryByText("Composición declarada")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tipo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Compuesto")).not.toBeInTheDocument();
+    expect(ingredientService.listIngredientComposition).not.toHaveBeenCalled();
   });
 
-  it("agrega componente y muestra error de API", async () => {
+  it("IngredientCompositionSection se conserva: agrega componente y muestra error de API", async () => {
     const user = userEvent.setup();
     vi.mocked(ingredientService.listIngredientComposition).mockResolvedValue([]);
     vi.mocked(ingredientService.addCompositionComponent).mockRejectedValue(
       new ApiError("La composición generaría un ciclo entre ingredientes.", 422),
     );
 
-    await openIngredientDetailPage("/ingredientes/1", "Masa base");
-    await screen.findByText("Composición declarada");
+    render(<IngredientCompositionSection ingredienteId={1} ingredienteTipo="compuesto" />);
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: "+ Agregar componente" }),
@@ -399,5 +432,39 @@ describe("Ingredientes HU02 — composición y alérgenos", () => {
     await waitFor(() => {
       expect(ingredientService.deleteIngredientAllergen).toHaveBeenCalledWith(1, 1);
     });
+  });
+
+  it("agrupa el catálogo en obligatorios y otros, en el orden del backend", async () => {
+    const user = userEvent.setup();
+
+    await openIngredientDetailPage("/ingredientes/1", "Masa base");
+    const glutenChip = (await screen.findByText("Gluten")).parentElement as HTMLElement;
+    expect(within(glutenChip).getByText("Obligatorio")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "+ Agregar alérgeno" }));
+    const select = screen.getByLabelText("Alérgeno del catálogo");
+    const groups = Array.from(select.querySelectorAll("optgroup")).map((group) => ({
+      label: group.label,
+      options: Array.from(group.querySelectorAll("option")).map((o) => o.textContent),
+    }));
+    expect(groups).toEqual([
+      { label: "Declaración obligatoria", options: ["Crustáceos"] },
+      { label: "Otros alérgenos", options: ["Apio", "Mostaza"] },
+    ]);
+  });
+
+  it("si falla el catálogo muestra error y no usa una copia local", async () => {
+    vi.mocked(ingredientService.listAlergenosCatalog).mockRejectedValue(
+      new ApiError("fallo", 500),
+    );
+
+    await openIngredientDetailPage("/ingredientes/1", "Masa base");
+    expect(
+      await screen.findByText("No pudimos cargar el catálogo de alérgenos."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Gluten")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Agregar alérgeno" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Alérgeno del catálogo")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 });
