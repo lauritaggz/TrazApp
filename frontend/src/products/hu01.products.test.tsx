@@ -29,6 +29,8 @@ vi.mock("@/services/productService", () => ({
 vi.mock("@/services/formulationService", () => ({
   getProductFormulation: vi.fn().mockResolvedValue({ existe: false, version: null }),
   saveProductFormulation: vi.fn(),
+  listProductVersions: vi.fn().mockResolvedValue([]),
+  getVersionFormulation: vi.fn(),
 }));
 
 const mockProducts: Product[] = [

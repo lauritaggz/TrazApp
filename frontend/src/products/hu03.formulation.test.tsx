@@ -39,6 +39,8 @@ vi.mock("@/services/productService", () => ({
 vi.mock("@/services/formulationService", () => ({
   getProductFormulation: vi.fn(),
   saveProductFormulation: vi.fn(),
+  listProductVersions: vi.fn(),
+  getVersionFormulation: vi.fn(),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -132,6 +134,7 @@ function savedPayload() {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  vi.mocked(formulationService.listProductVersions).mockResolvedValue([]);
   vi.mocked(ingredientService.listIngredients).mockResolvedValue([
     HARINA,
     AGUA,

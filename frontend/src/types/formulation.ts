@@ -31,6 +31,17 @@ export interface FormulacionVigente {
   version: FormulacionVersion | null;
 }
 
+/** GET /gestion/productos/{id}/versiones item, newest first. */
+export interface VersionProductoHistorial {
+  id: number;
+  numero_version: number;
+  descripcion: string;
+  fecha_creacion: string;
+  vigente: boolean;
+  usada_en_elaboracion: boolean;
+  cantidad_lineas: number;
+}
+
 export type ResultadoGuardadoFormulacion =
   | "version_creada"
   | "modificada_en_lugar"

@@ -20,6 +20,24 @@ export function formatFormulacionCantidad(
   return `${value.toLocaleString("es-CL", { maximumFractionDigits: 3 })} ${unidad}`;
 }
 
+export function formatFechaVersion(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "America/Santiago",
+  });
+}
+
+export function ingredientCountLabel(total: number): string {
+  return total === 1 ? "1 ingrediente" : `${total} ingredientes`;
+}
+
 export function toDraftLines(version: FormulacionVersion | null): FormulacionDraftLine[] {
   if (!version) return [];
   return version.lineas.map((linea) => ({

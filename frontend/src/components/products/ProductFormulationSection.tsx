@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import ProductFormulationHistory from "@/components/products/ProductFormulationHistory";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -34,6 +35,7 @@ export default function ProductFormulationSection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<FormulacionDraftLine[]>([]);
@@ -154,6 +156,7 @@ export default function ProductFormulationSection({
     try {
       const result = await saveProductFormulation(productoId, buildReemplazoPayload(draft));
       setFormulacion({ existe: true, version: result.version });
+      setHistoryRefreshKey((key) => key + 1);
       setSuccessMessage(
         resultadoGuardadoMessage(result.resultado, result.version.numero_version),
       );
@@ -352,6 +355,8 @@ export default function ProductFormulationSection({
           >
             Editar formulación
           </Button>
+
+          <ProductFormulationHistory productoId={productoId} refreshKey={historyRefreshKey} />
         </>
       )}
     </div>
