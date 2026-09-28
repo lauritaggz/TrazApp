@@ -224,6 +224,49 @@ def test_endpoints_de_escritura_por_version_eliminados(
     assert [linea["ingrediente_id"] for linea in lineas] == [harina["id"]]
 
 
+def test_version_anterior_no_se_puede_modificar_ni_eliminar(client, db_session) -> None:
+    """PT03-10: no route writes to a non-current version, and it stays intact."""
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    harina = _create_ingrediente(client, headers, "har-ant", "Harina anterior")
+    agua = _create_ingrediente(client, headers, "agua-ant", "Agua anterior")
+    v1 = _guardar(
+        client, headers, producto["id"], [{"ingrediente_id": harina["id"], "cantidad": "1", "unidad": "kg"}]
+    )
+    _marcar_usada(db_session, v1["id"])
+    v2 = _guardar(client, headers, producto["id"], [{"ingrediente_id": agua["id"]}])
+    assert v2["id"] != v1["id"]
+
+    formulacion_v1 = _formulacion_url(producto["id"], v1["id"])
+    linea_v1 = _formulacion_url(producto["id"], v1["id"], v1["lineas"][0]["id"])
+    version_v1 = f"/gestion/productos/{producto['id']}/versiones/{v1['id']}"
+    linea_nueva = {"ingrediente_id": agua["id"]}
+    intentos = [
+        ("post", formulacion_v1, linea_nueva),
+        ("put", formulacion_v1, {"lineas": [linea_nueva]}),
+        ("patch", linea_v1, {"cantidad": "9", "unidad": "kg"}),
+        ("delete", linea_v1, None),
+        ("put", version_v1, {"descripcion": "Editada"}),
+        ("patch", version_v1, {"vigente": True}),
+        ("delete", version_v1, None),
+    ]
+    for method, url, body in intentos:
+        kwargs = {"json": body} if body is not None else {}
+        response = getattr(client, method)(url, headers=headers, **kwargs)
+        assert response.status_code in (404, 405), (method, url, response.status_code)
+
+    lineas = client.get(formulacion_v1, headers=headers).json()
+    assert [(l["ingrediente_id"], l["cantidad"], l["unidad"]) for l in lineas] == [
+        (harina["id"], "1.000", "kg")
+    ]
+    versiones = client.get(f"/gestion/productos/{producto['id']}/versiones", headers=headers).json()
+    assert [(v["numero_version"], v["vigente"], v["usada_en_elaboracion"]) for v in versiones] == [
+        (2, True, False),
+        (1, False, True),
+    ]
+
+
 def test_rt01_sigue_funcionando_sin_formulacion_gestion(client) -> None:
     producto = client.post("/productos", json={"nombre": "Chocolate RT-01"}).json()
     ingrediente = client.post("/ingredientes", json={"nombre": "Cacao"}).json()

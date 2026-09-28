@@ -8,7 +8,17 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import select, update
 
-from app.models import FormulacionVersionProducto, Ingrediente, Producto, Productor, VersionProducto
+from app.models import (
+    FormulacionVersionProducto,
+    Ingrediente,
+    LoteIngrediente,
+    LoteProducto,
+    Producto,
+    Productor,
+    UsoLoteIngrediente,
+    VersionIngrediente,
+    VersionProducto,
+)
 from app.repositories.ingrediente_repository import IngredienteRepository
 from app.repositories.producto_formulacion_repository import ProductoFormulacionRepository
 from app.repositories.producto_repository import ProductoRepository
@@ -354,6 +364,56 @@ def test_obtener_version_vigente(db_session, escenario) -> None:
     otro = _productor(db_session, email="vigente-ajeno@ejemplo.com")
     with pytest.raises(ProductoNotFoundError):
         service.obtener_version_vigente(otro, producto.id)
+
+
+def test_cambiar_insumo_comercial_no_cambia_la_version(db_session, escenario) -> None:
+    """PT03-12, simulated until HU05: an elaboration chooses commercial lots for the
+    generic ingredients; switching the lot never touches the product formulation."""
+    service = _service(db_session)
+    productor, producto, harina = escenario["productor"], escenario["producto"], escenario["harina"]
+    v1 = _guardar(db_session, escenario, _payload((harina, Decimal("500"), "g"))).version
+    lineas_v1 = _lineas(db_session, v1.id)
+
+    marca_a = VersionIngrediente(ingrediente_id=harina.id, numero_version=1, composicion_declarada="Marca A")
+    marca_b = VersionIngrediente(ingrediente_id=harina.id, numero_version=2, composicion_declarada="Marca B")
+    db_session.add_all([marca_a, marca_b])
+    db_session.flush()
+    lote_a = LoteIngrediente(codigo_lote="HAR-A-001", version_ingrediente_id=marca_a.id)
+    lote_b = LoteIngrediente(codigo_lote="HAR-B-001", version_ingrediente_id=marca_b.id)
+    db_session.add_all([lote_a, lote_b])
+    db_session.flush()
+
+    vigente = service.obtener_version_vigente(productor, producto.id)
+    elaboracion = LoteProducto(codigo_lote="PAN-001", version_producto_id=vigente.id)
+    elaboracion.usos_ingredientes.append(UsoLoteIngrediente(lote_ingrediente_id=lote_a.id))
+    db_session.add(elaboracion)
+    service.marcar_version_usada(vigente.id)
+    db_session.commit()
+
+    elaboracion.usos_ingredientes[0].lote_ingrediente_id = lote_b.id
+    db_session.commit()
+    otra = LoteProducto(
+        codigo_lote="PAN-002",
+        version_producto_id=service.obtener_version_vigente(productor, producto.id).id,
+    )
+    otra.usos_ingredientes.append(UsoLoteIngrediente(lote_ingrediente_id=lote_b.id))
+    db_session.add(otra)
+    db_session.commit()
+
+    assert service.obtener_version_vigente(productor, producto.id).id == v1.id
+    assert otra.version_producto_id == v1.id
+    assert [(v.numero_version, v.vigente, v.usada_en_elaboracion) for v in _versiones(db_session, producto)] == [
+        (1, True, True)
+    ]
+    assert _lineas(db_session, v1.id) == lineas_v1
+
+
+def test_producto_sin_formulacion_no_tiene_version_para_elaborar(db_session, escenario) -> None:
+    """PT03-13, verified until HU05: without a current version there is nothing to elaborate."""
+    service = _service(db_session)
+
+    assert service.obtener_version_vigente(escenario["productor"], escenario["producto"].id) is None
+    assert _versiones(db_session, escenario["producto"]) == []
 
 
 @pytest.mark.skipif(not USE_POSTGRESQL, reason="SELECT ... FOR UPDATE requiere PostgreSQL.")
