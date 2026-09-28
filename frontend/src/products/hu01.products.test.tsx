@@ -26,6 +26,11 @@ vi.mock("@/services/productService", () => ({
   deleteProduct: vi.fn(),
 }));
 
+vi.mock("@/services/formulationService", () => ({
+  getProductFormulation: vi.fn().mockResolvedValue({ existe: false, version: null }),
+  saveProductFormulation: vi.fn(),
+}));
+
 const mockProducts: Product[] = [
   {
     id: 3,

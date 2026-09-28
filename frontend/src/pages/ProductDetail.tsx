@@ -4,6 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
+import ProductFormulationSection from "@/components/products/ProductFormulationSection";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
@@ -208,6 +209,10 @@ export default function ProductDetail() {
                   {formatProductMoney(product.precio_venta)}
                 </DetailField>
               </dl>
+            </ProductDetailSection>
+
+            <ProductDetailSection id="product-detail-formulation" title="Formulación">
+              <ProductFormulationSection productoId={product.id} />
             </ProductDetailSection>
 
             <section
