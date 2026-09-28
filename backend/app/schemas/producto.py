@@ -254,65 +254,6 @@ class VersionProductoRead(BaseModel):
 # --- Formulación versionada HU02 / T02-09 ---
 
 
-class FormulacionComponenteCreate(BaseModel):
-    """Add an ingredient line to a product version's declared formulation."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    ingrediente_id: int = Field(gt=0)
-    porcentaje: Decimal | None = Field(
-        default=None,
-        gt=0,
-        le=100,
-        max_digits=6,
-        decimal_places=3,
-    )
-    cantidad: Decimal | None = Field(
-        default=None,
-        gt=0,
-        max_digits=12,
-        decimal_places=3,
-    )
-    unidad: UnidadMedida | None = None
-    orden: int | None = Field(default=None, ge=1)
-    notas: str | None = None
-
-    @model_validator(mode="after")
-    def validate_cuantificacion(self) -> Self:
-        has_porcentaje = self.porcentaje is not None
-        has_cantidad = self.cantidad is not None
-        has_unidad = self.unidad is not None
-
-        if has_porcentaje and (has_cantidad or has_unidad):
-            raise ValueError("Indique porcentaje o cantidad con unidad, no ambos.")
-        if has_cantidad != has_unidad:
-            raise ValueError("cantidad y unidad deben indicarse juntas.")
-        return self
-
-
-class FormulacionComponenteUpdate(BaseModel):
-    """Partial update for a formulation line."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    porcentaje: Decimal | None = Field(
-        default=None,
-        gt=0,
-        le=100,
-        max_digits=6,
-        decimal_places=3,
-    )
-    cantidad: Decimal | None = Field(
-        default=None,
-        gt=0,
-        max_digits=12,
-        decimal_places=3,
-    )
-    unidad: UnidadMedida | None = None
-    orden: int | None = Field(default=None, ge=1)
-    notas: str | None = None
-
-
 class FormulacionComponenteRead(BaseModel):
     """Read payload for a product version formulation line."""
 
@@ -326,10 +267,12 @@ class FormulacionComponenteRead(BaseModel):
     unidad: str | None
     orden: int | None
     notas: str | None
+    ingrediente_desactivado: bool
 
     @classmethod
     def from_formulacion(cls, linea: object) -> "FormulacionComponenteRead":
         return cls(
+            ingrediente_desactivado=not linea.ingrediente.activo,  # type: ignore[attr-defined]
             id=linea.id,  # type: ignore[attr-defined]
             ingrediente_id=linea.ingrediente_id,  # type: ignore[attr-defined]
             ingrediente_nombre=linea.ingrediente_nombre,  # type: ignore[attr-defined]
@@ -407,3 +350,22 @@ class FormulacionVersionRead(BaseModel):
 class FormulacionGuardadaRead(BaseModel):
     resultado: ResultadoGuardadoFormulacion
     version: FormulacionVersionRead
+
+
+class FormulacionVigenteRead(BaseModel):
+    """Current formulation; `existe` is false while the product has none yet."""
+
+    existe: bool
+    version: FormulacionVersionRead | None
+
+
+class VersionProductoHistorialRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    numero_version: int
+    descripcion: str
+    fecha_creacion: datetime
+    vigente: bool
+    usada_en_elaboracion: bool
+    cantidad_lineas: int
