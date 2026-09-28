@@ -1,10 +1,16 @@
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import FormulacionVersionProducto, LoteProducto, VersionProducto
+from app.models import (
+    FormulacionVersionProducto,
+    Ingrediente,
+    LoteProducto,
+    Producto,
+    VersionProducto,
+)
 
 
 class DuplicateFormulacionIngredienteError(Exception):
@@ -34,6 +40,98 @@ class ProductoFormulacionRepository:
         self.db.add(version)
         self.db.flush()
         return version
+
+    # --- HU03: formulation replacement. These methods only flush; the service
+    # commits or rolls back the whole replacement as one transaction. ---
+
+    def lock_producto_for_productor(
+        self,
+        producto_id: int,
+        productor_id: int,
+    ) -> Producto | None:
+        stmt = (
+            select(Producto)
+            .where(Producto.id == producto_id, Producto.productor_id == productor_id)
+            .with_for_update()
+        )
+        return self.db.scalar(stmt)
+
+    def get_version_vigente(self, producto_id: int) -> VersionProducto | None:
+        stmt = (
+            select(VersionProducto)
+            .where(
+                VersionProducto.producto_id == producto_id,
+                VersionProducto.vigente.is_(True),
+            )
+            .order_by(VersionProducto.numero_version.desc())
+            .limit(1)
+        )
+        return self.db.scalar(stmt)
+
+    def next_numero_version(self, producto_id: int) -> int:
+        current = self.db.scalar(
+            select(func.max(VersionProducto.numero_version)).where(
+                VersionProducto.producto_id == producto_id
+            )
+        )
+        return (current or 0) + 1
+
+    def list_ingredientes_for_productor(
+        self,
+        productor_id: int,
+        ingrediente_ids: list[int],
+    ) -> list[Ingrediente]:
+        stmt = select(Ingrediente).where(
+            Ingrediente.productor_id == productor_id,
+            Ingrediente.id.in_(ingrediente_ids),
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def apagar_vigentes(self, producto_id: int) -> None:
+        self.db.execute(
+            update(VersionProducto)
+            .where(
+                VersionProducto.producto_id == producto_id,
+                VersionProducto.vigente.is_(True),
+            )
+            .values(vigente=False)
+            .execution_options(synchronize_session="fetch")
+        )
+
+    def create_version_vigente(
+        self,
+        *,
+        producto_id: int,
+        numero_version: int,
+        descripcion: str,
+    ) -> VersionProducto:
+        version = VersionProducto(
+            producto_id=producto_id,
+            numero_version=numero_version,
+            descripcion=descripcion,
+            vigente=True,
+            usada_en_elaboracion=False,
+        )
+        self.db.add(version)
+        self.db.flush()
+        return version
+
+    def stage_formulacion_line(self, **fields: object) -> FormulacionVersionProducto:
+        linea = FormulacionVersionProducto(**fields)
+        self.db.add(linea)
+        return linea
+
+    def stage_delete_formulacion_line(self, linea: FormulacionVersionProducto) -> None:
+        self.db.delete(linea)
+
+    def flush(self) -> None:
+        self.db.flush()
+
+    def commit(self) -> None:
+        self.db.commit()
+
+    def rollback(self) -> None:
+        self.db.rollback()
 
     def version_has_lotes(self, version_producto_id: int) -> bool:
         count = self.db.scalar(

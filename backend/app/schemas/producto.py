@@ -341,3 +341,69 @@ class FormulacionComponenteRead(BaseModel):
             orden=linea.orden,  # type: ignore[attr-defined]
             notas=linea.notas,  # type: ignore[attr-defined]
         )
+
+
+# --- Formulación del producto HU03 (versión vigente) ---
+
+
+class FormulacionLineaInput(BaseModel):
+    """One ingredient line of the full product formulation (HU03)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ingrediente_id: int = Field(gt=0)
+    cantidad: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=3,
+    )
+    unidad: UnidadMedida | None = None
+    notas: str | None = None
+
+    @field_validator("notas")
+    @classmethod
+    def normalize_notas(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @model_validator(mode="after")
+    def validate_cantidad_unidad(self) -> Self:
+        if (self.cantidad is None) != (self.unidad is None):
+            raise ValueError("cantidad y unidad deben indicarse juntas.")
+        return self
+
+
+class FormulacionReemplazo(BaseModel):
+    """Full replacement of a product formulation; line order defines `orden`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    lineas: list[FormulacionLineaInput] = Field(min_length=1)
+
+
+ResultadoGuardadoFormulacion = Literal[
+    "version_creada",
+    "modificada_en_lugar",
+    "nueva_version",
+    "sin_cambios",
+]
+
+
+class FormulacionVersionRead(BaseModel):
+    """A product version with its formulation lines (HU03)."""
+
+    id: int
+    producto_id: int
+    numero_version: int
+    descripcion: str
+    fecha_creacion: datetime
+    vigente: bool
+    usada_en_elaboracion: bool
+    lineas: list[FormulacionComponenteRead]
+
+
+class FormulacionGuardadaRead(BaseModel):
+    resultado: ResultadoGuardadoFormulacion
+    version: FormulacionVersionRead

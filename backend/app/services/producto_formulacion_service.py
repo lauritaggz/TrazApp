@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from sqlalchemy.exc import IntegrityError
+
 from app.models import FormulacionVersionProducto, Ingrediente, Productor, VersionProducto
 from app.repositories.ingrediente_repository import IngredienteRepository
 from app.repositories.producto_formulacion_repository import (
@@ -11,6 +13,11 @@ from app.schemas.producto import (
     FormulacionComponenteCreate,
     FormulacionComponenteRead,
     FormulacionComponenteUpdate,
+    FormulacionGuardadaRead,
+    FormulacionLineaInput,
+    FormulacionReemplazo,
+    FormulacionVersionRead,
+    ResultadoGuardadoFormulacion,
 )
 from app.services.ingrediente_service import IngredienteNotFoundError
 from app.services.producto_service import ProductoNotFoundError
@@ -30,6 +37,10 @@ class InvalidFormulacionError(Exception):
 
 class FormulacionImmutableError(Exception):
     """Raised when mutating a version formulation that already has product lots."""
+
+
+class FormulacionConflictError(Exception):
+    """Raised when a concurrent save already created the same version number."""
 
 
 class ProductoFormulacionService:
@@ -116,6 +127,82 @@ class ProductoFormulacionService:
         linea = self._get_formulacion_line_or_raise(version.id, linea_id)
         self.formulacion_repository.delete_formulacion_line(linea)
 
+    def obtener_version_vigente(
+        self,
+        productor: Productor,
+        producto_id: int,
+    ) -> VersionProducto | None:
+        """Current version of an owned product, or None if it has no formulation yet."""
+        self._ensure_owned_product_or_raise(productor.id, producto_id)
+        return self.formulacion_repository.get_version_vigente(producto_id)
+
+    def reemplazar_formulacion_mine(
+        self,
+        productor: Productor,
+        producto_id: int,
+        payload: FormulacionReemplazo,
+    ) -> FormulacionGuardadaRead:
+        """Replace the whole formulation of an owned product (HU03).
+
+        A version used by an elaboración is never modified: the change goes to a
+        new version that becomes the only vigente one.
+        """
+        repo = self.formulacion_repository
+        try:
+            producto = repo.lock_producto_for_productor(producto_id, productor.id)
+            if producto is None:
+                raise ProductoNotFoundError("Producto no encontrado")
+            vigente = repo.get_version_vigente(producto.id)
+            lineas_actuales = repo.list_formulacion(vigente.id) if vigente else []
+            ingredientes = self._resolve_ingredientes_formulacion(
+                productor.id,
+                payload.lineas,
+                {linea.ingrediente_id for linea in lineas_actuales},
+            )
+
+            resultado: ResultadoGuardadoFormulacion
+            if vigente is not None and self._same_formulacion(lineas_actuales, payload.lineas):
+                mismo_orden = [linea.ingrediente_id for linea in lineas_actuales] == [
+                    linea.ingrediente_id for linea in payload.lineas
+                ]
+                # Reordering is not a recipe change: a used version keeps its order.
+                if mismo_orden or vigente.usada_en_elaboracion:
+                    repo.rollback()
+                    return self._build_guardada("sin_cambios", vigente)
+
+            if vigente is not None and not vigente.usada_en_elaboracion:
+                self._replace_lines_in_place(vigente, lineas_actuales, payload.lineas, ingredientes)
+                version = vigente
+                resultado = "modificada_en_lugar"
+            else:
+                if vigente is not None:
+                    repo.apagar_vigentes(producto.id)
+                numero = repo.next_numero_version(producto.id)
+                try:
+                    version = repo.create_version_vigente(
+                        producto_id=producto.id,
+                        numero_version=numero,
+                        descripcion=f"Versión {numero}",
+                    )
+                except IntegrityError as exc:
+                    raise FormulacionConflictError(
+                        "Otra modificación de la formulación se guardó al mismo tiempo. "
+                        "Recargue la formulación e intente nuevamente."
+                    ) from exc
+                for orden, linea in enumerate(payload.lineas, start=1):
+                    repo.stage_formulacion_line(
+                        version_producto_id=version.id,
+                        **self._line_fields(linea, orden, ingredientes[linea.ingrediente_id]),
+                    )
+                resultado = "version_creada" if vigente is None else "nueva_version"
+
+            repo.flush()
+            repo.commit()
+        except BaseException:
+            repo.rollback()
+            raise
+        return self._build_guardada(resultado, version)
+
     def marcar_version_usada(self, version_id: int) -> VersionProducto:
         """Flag a product version as used by an elaboración.
 
@@ -195,6 +282,118 @@ class ProductoFormulacionService:
                 )
             raise IngredienteNotFoundError("Ingrediente no encontrado")
         return ingrediente
+
+    def _resolve_ingredientes_formulacion(
+        self,
+        productor_id: int,
+        lineas: list[FormulacionLineaInput],
+        ingredientes_vigentes: set[int],
+    ) -> dict[int, Ingrediente]:
+        ids = [linea.ingrediente_id for linea in lineas]
+        if len(ids) != len(set(ids)):
+            raise InvalidFormulacionError(
+                "Un ingrediente no puede repetirse en la formulación."
+            )
+        encontrados = {
+            ingrediente.id: ingrediente
+            for ingrediente in self.formulacion_repository.list_ingredientes_for_productor(
+                productor_id,
+                ids,
+            )
+        }
+        for ingrediente_id in ids:
+            ingrediente = encontrados.get(ingrediente_id)
+            if ingrediente is None:
+                raise IngredienteNotFoundError("Ingrediente no encontrado")
+            if not ingrediente.activo:
+                if ingrediente_id in ingredientes_vigentes:
+                    raise InvalidFormulacionError(
+                        f"El ingrediente «{ingrediente.nombre}» está desactivado. "
+                        "Quítelo de la formulación para poder guardar."
+                    )
+                raise InvalidFormulacionError(
+                    "No se pueden usar ingredientes inactivos en la formulación."
+                )
+        return encontrados
+
+    @staticmethod
+    def _same_formulacion(
+        actuales: list[FormulacionVersionProducto],
+        nuevas: list[FormulacionLineaInput],
+    ) -> bool:
+        """Same recipe regardless of line order."""
+        return {
+            linea.ingrediente_id: (linea.porcentaje, linea.cantidad, linea.unidad, linea.notas)
+            for linea in actuales
+        } == {
+            linea.ingrediente_id: (None, linea.cantidad, linea.unidad, linea.notas)
+            for linea in nuevas
+        }
+
+    @staticmethod
+    def _line_fields(
+        linea: FormulacionLineaInput,
+        orden: int,
+        ingrediente: Ingrediente,
+    ) -> dict[str, object]:
+        return {
+            "ingrediente_id": ingrediente.id,
+            "ingrediente_nombre": ingrediente.nombre,
+            "ingrediente_codigo_interno": ingrediente.codigo_interno,
+            "ingrediente_tipo": ingrediente.tipo,
+            "porcentaje": None,
+            "cantidad": linea.cantidad,
+            "unidad": linea.unidad,
+            "orden": orden,
+            "notas": linea.notas,
+        }
+
+    def _replace_lines_in_place(
+        self,
+        version: VersionProducto,
+        actuales: list[FormulacionVersionProducto],
+        nuevas: list[FormulacionLineaInput],
+        ingredientes: dict[int, Ingrediente],
+    ) -> None:
+        # Existing lines are updated by ingredient instead of delete + insert: the
+        # unit of work flushes inserts before deletes, which would trip the
+        # (version, ingrediente) unique constraint when an ingredient is kept.
+        por_ingrediente = {linea.ingrediente_id: linea for linea in actuales}
+        conservados = {linea.ingrediente_id for linea in nuevas}
+        for linea in actuales:
+            if linea.ingrediente_id not in conservados:
+                self.formulacion_repository.stage_delete_formulacion_line(linea)
+        for orden, nueva in enumerate(nuevas, start=1):
+            fields = self._line_fields(nueva, orden, ingredientes[nueva.ingrediente_id])
+            existente = por_ingrediente.get(nueva.ingrediente_id)
+            if existente is None:
+                self.formulacion_repository.stage_formulacion_line(
+                    version_producto_id=version.id,
+                    **fields,
+                )
+            else:
+                for key, value in fields.items():
+                    setattr(existente, key, value)
+
+    def _build_guardada(
+        self,
+        resultado: ResultadoGuardadoFormulacion,
+        version: VersionProducto,
+    ) -> FormulacionGuardadaRead:
+        lineas = self.formulacion_repository.list_formulacion(version.id)
+        return FormulacionGuardadaRead(
+            resultado=resultado,
+            version=FormulacionVersionRead(
+                id=version.id,
+                producto_id=version.producto_id,
+                numero_version=version.numero_version,
+                descripcion=version.descripcion,
+                fecha_creacion=version.fecha_creacion,
+                vigente=version.vigente,
+                usada_en_elaboracion=version.usada_en_elaboracion,
+                lineas=[FormulacionComponenteRead.from_formulacion(item) for item in lineas],
+            ),
+        )
 
     @staticmethod
     def _merge_cuantificacion_updates(
