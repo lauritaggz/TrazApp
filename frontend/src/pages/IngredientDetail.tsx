@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
@@ -112,6 +113,25 @@ export default function IngredientDetail() {
                 { label: "Ingredientes", to: "/ingredientes" },
                 { label: ingredient.nombre },
               ]}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate("/ingredientes")}
+                  >
+                    Volver a ingredientes
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
+                  >
+                    Editar ingrediente
+                  </Button>
+                </>
+              }
             />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
@@ -124,7 +144,9 @@ export default function IngredientDetail() {
                   {ingredient.descripcion?.trim() || "—"}
                 </DetailField>
                 <DetailField label="Estado">
-                  {ingredient.activo ? "Activo" : "Inactivo"}
+                  <Badge variant={ingredient.activo ? "success" : "neutral"}>
+                    {ingredient.activo ? "Activo" : "Inactivo"}
+                  </Badge>
                 </DetailField>
               </dl>
             </ProductDetailSection>
@@ -133,28 +155,13 @@ export default function IngredientDetail() {
               <IngredientAllergensSection ingredienteId={ingredientId} />
             </ProductDetailSection>
 
-            <section className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
-                Acciones
-              </h2>
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate("/ingredientes")}
-                >
-                  Volver a ingredientes
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
-                >
-                  Editar ingrediente
-                </Button>
-              </div>
-              <div className="border-t border-border pt-4 space-y-3">
+            <section
+              aria-label="Desactivar ingrediente"
+              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
+            >
+              <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium">Desactivar ingrediente</h3>
+                  <h2 className="text-sm font-semibold text-text-primary">Desactivar ingrediente</h2>
                   <p className="text-sm text-text-secondary mt-1">
                     Al desactivar, el ingrediente dejará de aparecer en tu catálogo.
                   </p>

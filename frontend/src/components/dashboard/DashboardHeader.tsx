@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 interface DashboardHeaderProps {
   firstName: string;
   businessName?: string | null;
@@ -7,7 +9,7 @@ export default function DashboardHeader({
   firstName,
   businessName,
 }: DashboardHeaderProps) {
-  const today = new Date().toLocaleDateString("es-AR", {
+  const today = new Date().toLocaleDateString("es-CL", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -30,7 +32,7 @@ export default function DashboardHeader({
       </svg>
       <p className="mb-1 text-xs font-medium capitalize text-panel-muted">{today}</p>
       <h1 className="mb-1 text-2xl font-semibold text-white">
-        Bienvenida, {firstName} 👋
+        Bienvenida, {firstName}
       </h1>
       {businessName?.trim() ? (
         <p className="mb-1 text-sm font-medium text-panel-soft">{businessName.trim()}</p>
@@ -39,6 +41,20 @@ export default function DashboardHeader({
         Desde aquí podés gestionar la información base de tus productos e
         ingredientes y mantenerla actualizada.
       </p>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link
+          to="/productos/nuevo"
+          className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline-white"
+        >
+          + Nuevo producto
+        </Link>
+        <Link
+          to="/ingredientes/nuevo"
+          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
+        >
+          + Nuevo ingrediente
+        </Link>
+      </div>
     </div>
   );
 }

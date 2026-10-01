@@ -121,6 +121,25 @@ export default function ProductDetail() {
             <PageHeader
               title={product.nombre}
               description={product.codigo_interno ?? "—"}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={handleBackToProducts}
+                  >
+                    Volver a productos
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/productos/${product.id}/editar`)}
+                  >
+                    Editar producto
+                  </Button>
+                </>
+              }
               breadcrumbs={[
                 { label: "Productos", to: "/productos" },
                 { label: product.nombre },
@@ -192,35 +211,14 @@ export default function ProductDetail() {
             </ProductDetailSection>
 
             <section
-              aria-label="Acciones del producto"
-              className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4"
+              aria-label="Eliminar producto"
+              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
             >
-              <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
-                Acciones
-              </h2>
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                  onClick={handleBackToProducts}
-                >
-                  Volver a productos
-                </Button>
-                <Button
-                  type="button"
-                  className="w-full sm:w-auto"
-                  onClick={() => navigate(`/productos/${product.id}/editar`)}
-                >
-                  Editar producto
-                </Button>
-              </div>
-
-              <div className="border-t border-border pt-4 space-y-3">
+              <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium text-text-primary">
+                  <h2 className="text-sm font-semibold text-text-primary">
                     Eliminar producto
-                  </h3>
+                  </h2>
                   <p className="text-sm text-text-secondary leading-relaxed mt-1">
                     Al eliminar, el producto dejará de aparecer en tu catálogo.
                     La información histórica de trazabilidad se conservará.

@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
+import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   filterAndSortProducts,
@@ -79,9 +79,10 @@ export default function Products() {
     }
   }, [location.pathname, location.state, navigate, notify]);
 
+  const deferredSearch = useDeferredValue(filters.search);
   const filteredProducts = useMemo(
-    () => filterAndSortProducts(products, filters),
-    [products, filters],
+    () => filterAndSortProducts(products, { ...filters, search: deferredSearch }),
+    [products, filters, deferredSearch],
   );
 
   const totalCount = products.length;
@@ -164,7 +165,6 @@ export default function Products() {
             />
             <ProductsCards
               products={filteredProducts}
-              onSelect={goToProduct}
             />
           </>
         )}
@@ -186,23 +186,54 @@ function ProductListControls({
   resultCount: number;
   showResultCount: boolean;
 }) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      <Input
-        label="Buscar"
-        type="search"
-        placeholder="Buscar por nombre o código..."
-        value={filters.search}
-        onChange={(e) =>
-          onChange({ ...filters, search: e.target.value })
-        }
-        disabled={disabled}
-        aria-label="Buscar por nombre o código"
-      />
+  const unitLabel =
+    PRODUCT_UNIT_OPTIONS.find((option) => option.value === filters.unit)?.label ??
+    filters.unit;
+  const sortLabel =
+    PRODUCT_SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ??
+    filters.sort;
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Unidad"
+  const chips: FilterChip[] = [];
+  if (filters.search.trim()) {
+    chips.push({
+      key: "search",
+      label: `Búsqueda: «${filters.search.trim()}»`,
+      onRemove: () => onChange({ ...filters, search: "" }),
+    });
+  }
+  if (filters.unit !== "all") {
+    chips.push({
+      key: "unit",
+      label: `Unidad: ${unitLabel}`,
+      onRemove: () => onChange({ ...filters, unit: "all" }),
+    });
+  }
+  if (filters.sort !== "recent") {
+    chips.push({
+      key: "sort",
+      label: `Orden: ${sortLabel}`,
+      onRemove: () => onChange({ ...filters, sort: "recent" }),
+    });
+  }
+
+  return (
+    <ListToolbar
+      search={filters.search}
+      onSearchChange={(search) => onChange({ ...filters, search })}
+      searchLabel="Buscar por nombre o código"
+      searchPlaceholder="Buscar por nombre o código..."
+      disabled={disabled}
+      chips={chips}
+      onClearAll={() => onChange(DEFAULT_PRODUCT_LIST_FILTERS)}
+      status={
+        showResultCount && hasActiveFilters(filters)
+          ? `Mostrando ${resultCount} resultado${resultCount === 1 ? "" : "s"}`
+          : undefined
+      }
+      controls={
+        <>
+          <Select
+            label="Unidad"
             value={filters.unit}
             onChange={(e) =>
               onChange({
@@ -211,20 +242,16 @@ function ProductListControls({
               })
             }
             disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50"
             aria-label="Filtrar por unidad de medida"
           >
             {PRODUCT_UNIT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label === "Todas"
-                  ? "Todas"
-                  : option.label}
+                {option.label}
               </option>
             ))}
           </Select>
-
-        <Select
-          label="Ordenar"
+          <Select
+            label="Ordenar"
             value={filters.sort}
             onChange={(e) =>
               onChange({
@@ -233,7 +260,6 @@ function ProductListControls({
               })
             }
             disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50"
             aria-label="Ordenar productos"
           >
             {PRODUCT_SORT_OPTIONS.map((option) => (
@@ -242,14 +268,9 @@ function ProductListControls({
               </option>
             ))}
           </Select>
-      </div>
-
-      {showResultCount && hasActiveFilters(filters) && (
-        <p className="text-xs text-text-secondary">
-          Mostrando {resultCount} resultado{resultCount === 1 ? "" : "s"}
-        </p>
-      )}
-    </div>
+        </>
+      }
+    />
   );
 }
 
@@ -305,16 +326,9 @@ function ProductRow({
   return (
     <tr
       className="border-b border-border last:border-b-0 hover:bg-brand-50/40 transition-colors cursor-pointer focus-within:bg-brand-50/40"
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest("a")) onSelect();
       }}
-      tabIndex={0}
-      role="link"
-      aria-label={`Ver producto ${product.nombre}`}
     >
       <td className="px-4 py-3 text-text-primary">
         <div className="flex items-center gap-3 min-w-0">
@@ -323,7 +337,15 @@ function ProductRow({
             nombre={product.nombre}
           />
           <div className="space-y-0.5 min-w-0">
-            <p className="font-medium truncate">{product.nombre}</p>
+            <p className="truncate">
+              <Link
+                to={`/productos/${product.id}`}
+                aria-label={`Ver producto ${product.nombre}`}
+                className="rounded font-medium text-text-primary hover:text-brand-700 hover:underline underline-offset-2"
+              >
+                {product.nombre}
+              </Link>
+            </p>
             <p className="text-xs text-text-secondary truncate">
               {product.codigo_interno ?? "—"}
             </p>
@@ -344,7 +366,10 @@ function ProductRow({
         {formatPresentacion(product.presentacion)}
       </td>
       <td className="px-4 py-3 text-right">
-        <span className="inline-flex items-center gap-1 text-brand-600 font-medium">
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center gap-1 text-brand-600 font-medium"
+        >
           Ver
           <ArrowRightIcon />
         </span>
@@ -353,29 +378,13 @@ function ProductRow({
   );
 }
 
-function ProductsCards({
-  products,
-  onSelect,
-}: {
-  products: Product[];
-  onSelect: (id: number) => void;
-}) {
+function ProductsCards({ products }: { products: Product[] }) {
   return (
     <div className="md:hidden space-y-3">
       {products.map((product) => (
         <article
           key={product.id}
-          className="bg-card border border-border rounded-xl p-4 hover:border-brand-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-          onClick={() => onSelect(product.id)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onSelect(product.id);
-            }
-          }}
-          tabIndex={0}
-          role="link"
-          aria-label={`Ver producto ${product.nombre}`}
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-brand-600 hover:shadow-sm transition-all focus-within:ring-2 focus-within:ring-brand-600"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -385,7 +394,13 @@ function ProductsCards({
               />
               <div className="min-w-0 space-y-0.5">
                 <h2 className="text-sm font-semibold text-text-primary truncate">
-                  {product.nombre}
+                  <Link
+                    to={`/productos/${product.id}`}
+                    aria-label={`Ver producto ${product.nombre}`}
+                    className="after:absolute after:inset-0 focus:outline-none"
+                  >
+                    {product.nombre}
+                  </Link>
                 </h2>
                 <p className="text-xs font-medium text-brand-600 uppercase tracking-wide">
                   {product.codigo_interno ?? "—"}
@@ -408,7 +423,10 @@ function ProductsCards({
                 </p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0">
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0"
+            >
               Ver
               <ArrowRightIcon />
             </span>

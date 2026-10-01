@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
+import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   filterAndSortIngredientes,
@@ -74,9 +74,11 @@ export default function Ingredients() {
     }
   }, [location.pathname, location.state, navigate, notify]);
 
+  const deferredSearch = useDeferredValue(filters.search);
   const filteredIngredientes = useMemo(
-    () => filterAndSortIngredientes(ingredientes, filters),
-    [ingredientes, filters],
+    () =>
+      filterAndSortIngredientes(ingredientes, { ...filters, search: deferredSearch }),
+    [ingredientes, filters, deferredSearch],
   );
 
   const totalCount = ingredientes.length;
@@ -149,7 +151,6 @@ export default function Ingredients() {
             />
             <IngredientsCards
               ingredientes={filteredIngredientes}
-              onSelect={(id) => navigate(`/ingredientes/${id}`)}
             />
           </>
         )}
@@ -171,43 +172,60 @@ function IngredientListControls({
   resultCount: number;
   showResultCount: boolean;
 }) {
+  const sortLabel =
+    INGREDIENTE_SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ??
+    filters.sort;
+
+  const chips: FilterChip[] = [];
+  if (filters.search.trim()) {
+    chips.push({
+      key: "search",
+      label: `Búsqueda: «${filters.search.trim()}»`,
+      onRemove: () => onChange({ ...filters, search: "" }),
+    });
+  }
+  if (filters.sort !== "recent") {
+    chips.push({
+      key: "sort",
+      label: `Orden: ${sortLabel}`,
+      onRemove: () => onChange({ ...filters, sort: "recent" }),
+    });
+  }
+
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      <Input
-        label="Buscar"
-        type="search"
-        placeholder="Buscar por nombre o código..."
-        value={filters.search}
-        onChange={(e) => onChange({ ...filters, search: e.target.value })}
-        disabled={disabled}
-        aria-label="Buscar por nombre o código"
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <ListToolbar
+      search={filters.search}
+      onSearchChange={(search) => onChange({ ...filters, search })}
+      searchLabel="Buscar por nombre o código"
+      searchPlaceholder="Buscar por nombre o código..."
+      disabled={disabled}
+      chips={chips}
+      onClearAll={() => onChange(DEFAULT_INGREDIENTE_LIST_FILTERS)}
+      status={
+        showResultCount && hasActiveIngredientFilters(filters)
+          ? `Mostrando ${resultCount} resultado${resultCount === 1 ? "" : "s"}`
+          : undefined
+      }
+      controls={
         <Select
           label="Ordenar"
-            value={filters.sort}
-            onChange={(e) =>
-              onChange({
-                ...filters,
-                sort: e.target.value as IngredienteListFilters["sort"],
-              })
-            }
-            disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5"
-          >
-            {INGREDIENTE_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-      </div>
-      {showResultCount && hasActiveIngredientFilters(filters) && (
-        <p className="text-xs text-text-secondary">
-          Mostrando {resultCount} resultado{resultCount === 1 ? "" : "s"}
-        </p>
-      )}
-    </div>
+          value={filters.sort}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              sort: e.target.value as IngredienteListFilters["sort"],
+            })
+          }
+          disabled={disabled}
+        >
+          {INGREDIENTE_SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      }
+    />
   );
 }
 
@@ -239,19 +257,23 @@ function IngredientsTable({
           {ingredientes.map((ingrediente) => (
             <tr
               key={ingrediente.id}
-              className="border-b border-border last:border-b-0 hover:bg-brand-50/40 cursor-pointer"
-              onClick={() => onSelect(ingrediente.id)}
-              tabIndex={0}
-              role="link"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
+              className="border-b border-border last:border-b-0 hover:bg-brand-50/40 cursor-pointer focus-within:bg-brand-50/40"
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest("a")) {
                   onSelect(ingrediente.id);
                 }
               }}
             >
               <td className="px-4 py-3">
-                <p className="font-medium">{ingrediente.nombre}</p>
+                <p>
+                  <Link
+                    to={`/ingredientes/${ingrediente.id}`}
+                    aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                    className="rounded font-medium text-text-primary hover:text-brand-700 hover:underline underline-offset-2"
+                  >
+                    {ingrediente.nombre}
+                  </Link>
+                </p>
                 <p className="text-xs text-text-secondary">
                   {ingrediente.codigo_interno ?? "—"}
                 </p>
@@ -259,7 +281,10 @@ function IngredientsTable({
               <td className="px-4 py-3">
                 <StatusBadge activo={ingrediente.activo} />
               </td>
-              <td className="px-4 py-3 text-right text-brand-600 font-medium">
+              <td
+                aria-hidden="true"
+                className="px-4 py-3 text-right text-brand-600 font-medium"
+              >
                 Ver
               </td>
             </tr>
@@ -271,25 +296,24 @@ function IngredientsTable({
   );
 }
 
-function IngredientsCards({
-  ingredientes,
-  onSelect,
-}: {
-  ingredientes: Ingrediente[];
-  onSelect: (id: number) => void;
-}) {
+function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
   return (
     <div className="md:hidden space-y-3">
       {ingredientes.map((ingrediente) => (
         <article
           key={ingrediente.id}
-          className="bg-card border border-border rounded-xl p-4 cursor-pointer"
-          onClick={() => onSelect(ingrediente.id)}
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-brand-600 transition-colors focus-within:ring-2 focus-within:ring-brand-600"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold break-words">
-                {ingrediente.nombre}
+                <Link
+                  to={`/ingredientes/${ingrediente.id}`}
+                  aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                  className="after:absolute after:inset-0 focus:outline-none"
+                >
+                  {ingrediente.nombre}
+                </Link>
               </h2>
               <p className="text-xs text-brand-600 uppercase">
                 {ingrediente.codigo_interno ?? "—"}
