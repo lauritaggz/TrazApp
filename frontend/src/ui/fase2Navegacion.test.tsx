@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AppShell from "@/components/layout/AppShell";
 import FormActions from "@/components/ui/FormActions";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -212,5 +212,82 @@ describe("FormActions y Toast", () => {
 
     await user.click(screen.getByRole("button", { name: "avisar" }));
     expect(screen.getAllByText("Producto actualizado correctamente.")).toHaveLength(1);
+  });
+});
+
+describe("FormActions según el scroll", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function mockObserver() {
+    let callback: IntersectionObserverCallback = () => {};
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      vi.fn(function (cb: IntersectionObserverCallback) {
+        callback = cb;
+        return { observe: vi.fn(), disconnect, unobserve: vi.fn() };
+      }),
+    );
+    return {
+      disconnect,
+      setVisible(isIntersecting: boolean) {
+        act(() => {
+          callback(
+            [{ isIntersecting } as IntersectionObserverEntry],
+            {} as IntersectionObserver,
+          );
+        });
+      },
+    };
+  }
+
+  function bar() {
+    return screen.getByRole("button", { name: "Guardar" }).parentElement!;
+  }
+
+  it("queda plana en reposo y flota con animación cuando el final no se ve", () => {
+    const observer = mockObserver();
+    render(
+      <FormActions>
+        <button type="submit">Guardar</button>
+      </FormActions>,
+    );
+
+    expect(bar()).toHaveAttribute("data-floating", "false");
+    expect(bar()).not.toHaveClass("form-actions-float");
+    expect(bar()).toHaveClass("shadow-none");
+
+    observer.setVisible(false);
+    expect(bar()).toHaveAttribute("data-floating", "true");
+    expect(bar()).toHaveClass("form-actions-float", "shadow-lift");
+
+    observer.setVisible(true);
+    expect(bar()).toHaveAttribute("data-floating", "false");
+    expect(bar()).not.toHaveClass("form-actions-float");
+  });
+
+  it("deja de observar al desmontarse", () => {
+    const observer = mockObserver();
+    const { unmount } = render(
+      <FormActions>
+        <button type="submit">Guardar</button>
+      </FormActions>,
+    );
+
+    unmount();
+    expect(observer.disconnect).toHaveBeenCalled();
+  });
+
+  it("sin IntersectionObserver sigue funcionando en reposo", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    render(
+      <FormActions>
+        <button type="submit">Guardar</button>
+      </FormActions>,
+    );
+
+    expect(bar()).toHaveAttribute("data-floating", "false");
   });
 });
