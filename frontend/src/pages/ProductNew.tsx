@@ -206,7 +206,7 @@ export default function ProductNew() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <PageHeader
           title="Nuevo producto"
           description="Registra la información general del producto."

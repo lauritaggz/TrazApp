@@ -38,7 +38,7 @@ export default function DashboardHeader({
         <p className="mb-1 text-sm font-medium text-panel-soft">{businessName.trim()}</p>
       ) : null}
       <p className="max-w-2xl text-sm text-panel-soft">
-        Desde aquí podés gestionar la información base de tus productos e
+        Desde aquí puedes gestionar la información base de tus productos e
         ingredientes y mantenerla actualizada.
       </p>
       <div className="mt-5 flex flex-wrap gap-3">

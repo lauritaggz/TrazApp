@@ -34,12 +34,12 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         {children}
       </select>
       {error && (
-        <p id={errorId} className="text-xs text-error">
+        <p id={errorId} className="text-[13px] text-error">
           {error}
         </p>
       )}
       {hint && !error && (
-        <p id={hintId} className="text-xs text-text-secondary">
+        <p id={hintId} className="text-[13px] text-text-secondary">
           {hint}
         </p>
       )}

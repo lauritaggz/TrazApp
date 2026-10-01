@@ -55,13 +55,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p id={errorId} className="text-xs text-error flex items-center gap-1">
+          <p id={errorId} className="text-[13px] text-error flex items-center gap-1">
             <ErrorIcon />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p id={hintId} className="text-xs text-text-secondary">
+          <p id={hintId} className="text-[13px] text-text-secondary">
             {hint}
           </p>
         )}
@@ -120,13 +120,13 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           </button>
         </div>
         {error && (
-          <p id={errorId} className="text-xs text-error flex items-center gap-1">
+          <p id={errorId} className="text-[13px] text-error flex items-center gap-1">
             <ErrorIcon />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p id={hintId} className="text-xs text-text-secondary">
+          <p id={hintId} className="text-[13px] text-text-secondary">
             {hint}
           </p>
         )}

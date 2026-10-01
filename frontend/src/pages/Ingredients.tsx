@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
+import EmptyStateCard from "@/components/ui/EmptyStateCard";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
@@ -55,11 +56,21 @@ export default function Ingredients() {
   useEffect(() => {
     const state = location.state as {
       ingredientCreated?: boolean;
+      ingredientId?: number;
       ingredientDeleted?: boolean;
       ingredientUpdated?: boolean;
     } | null;
     if (state?.ingredientCreated) {
-      notify("Ingrediente creado correctamente.");
+      notify(
+        "Ingrediente creado correctamente.",
+        "success",
+        typeof state.ingredientId === "number"
+          ? {
+              label: "Declarar alérgenos y composición",
+              to: `/ingredientes/${state.ingredientId}`,
+            }
+          : undefined,
+      );
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
@@ -274,7 +285,7 @@ function IngredientsTable({
                     {ingrediente.nombre}
                   </Link>
                 </p>
-                <p className="text-xs text-text-secondary">
+                <p className="text-[13px] text-text-secondary">
                   {ingrediente.codigo_interno ?? "—"}
                 </p>
               </td>
@@ -315,7 +326,7 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
                   {ingrediente.nombre}
                 </Link>
               </h2>
-              <p className="text-xs text-brand-600 uppercase">
+              <p className="text-[13px] text-brand-600 uppercase">
                 {ingrediente.codigo_interno ?? "—"}
               </p>
             </div>
@@ -330,7 +341,7 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
 function StatusBadge({ activo }: { activo: boolean }) {
   return (
     <span
-      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
+      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-medium ${
         activo
           ? "bg-success-bg text-success border border-success/20"
           : "bg-surface text-text-secondary border border-border"
@@ -347,15 +358,20 @@ function IngredientsLoadingSkeleton() {
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold mb-2">Aún no tienes ingredientes</h2>
-      <p className="text-sm text-text-secondary mb-6">
-        Registra tu primer ingrediente para comenzar a organizar su información.
-      </p>
-      <Button type="button" onClick={onCreate}>
-        Registrar primer ingrediente
-      </Button>
-    </div>
+    <EmptyStateCard
+      title="Aún no tienes ingredientes"
+      description="Registra tu primer ingrediente para comenzar a organizar su información."
+      steps={[
+        "Escribe su nombre y código interno.",
+        "Declara sus alérgenos desde el detalle.",
+        "Si es compuesto, indica su composición.",
+      ]}
+      action={
+        <Button type="button" onClick={onCreate}>
+          Registrar primer ingrediente
+        </Button>
+      }
+    />
   );
 }
 

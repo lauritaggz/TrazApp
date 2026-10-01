@@ -155,6 +155,7 @@ describe("Listados: filtros con chips", () => {
     renderWithProviders(<App />, { initialEntries: ["/productos"] });
 
     await screen.findByRole("heading", { name: "Productos", level: 1 });
+    await screen.findAllByRole("link", { name: /Ver producto/ });
     await user.selectOptions(
       screen.getByLabelText("Filtrar por unidad de medida"),
       "kg",

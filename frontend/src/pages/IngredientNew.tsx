@@ -66,8 +66,10 @@ export default function IngredientNew() {
     setErrors({});
     setLoading(true);
     try {
-      await createIngredient(toCreatePayload(values));
-      navigate("/ingredientes", { state: { ingredientCreated: true } });
+      const created = await createIngredient(toCreatePayload(values));
+      navigate("/ingredientes", {
+        state: { ingredientCreated: true, ingredientId: created?.id },
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
@@ -98,7 +100,7 @@ export default function IngredientNew() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <PageHeader
           title="Nuevo ingrediente"
           breadcrumbs={[{ label: "Ingredientes", to: "/ingredientes" }, { label: "Nuevo ingrediente" }]}

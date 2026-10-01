@@ -32,12 +32,12 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
         {...props}
       />
       {error && (
-        <p id={errorId} className="text-xs text-error">
+        <p id={errorId} className="text-[13px] text-error">
           {error}
         </p>
       )}
       {hint && !error && (
-        <p id={hintId} className="text-xs text-text-secondary">
+        <p id={hintId} className="text-[13px] text-text-secondary">
           {hint}
         </p>
       )}

@@ -165,7 +165,7 @@ export default function IngredientEdit() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {loadingProduct && (
           <p className="text-sm text-text-secondary">Cargando ingrediente...</p>
         )}

@@ -2,8 +2,13 @@ import { createContext, useContext } from "react";
 
 export type ToastType = "success" | "error" | "info";
 
+export interface ToastAction {
+  label: string;
+  to: string;
+}
+
 export interface ToastApi {
-  notify: (message: string, type?: ToastType) => void;
+  notify: (message: string, type?: ToastType, action?: ToastAction) => void;
 }
 
 export const ToastContext = createContext<ToastApi | null>(null);

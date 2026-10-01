@@ -7,12 +7,18 @@ import {
   type ReactNode,
 } from "react";
 
-import { ToastContext, type ToastType } from "@/components/ui/toastContext";
+import { Link } from "react-router-dom";
+import {
+  ToastContext,
+  type ToastAction,
+  type ToastType,
+} from "@/components/ui/toastContext";
 
 interface ToastItem {
   id: number;
   type: ToastType;
   message: string;
+  action?: ToastAction;
 }
 
 const DISMISS_MS = 5000;
@@ -31,14 +37,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const notify = useCallback((message: string, type: ToastType = "success") => {
+  const notify = useCallback(
+    (message: string, type: ToastType = "success", action?: ToastAction) => {
     setToasts((current) => {
       if (current.some((toast) => toast.message === message && toast.type === type)) {
         return current;
       }
-      return [...current, { id: nextId.current++, type, message }];
+      return [...current, { id: nextId.current++, type, message, action }];
     });
-  }, []);
+  },
+    [],
+  );
 
   const api = useMemo(() => ({ notify }), [notify]);
 
@@ -75,7 +84,18 @@ function ToastMessage({
       role={toast.type === "error" ? "alert" : "status"}
       className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-md ${STYLES[toast.type]}`}
     >
-      <p className="flex-1">{toast.message}</p>
+      <div className="flex-1 space-y-1">
+        <p>{toast.message}</p>
+        {toast.action && (
+          <Link
+            to={toast.action.to}
+            onClick={() => onDismiss(toast.id)}
+            className="inline-block rounded font-semibold underline underline-offset-2"
+          >
+            {toast.action.label}
+          </Link>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}

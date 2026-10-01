@@ -3,11 +3,15 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
+import EmptyStateCard from "@/components/ui/EmptyStateCard";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
+import ProductsGrid from "@/components/products/ProductsGrid";
 import PageHeader from "@/components/ui/PageHeader";
+import ViewToggle from "@/components/ui/ViewToggle";
 import Select from "@/components/ui/Select";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useStoredView } from "@/hooks/useStoredView";
 import {
   filterAndSortProducts,
   formatCategoriasCompact,
@@ -36,6 +40,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { notify } = useToast();
+  const [view, setView] = useStoredView();
   const [filters, setFilters] = useState<ProductListFilters>(
     DEFAULT_PRODUCT_LIST_FILTERS,
   );
@@ -158,6 +163,24 @@ export default function Products() {
         )}
 
         {showList && (
+          <div className="flex justify-end">
+            <ViewToggle
+              label="Vista del listado"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "lista", label: "Lista" },
+                { value: "cuadricula", label: "Cuadrícula" },
+              ]}
+            />
+          </div>
+        )}
+
+        {showList && view === "cuadricula" && (
+          <ProductsGrid products={filteredProducts} />
+        )}
+
+        {showList && view === "lista" && (
           <>
             <ProductsTable
               products={filteredProducts}
@@ -346,15 +369,15 @@ function ProductRow({
                 {product.nombre}
               </Link>
             </p>
-            <p className="text-xs text-text-secondary truncate">
+            <p className="text-[13px] text-text-secondary truncate">
               {product.codigo_interno ?? "—"}
             </p>
             {formatCategoriasCompact(product.categorias) ? (
-              <p className="text-xs text-text-secondary truncate">
+              <p className="text-[13px] text-text-secondary truncate">
                 {formatCategoriasCompact(product.categorias)}
               </p>
             ) : (
-              <p className="text-xs text-text-muted">Sin categorías</p>
+              <p className="text-[13px] text-text-muted">Sin categorías</p>
             )}
           </div>
         </div>
@@ -402,15 +425,15 @@ function ProductsCards({ products }: { products: Product[] }) {
                     {product.nombre}
                   </Link>
                 </h2>
-                <p className="text-xs font-medium text-brand-600 uppercase tracking-wide">
+                <p className="text-[13px] font-medium text-brand-600 uppercase tracking-wide">
                   {product.codigo_interno ?? "—"}
                 </p>
                 {formatCategoriasCompact(product.categorias) ? (
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-[13px] text-text-secondary">
                     {formatCategoriasCompact(product.categorias)}
                   </p>
                 ) : (
-                  <p className="text-xs text-text-muted">Sin categorías</p>
+                  <p className="text-[13px] text-text-muted">Sin categorías</p>
                 )}
                 <p className="text-sm text-text-secondary">
                   {formatProductContent(
@@ -418,14 +441,14 @@ function ProductsCards({ products }: { products: Product[] }) {
                     product.unidad_medida,
                   )}
                 </p>
-                <p className="text-xs text-text-secondary">
+                <p className="text-[13px] text-text-secondary">
                   {formatPresentacion(product.presentacion)}
                 </p>
               </div>
             </div>
             <span
               aria-hidden="true"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-600 shrink-0"
             >
               Ver
               <ArrowRightIcon />
@@ -443,18 +466,20 @@ function ProductsLoadingSkeleton() {
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 sm:p-10 text-center">
-      <h2 className="text-lg font-semibold text-text-primary mb-2">
-        Aún no tienes productos
-      </h2>
-      <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-md mx-auto">
-        Registra tu primer producto para comenzar a organizar su información
-        de trazabilidad.
-      </p>
-      <Button type="button" onClick={onCreate}>
-        Registrar primer producto
-      </Button>
-    </div>
+    <EmptyStateCard
+      title="Aún no tienes productos"
+      description="Registra tu primer producto para comenzar a organizar su información de trazabilidad."
+      steps={[
+        "Escribe su nombre, código y contenido.",
+        "Agrega categorías, precio e imagen cuando quieras.",
+        "Luego vincularás sus ingredientes y lotes.",
+      ]}
+      action={
+        <Button type="button" onClick={onCreate}>
+          Registrar primer producto
+        </Button>
+      }
+    />
   );
 }
 
