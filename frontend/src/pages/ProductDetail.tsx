@@ -25,7 +25,7 @@ export default function ProductDetail() {
   const location = useLocation();
   const { id: rawId } = useParams();
   const productId = parseProductId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -102,7 +102,7 @@ export default function ProductDetail() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
+      pageTitle={product?.nombre ?? "Detalle del producto"}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}

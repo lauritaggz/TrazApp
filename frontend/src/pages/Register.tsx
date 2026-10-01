@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import RegisterSuccess from "@/components/auth/RegisterSuccess";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import Logo from "@/components/Logo";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -9,6 +10,7 @@ import { register as registerProductor } from "@/services/authService";
 import { ApiError } from "@/types/auth";
 
 export default function Register() {
+  useDocumentTitle("Crear cuenta");
   const [form, setForm] = useState({
     name: "",
     businessName: "",

@@ -24,7 +24,7 @@ export default function IngredientDetail() {
   const location = useLocation();
   const { id: rawId } = useParams();
   const ingredientId = parseIngredientId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [ingredient, setIngredient] = useState<Ingrediente | null>(null);
@@ -87,7 +87,7 @@ export default function IngredientDetail() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle={ingredient?.nombre ?? "Detalle del ingrediente"}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}

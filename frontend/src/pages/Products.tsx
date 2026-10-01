@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
+import PageHeader from "@/components/ui/PageHeader";
+import Select from "@/components/ui/Select";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
@@ -26,7 +29,7 @@ import {
 export default function Products() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -103,35 +106,31 @@ export default function Products() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       <div className="w-full space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
-            <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-              Productos
-            </h1>
-            <p className="text-text-secondary text-sm leading-relaxed">
+        <PageHeader
+          title="Productos"
+          description={
+            <>
               Administra los productos de tu negocio.
-            </p>
-            {!loading && !error && (
-              <p className="text-sm text-text-secondary mt-2">
-                {productCountLabel(totalCount)}
-              </p>
-            )}
-          </div>
-          <Button
-            type="button"
-            className="w-full sm:w-auto shrink-0"
-            onClick={goToNewProduct}
-          >
-            + Nuevo producto
-          </Button>
-        </header>
+              {!loading && !error && (
+                <span className="mt-2 block">{productCountLabel(totalCount)}</span>
+              )}
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              className="w-full sm:w-auto shrink-0"
+              onClick={goToNewProduct}
+            >
+              + Nuevo producto
+            </Button>
+          }
+        />
 
         {successMessage && <Alert type="success">{successMessage}</Alert>}
 
@@ -204,9 +203,8 @@ function ProductListControls({
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Unidad</span>
-          <select
+        <Select
+          label="Unidad"
             value={filters.unit}
             onChange={(e) =>
               onChange({
@@ -225,12 +223,10 @@ function ProductListControls({
                   : option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Ordenar</span>
-          <select
+        <Select
+          label="Ordenar"
             value={filters.sort}
             onChange={(e) =>
               onChange({
@@ -247,8 +243,7 @@ function ProductListControls({
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
       </div>
 
       {showResultCount && hasActiveFilters(filters) && (
@@ -427,17 +422,7 @@ function ProductsCards({
 }
 
 function ProductsLoadingSkeleton() {
-  return (
-    <div className="space-y-3" aria-live="polite" aria-busy="true">
-      <p className="text-sm text-text-secondary">Cargando productos...</p>
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="h-16 rounded-xl border border-border bg-card animate-pulse"
-        />
-      ))}
-    </div>
-  );
+  return <ListSkeleton label="Cargando productos..." />;
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {

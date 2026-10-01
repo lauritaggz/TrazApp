@@ -33,7 +33,7 @@ function sortRecentIngredients(ingredientes: Ingrediente[]): Ingrediente[] {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -96,7 +96,6 @@ export default function Dashboard() {
   return (
     <AppShell
       activePage="inicio"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
@@ -109,14 +108,12 @@ export default function Dashboard() {
             label="Productos registrados"
             value={productsError ? "—" : products.length}
             icon={<BoxIcon />}
-            accent="#2f6b57"
             loading={loadingProducts}
           />
           <DashboardStatCard
             label="Ingredientes"
             value={ingredientsError ? "—" : ingredients.length}
             icon={<LeafIcon />}
-            accent="#2f6b57"
             loading={loadingIngredients}
           />
         </div>

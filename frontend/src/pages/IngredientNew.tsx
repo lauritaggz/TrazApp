@@ -22,7 +22,7 @@ const SAVE_ERROR_MESSAGE =
 
 export default function IngredientNew() {
   const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [values, setValues] = useState<IngredienteFormValues>(
@@ -87,7 +87,7 @@ export default function IngredientNew() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle="Nuevo ingrediente"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}

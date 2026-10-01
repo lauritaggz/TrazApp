@@ -172,7 +172,7 @@ describe("Dashboard HT02", () => {
       await screen.findByRole("heading", { name: "Productos" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Inicio" }));
+    await user.click(screen.getByRole("link", { name: "Inicio" }));
     await screen.findByText("Ingredientes recientes");
 
     await user.click(

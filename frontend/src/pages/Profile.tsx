@@ -10,7 +10,7 @@ import { ApiError } from "@/types/auth";
 
 export default function Profile() {
   const { productor, setProductor } = useAuth();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
   const [form, setForm] = useState({
     name: productor?.nombre ?? "",
@@ -88,7 +88,6 @@ export default function Profile() {
   return (
     <AppShell
       activePage="perfil"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName ?? productor?.nombre}
       businessName={businessName ?? productor?.nombre_negocio}

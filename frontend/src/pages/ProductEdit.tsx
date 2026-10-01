@@ -43,7 +43,7 @@ export default function ProductEdit() {
   const navigate = useNavigate();
   const { id: rawId } = useParams();
   const productId = parseProductId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [baseline, setBaseline] = useState<ProductFormValues>(
@@ -287,7 +287,7 @@ export default function ProductEdit() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
+      pageTitle="Editar producto"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}

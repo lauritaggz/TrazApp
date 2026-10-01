@@ -1,6 +1,7 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import Button from "@/components/ui/Button";
+import Textarea from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
 import {
   INGREDIENTE_FORM_FIELD_ORDER,
@@ -94,20 +95,15 @@ export default function IngredientForm({
           disabled={loading}
           required
         />
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">
-            Descripción
-          </span>
-          <textarea
-            name="descripcion"
-            value={values.descripcion}
-            onChange={(e) => update("descripcion", e.target.value)}
-            disabled={loading}
-            rows={3}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50 resize-y min-h-[5rem]"
-            placeholder="Opcional"
-          />
-        </label>
+        <Textarea
+          label="Descripción"
+          name="descripcion"
+          value={values.descripcion}
+          onChange={(e) => update("descripcion", e.target.value)}
+          disabled={loading}
+          rows={3}
+          placeholder="Opcional"
+        />
       </ProductFormSection>
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4">

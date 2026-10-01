@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import Logo from "@/components/Logo";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -8,6 +9,7 @@ import { Input, PasswordInput } from "@/components/ui/Input";
 import { ApiError } from "@/types/auth";
 
 export default function Login() {
+  useDocumentTitle("Iniciar sesión");
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");

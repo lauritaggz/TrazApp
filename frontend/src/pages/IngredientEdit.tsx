@@ -36,7 +36,7 @@ export default function IngredientEdit() {
   const navigate = useNavigate();
   const { id: rawId } = useParams();
   const ingredientId = parseIngredientId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [baseline, setBaseline] = useState<IngredienteFormValues>(
@@ -154,7 +154,7 @@ export default function IngredientEdit() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle="Editar ingrediente"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}

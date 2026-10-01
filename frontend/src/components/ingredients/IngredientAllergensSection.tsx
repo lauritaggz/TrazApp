@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@/components/ui/Alert";
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   addIngredientAllergen,
@@ -158,21 +160,26 @@ export default function IngredientAllergensSection({
               {alergenos.map((alergeno) => (
                 <div
                   key={alergeno.id}
-                  className="inline-flex items-center gap-2 rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-3 py-1 text-xs font-medium"
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
+                    obligatorioIds.has(alergeno.id)
+                      ? "bg-warning-bg text-warning border-warning-border"
+                      : "bg-brand-50 text-brand-700 border-brand-100"
+                  }`}
                 >
                   <span>{alergeno.nombre}</span>
                   {obligatorioIds.has(alergeno.id) && (
-                    <span
+                    <Badge
+                      variant="warning"
                       title={ROTULACION_OBLIGATORIA_AYUDA}
-                      className="rounded-full border border-text-primary bg-card px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary"
+                      className="uppercase tracking-wide text-[10px] font-semibold"
                     >
                       Rotulación obligatoria
                       <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>
-                    </span>
+                    </Badge>
                   )}
                   <button
                     type="button"
-                    className="text-brand-800 hover:text-error"
+                    className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-black/5 hover:text-error"
                     aria-label={`Eliminar alérgeno ${alergeno.nombre}`}
                     onClick={() => setDeleteTarget(alergeno)}
                   >
@@ -208,11 +215,8 @@ export default function IngredientAllergensSection({
             </Button>
           ) : (
             <div className="border border-border rounded-lg p-4 space-y-3">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-text-primary">
-                  Alérgeno del catálogo
-                </span>
-                <select
+              <Select
+                label="Alérgeno del catálogo"
                   value={selectedAlergenoId}
                   onChange={(e) => setSelectedAlergenoId(e.target.value)}
                   disabled={submitting}
@@ -238,8 +242,7 @@ export default function IngredientAllergensSection({
                       ))}
                     </optgroup>
                   )}
-                </select>
-              </label>
+                </Select>
               <div className="flex gap-2">
                 <Button type="button" onClick={() => void handleAdd()} loading={submitting}>
                   Agregar

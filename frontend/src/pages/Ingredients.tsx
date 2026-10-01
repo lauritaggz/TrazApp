@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
+import PageHeader from "@/components/ui/PageHeader";
+import Select from "@/components/ui/Select";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
@@ -21,7 +24,7 @@ import {
 export default function Ingredients() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
@@ -90,35 +93,31 @@ export default function Ingredients() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       <div className="w-full space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
-            <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-              Ingredientes
-            </h1>
-            <p className="text-text-secondary text-sm leading-relaxed">
+        <PageHeader
+          title="Ingredientes"
+          description={
+            <>
               Administra los ingredientes de tu negocio.
-            </p>
-            {!loading && !error && (
-              <p className="text-sm text-text-secondary mt-2">
-                {ingredientCountLabel(totalCount)}
-              </p>
-            )}
-          </div>
-          <Button
-            type="button"
-            className="w-full sm:w-auto shrink-0"
-            onClick={() => navigate("/ingredientes/nuevo")}
-          >
-            + Nuevo ingrediente
-          </Button>
-        </header>
+              {!loading && !error && (
+                <span className="mt-2 block">{ingredientCountLabel(totalCount)}</span>
+              )}
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              className="w-full sm:w-auto shrink-0"
+              onClick={() => navigate("/ingredientes/nuevo")}
+            >
+              + Nuevo ingrediente
+            </Button>
+          }
+        />
 
         {successMessage && <Alert type="success">{successMessage}</Alert>}
 
@@ -186,9 +185,8 @@ function IngredientListControls({
         aria-label="Buscar por nombre o código"
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Ordenar</span>
-          <select
+        <Select
+          label="Ordenar"
             value={filters.sort}
             onChange={(e) =>
               onChange({
@@ -204,8 +202,7 @@ function IngredientListControls({
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
       </div>
       {showResultCount && hasActiveIngredientFilters(filters) && (
         <p className="text-xs text-text-secondary">
@@ -323,17 +320,7 @@ function StatusBadge({ activo }: { activo: boolean }) {
 }
 
 function IngredientsLoadingSkeleton() {
-  return (
-    <div className="space-y-3" aria-live="polite" aria-busy="true">
-      <p className="text-sm text-text-secondary">Cargando ingredientes...</p>
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="h-16 rounded-xl border border-border bg-card animate-pulse"
-        />
-      ))}
-    </div>
-  );
+  return <ListSkeleton label="Cargando ingredientes..." />;
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {

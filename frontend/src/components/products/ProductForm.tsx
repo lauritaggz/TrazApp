@@ -4,6 +4,8 @@ import CategoryMultiSelect from "@/components/products/CategoryMultiSelect";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import ProductImageField from "@/components/products/ProductImageField";
 import { Input } from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Textarea from "@/components/ui/Textarea";
 import {
   PRODUCT_FORM_FIELD_ORDER,
   type ProductFormFieldErrors,
@@ -135,47 +137,18 @@ export default function ProductForm({
           aria-required="true"
         />
 
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="descripcion"
-            className="text-sm font-medium text-text-primary"
-          >
-            Descripción *
-          </label>
-          <textarea
-            id="descripcion"
-            name="descripcion"
-            rows={4}
-            placeholder="Describe el producto"
-            value={values.descripcion}
-            onChange={(e) => update("descripcion", e.target.value)}
-            disabled={loading}
-            aria-required="true"
-            aria-invalid={Boolean(errors.descripcion)}
-            aria-describedby={
-              errors.descripcion ? "descripcion-error" : undefined
-            }
-            className={`
-              w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
-              px-3 py-2.5 transition-all duration-150 resize-y min-h-[6rem]
-              focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
-              disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
-              ${
-                errors.descripcion
-                  ? "border-error focus:ring-error bg-error-bg"
-                  : "border-border hover:border-[#b0b7b0]"
-              }
-            `}
-          />
-          {errors.descripcion && (
-            <p
-              id="descripcion-error"
-              className="text-xs text-error flex items-center gap-1"
-            >
-              {errors.descripcion}
-            </p>
-          )}
-        </div>
+        <Textarea
+          id="descripcion"
+          name="descripcion"
+          label="Descripción *"
+          rows={4}
+          placeholder="Describe el producto"
+          value={values.descripcion}
+          onChange={(e) => update("descripcion", e.target.value)}
+          error={errors.descripcion}
+          disabled={loading}
+          aria-required="true"
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
@@ -193,53 +166,28 @@ export default function ProductForm({
             aria-required="true"
           />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-text-primary">
-              Unidad de medida *
-            </span>
-            <select
-              id="unidad_medida"
-              name="unidad_medida"
-              value={values.unidad_medida}
-              onChange={(e) =>
-                update(
-                  "unidad_medida",
-                  e.target.value as ProductFormValues["unidad_medida"],
-                )
-              }
-              disabled={loading}
-              aria-required="true"
-              aria-invalid={Boolean(errors.unidad_medida)}
-              aria-describedby={
-                errors.unidad_medida ? "unidad_medida-error" : undefined
-              }
-              className={`
-                w-full rounded-lg border bg-card text-sm text-text-primary px-3 py-2.5
-                focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
-                disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
-                ${
-                  errors.unidad_medida
-                    ? "border-error focus:ring-error bg-error-bg"
-                    : "border-border hover:border-[#b0b7b0]"
-                }
-              `}
-            >
-              <option value="">Selecciona una unidad</option>
-              {PRODUCT_FORM_UNIT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {errors.unidad_medida && (
-              <p
-                id="unidad_medida-error"
-                className="text-xs text-error flex items-center gap-1"
-              >
-                {errors.unidad_medida}
-              </p>
-            )}
-          </label>
+          <Select
+            id="unidad_medida"
+            name="unidad_medida"
+            label="Unidad de medida *"
+            value={values.unidad_medida}
+            onChange={(e) =>
+              update(
+                "unidad_medida",
+                e.target.value as ProductFormValues["unidad_medida"],
+              )
+            }
+            error={errors.unidad_medida}
+            disabled={loading}
+            aria-required="true"
+          >
+            <option value="">Selecciona una unidad</option>
+            {PRODUCT_FORM_UNIT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <Input

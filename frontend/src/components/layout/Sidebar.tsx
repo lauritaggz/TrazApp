@@ -4,27 +4,26 @@ import NavItem from "@/components/layout/NavItem";
 export type AppSection = "inicio" | "productos" | "ingredientes" | "perfil";
 
 interface SidebarProps {
-  activePage: AppSection;
-  onNavigate: (page: AppSection) => void;
   onLogout: () => void;
   open: boolean;
   onClose: () => void;
+  /** Cuando es false el panel móvil está fuera de pantalla y no debe recibir foco. */
+  interactive: boolean;
+  id?: string;
 }
 
 export default function Sidebar({
-  activePage,
-  onNavigate,
   onLogout,
   open,
   onClose,
+  interactive,
+  id,
 }: SidebarProps) {
-  function go(page: AppSection) {
-    onNavigate(page);
-    onClose();
-  }
-
   return (
     <aside
+      id={id}
+      aria-label="Navegación principal"
+      inert={!interactive}
       className={`
         fixed lg:static inset-y-0 left-0 z-30 flex flex-col
         w-[240px] bg-card border-r border-border
@@ -36,35 +35,24 @@ export default function Sidebar({
         <Logo size="sm" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        <NavItem
-          icon={<HomeIcon />}
-          label="Inicio"
-          active={activePage === "inicio"}
-          onClick={() => go("inicio")}
-        />
-        <NavItem
-          icon={<BoxIcon />}
-          label="Productos"
-          active={activePage === "productos"}
-          onClick={() => go("productos")}
-        />
+      <nav
+        aria-label="Secciones"
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-1"
+      >
+        <NavItem icon={<HomeIcon />} label="Inicio" to="/dashboard" onClick={onClose} />
+        <NavItem icon={<BoxIcon />} label="Productos" to="/productos" onClick={onClose} />
         <NavItem
           icon={<LeafIcon />}
           label="Ingredientes"
-          active={activePage === "ingredientes"}
-          onClick={() => go("ingredientes")}
+          to="/ingredientes"
+          onClick={onClose}
         />
       </nav>
 
       <div className="px-3 pb-4 border-t border-border pt-3 shrink-0 space-y-1">
-        <NavItem
-          icon={<UserIcon />}
-          label="Mi perfil"
-          active={activePage === "perfil"}
-          onClick={() => go("perfil")}
-        />
+        <NavItem icon={<UserIcon />} label="Mi perfil" to="/perfil" onClick={onClose} />
         <button
+          type="button"
           onClick={onLogout}
           className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm text-text-secondary hover:text-error hover:bg-error-bg transition-colors"
         >
@@ -79,6 +67,7 @@ export default function Sidebar({
 function HomeIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -97,6 +86,7 @@ function HomeIcon() {
 function BoxIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -116,6 +106,7 @@ function BoxIcon() {
 function LeafIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -134,6 +125,7 @@ function LeafIcon() {
 function UserIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -152,6 +144,7 @@ function UserIcon() {
 function LogoutIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"

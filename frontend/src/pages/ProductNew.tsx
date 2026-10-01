@@ -31,7 +31,7 @@ const CATEGORIES_LOAD_ERROR_MESSAGE =
 
 export default function ProductNew() {
   const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [values, setValues] = useState<ProductFormValues>(
@@ -195,7 +195,7 @@ export default function ProductNew() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
+      pageTitle="Nuevo producto"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
