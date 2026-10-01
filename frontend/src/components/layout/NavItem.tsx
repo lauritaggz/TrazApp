@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
+import Badge from "@/components/ui/Badge";
 
 interface NavItemProps {
   icon: ReactNode;
@@ -40,5 +41,16 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
         </>
       )}
     </NavLink>
+  );
+}
+
+/** Sección planificada: se muestra como texto, sin enlace ni foco, para anticipar el menú. */
+export function NavItemSoon({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted">
+      <span aria-hidden="true">{icon}</span>
+      {label}
+      <Badge className="ml-auto">Pronto</Badge>
+    </div>
   );
 }

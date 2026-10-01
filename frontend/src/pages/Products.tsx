@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
-import Alert from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
@@ -35,7 +35,7 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [filters, setFilters] = useState<ProductListFilters>(
     DEFAULT_PRODUCT_LIST_FILTERS,
   );
@@ -64,20 +64,20 @@ export default function Products() {
       productUpdated?: boolean;
     } | null;
     if (state?.productCreated) {
-      setSuccessMessage("Producto creado correctamente.");
+      notify("Producto creado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productDeleted) {
-      setSuccessMessage("Producto eliminado correctamente.");
+      notify("Producto eliminado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productUpdated) {
-      setSuccessMessage("Producto actualizado correctamente.");
+      notify("Producto actualizado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
   const filteredProducts = useMemo(
     () => filterAndSortProducts(products, filters),
@@ -131,8 +131,6 @@ export default function Products() {
             </Button>
           }
         />
-
-        {successMessage && <Alert type="success">{successMessage}</Alert>}
 
         {!showEmptyState && !error && (
           <ProductListControls

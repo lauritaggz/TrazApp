@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
+import { useToast } from "@/components/ui/toastContext";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
@@ -30,7 +32,7 @@ export default function IngredientDetail() {
   const [ingredient, setIngredient] = useState<Ingrediente | null>(null);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -61,9 +63,9 @@ export default function IngredientDetail() {
   useEffect(() => {
     const state = location.state as { ingredientUpdated?: boolean } | null;
     if (!state?.ingredientUpdated) return;
-    setSuccessMessage("Ingrediente actualizado correctamente.");
+    notify("Ingrediente actualizado correctamente.");
     navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
   async function handleDeleteConfirm() {
     if (!ingredient) return;
@@ -103,19 +105,14 @@ export default function IngredientDetail() {
 
         {!loading && ingredient && ingredientId != null && (
           <>
-            <header className="space-y-2">
-              <p className="text-sm text-brand-600 font-medium">
-                Ingredientes / {ingredient.nombre}
-              </p>
-              <h1 className="text-2xl font-semibold text-text-primary">
-                {ingredient.nombre}
-              </h1>
-              <p className="text-sm font-medium text-text-secondary tracking-wide">
-                {ingredient.codigo_interno ?? "—"}
-              </p>
-            </header>
-
-            {successMessage && <Alert type="success">{successMessage}</Alert>}
+            <PageHeader
+              title={ingredient.nombre}
+              description={ingredient.codigo_interno ?? "—"}
+              breadcrumbs={[
+                { label: "Ingredientes", to: "/ingredientes" },
+                { label: ingredient.nombre },
+              ]}
+            />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
             <ProductDetailSection id="ingredient-detail-general" title="Información general">

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
 import ImageUploadRecovery from "@/components/products/ImageUploadRecovery";
 import ProductForm from "@/components/products/ProductForm";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import {
   isProductFormDirty,
   toCreatePayload,
@@ -192,6 +194,10 @@ export default function ProductNew() {
     }
   }
 
+  const { pendingHref, clearPending } = useUnsavedChangesGuard(
+    (isProductFormDirty(values) || imageFile !== null) && !loading,
+  );
+
   return (
     <AppShell
       activePage="productos"
@@ -201,17 +207,11 @@ export default function ProductNew() {
       businessName={businessName}
     >
       <div className="max-w-xl mx-auto space-y-6">
-        <header>
-          <p className="text-sm text-brand-600 font-medium mb-1">
-            Productos / Nuevo producto
-          </p>
-          <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-            Nuevo producto
-          </h1>
-          <p className="text-sm text-text-secondary leading-relaxed">
-            Registra la información general del producto.
-          </p>
-        </header>
+        <PageHeader
+          title="Nuevo producto"
+          description="Registra la información general del producto."
+          breadcrumbs={[{ label: "Productos", to: "/productos" }, { label: "Nuevo producto" }]}
+        />
 
         {pendingImageUpload ? (
           <ImageUploadRecovery
@@ -246,17 +246,26 @@ export default function ProductNew() {
       </div>
 
       <ConfirmDialog
-        open={showCancelConfirm}
+        open={showCancelConfirm || pendingHref !== null}
         title="Salir sin guardar"
         description="Tienes cambios sin guardar. ¿Deseas salir sin guardar?"
         confirmLabel="Salir sin guardar"
         cancelLabel="Seguir editando"
         destructive
         onConfirm={() => {
+          const href = pendingHref;
+          clearPending();
           setShowCancelConfirm(false);
+          if (href) {
+            navigate(href);
+            return;
+          }
           goToProducts();
+          }}
+        onCancel={() => {
+          setShowCancelConfirm(false);
+          clearPending();
         }}
-        onCancel={() => setShowCancelConfirm(false)}
       />
     </AppShell>
   );

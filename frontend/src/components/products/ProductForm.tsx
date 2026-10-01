@@ -1,5 +1,6 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
+import FormActions from "@/components/ui/FormActions";
 import CategoryMultiSelect from "@/components/products/CategoryMultiSelect";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import ProductImageField from "@/components/products/ProductImageField";
@@ -288,7 +289,7 @@ export default function ProductForm({
         </ProductFormSection>
       )}
 
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border">
+      <FormActions>
         <Button
           type="button"
           variant="secondary"
@@ -305,7 +306,7 @@ export default function ProductForm({
         >
           {loading ? loadingLabel : submitLabel}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

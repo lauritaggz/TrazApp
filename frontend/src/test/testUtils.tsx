@@ -2,6 +2,7 @@ import { MemoryRouter } from "react-router-dom";
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { AuthProvider } from "@/auth/AuthContext";
+import { ToastProvider } from "@/components/ui/Toast";
 
 interface Options extends Omit<RenderOptions, "wrapper"> {
   initialEntries?: string[];
@@ -14,7 +15,9 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <MemoryRouter initialEntries={initialEntries}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </MemoryRouter>
     );
   }

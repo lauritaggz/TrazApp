@@ -147,14 +147,15 @@ describe("AppShell accesible", () => {
     renderShell("/productos");
 
     await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-    const logout = screen.getByRole("button", { name: "Cerrar sesión" });
-    logout.focus();
+    const first = screen.getByRole("link", { name: "Inicio" });
+    const last = screen.getByRole("link", { name: "Ingredientes" });
+    last.focus();
 
     await user.tab();
-    expect(screen.getByRole("link", { name: "Inicio" })).toHaveFocus();
+    expect(first).toHaveFocus();
 
     await user.tab({ shift: true });
-    expect(logout).toHaveFocus();
+    expect(last).toHaveFocus();
   });
 });
 

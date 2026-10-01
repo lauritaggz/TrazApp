@@ -32,8 +32,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const notify = useCallback((message: string, type: ToastType = "success") => {
-    const id = nextId.current++;
-    setToasts((current) => [...current, { id, type, message }]);
+    setToasts((current) => {
+      if (current.some((toast) => toast.message === message && toast.type === type)) {
+        return current;
+      }
+      return [...current, { id: nextId.current++, type, message }];
+    });
   }, []);
 
   const api = useMemo(() => ({ notify }), [notify]);

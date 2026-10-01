@@ -1,6 +1,7 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import Button from "@/components/ui/Button";
+import FormActions from "@/components/ui/FormActions";
 import Textarea from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
 import {
@@ -106,7 +107,7 @@ export default function IngredientForm({
         />
       </ProductFormSection>
 
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4">
+      <FormActions>
         <Button
           type="button"
           variant="secondary"
@@ -119,7 +120,7 @@ export default function IngredientForm({
         <Button type="submit" className="w-full sm:w-auto" loading={loading}>
           {loading ? loadingLabel : submitLabel}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

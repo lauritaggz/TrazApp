@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
-import Alert from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
@@ -30,7 +30,7 @@ export default function Ingredients() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [filters, setFilters] = useState<IngredienteListFilters>(
     DEFAULT_INGREDIENTE_LIST_FILTERS,
   );
@@ -59,20 +59,20 @@ export default function Ingredients() {
       ingredientUpdated?: boolean;
     } | null;
     if (state?.ingredientCreated) {
-      setSuccessMessage("Ingrediente creado correctamente.");
+      notify("Ingrediente creado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.ingredientDeleted) {
-      setSuccessMessage("Ingrediente desactivado correctamente.");
+      notify("Ingrediente desactivado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.ingredientUpdated) {
-      setSuccessMessage("Ingrediente actualizado correctamente.");
+      notify("Ingrediente actualizado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
   const filteredIngredientes = useMemo(
     () => filterAndSortIngredientes(ingredientes, filters),
@@ -118,8 +118,6 @@ export default function Ingredients() {
             </Button>
           }
         />
-
-        {successMessage && <Alert type="success">{successMessage}</Alert>}
 
         {!showEmptyState && !error && (
           <IngredientListControls

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
 import ImageUploadRecovery from "@/components/products/ImageUploadRecovery";
 import ProductForm from "@/components/products/ProductForm";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import {
   buildUpdatePayload,
   isProductFormDirtyComparedTo,
@@ -284,6 +286,10 @@ export default function ProductEdit() {
     }
   }
 
+  const { pendingHref, clearPending } = useUnsavedChangesGuard(
+    (hasUnsavedChanges()) && !saving,
+  );
+
   return (
     <AppShell
       activePage="productos"
@@ -306,17 +312,18 @@ export default function ProductEdit() {
 
         {!loadingProduct && !unavailable && (
           <>
-            <header>
-              <p className="text-sm text-brand-600 font-medium mb-1">
-                Productos / {productName || "Editar"} / Editar
-              </p>
-              <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-                Editar producto
-              </h1>
-              <p className="text-sm text-text-secondary leading-relaxed">
-                Actualiza la información general del producto.
-              </p>
-            </header>
+            <PageHeader
+              title="Editar producto"
+          description="Actualiza la información general del producto."
+              breadcrumbs={[
+                { label: "Productos", to: "/productos" },
+                {
+                  label: productName || "Producto",
+                  to: productId != null ? `/productos/${productId}` : undefined,
+                },
+                { label: "Editar" },
+              ]}
+            />
 
             {pendingImageUpload ? (
               <ImageUploadRecovery
@@ -355,17 +362,26 @@ export default function ProductEdit() {
       </div>
 
       <ConfirmDialog
-        open={showCancelConfirm}
+        open={showCancelConfirm || pendingHref !== null}
         title="Salir sin guardar"
         description="Tienes cambios sin guardar. ¿Deseas salir sin guardar?"
         confirmLabel="Salir sin guardar"
         cancelLabel="Seguir editando"
         destructive
         onConfirm={() => {
+          const href = pendingHref;
+          clearPending();
           setShowCancelConfirm(false);
+          if (href) {
+            navigate(href);
+            return;
+          }
           goToDetail();
+          }}
+        onCancel={() => {
+          setShowCancelConfirm(false);
+          clearPending();
         }}
-        onCancel={() => setShowCancelConfirm(false)}
       />
     </AppShell>
   );

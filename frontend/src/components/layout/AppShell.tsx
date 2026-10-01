@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import UserMenu from "@/components/layout/UserMenu";
 import Sidebar, { type AppSection } from "@/components/layout/Sidebar";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -95,7 +96,6 @@ export default function AppShell({
       <div ref={sidebarWrapRef} className="contents">
         <Sidebar
           id={SIDEBAR_ID}
-          onLogout={onLogout}
           open={sidebarOpen}
           interactive={isDesktop || sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -122,27 +122,11 @@ export default function AppShell({
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden flex-col items-end sm:flex">
-                {producerName ? (
-                  <span className="text-sm font-medium leading-tight text-text-primary">
-                    {producerName}
-                  </span>
-                ) : null}
-                {businessName ? (
-                  <span className="text-xs leading-tight text-text-secondary">
-                    {businessName}
-                  </span>
-                ) : null}
-                <span className="text-xs text-text-secondary">Productor</span>
-              </div>
-              <div
-                aria-hidden="true"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white"
-              >
-                {producerName?.trim()?.[0]?.toUpperCase() ?? <UserIcon />}
-              </div>
-            </div>
+            <UserMenu
+              producerName={producerName}
+              businessName={businessName}
+              onLogout={onLogout}
+            />
           </div>
         </header>
 
@@ -173,24 +157,6 @@ function MenuIcon() {
       <line x1="3" y1="12" x2="21" y2="12" />
       <line x1="3" y1="6" x2="21" y2="6" />
       <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
