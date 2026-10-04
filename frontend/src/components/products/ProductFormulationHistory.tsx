@@ -123,7 +123,7 @@ export default function ProductFormulationHistory({
               <li
                 key={version.id}
                 className={`border rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${
-                  version.id === selectedId ? "border-brand-600 bg-brand-50" : "border-border"
+                  version.id === selectedId ? "border-accent bg-brand-50" : "border-border"
                 }`}
               >
                 <div className="min-w-0 space-y-1">
@@ -132,7 +132,7 @@ export default function ProductFormulationHistory({
                       Versión {version.numero_version}
                     </span>
                     {version.vigente && (
-                      <span className="rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-2 py-0.5 text-[11px] font-semibold">
+                      <span className="rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2 py-0.5 text-[11px] font-semibold">
                         Vigente
                       </span>
                     )}

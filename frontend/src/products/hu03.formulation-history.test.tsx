@@ -206,6 +206,10 @@ describe("HU03 — historial de versiones", () => {
     const pending = new Promise<FormulacionLinea[]>((_, r) => {
       reject = r;
     });
+    // Marca la promesa como atendida: el rechazo puede llegar antes de que el componente
+    // adjunte su manejador (los efectos corren tras el render), y eso se vería como
+    // "Unhandled Rejection" aunque el componente sí lo maneja después.
+    pending.catch(() => {});
     vi.mocked(formulationService.getVersionFormulation)
       .mockReturnValueOnce(pending)
       .mockResolvedValueOnce([linea(1, "Harina")]);
@@ -257,6 +261,10 @@ describe("HU03 — historial de versiones", () => {
     const pending = new Promise<VersionProductoHistorial[]>((_, r) => {
       reject = r;
     });
+    // Marca la promesa como atendida: el rechazo puede llegar antes de que el componente
+    // adjunte su manejador (los efectos corren tras el render), y eso se vería como
+    // "Unhandled Rejection" aunque el componente sí lo maneja después.
+    pending.catch(() => {});
     vi.mocked(formulationService.listProductVersions)
       .mockReturnValueOnce(pending)
       .mockResolvedValueOnce([V3, V2, V1]);
