@@ -17,7 +17,7 @@ interface BadgeProps {
 
 const VARIANTS: Record<BadgeVariant, string> = {
   neutral: "bg-surface text-text-secondary border-border",
-  brand: "bg-brand-50 text-brand-700 border-brand-200",
+  brand: "bg-brand-50 text-accent-strong border-brand-200",
   success: "bg-success-bg text-success border-success-border",
   warning: "bg-warning-bg text-warning border-warning-border",
   info: "bg-info-bg text-info border-info-border",

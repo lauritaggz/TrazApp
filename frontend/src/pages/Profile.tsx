@@ -94,7 +94,7 @@ export default function Profile() {
     >
       <div className="max-w-xl space-y-6">
         <div>
-          <p className="text-sm text-brand-600 font-medium mb-1">Cuenta</p>
+          <p className="text-sm text-accent font-medium mb-1">Cuenta</p>
           <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
             Mi perfil
           </h1>

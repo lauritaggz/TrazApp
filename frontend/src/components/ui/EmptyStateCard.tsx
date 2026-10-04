@@ -45,7 +45,7 @@ export default function EmptyStateCard({
             >
               <span
                 aria-hidden="true"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold tabular-nums text-brand-700"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold tabular-nums text-accent-strong"
               >
                 {index + 1}
               </span>

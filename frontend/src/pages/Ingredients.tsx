@@ -280,7 +280,7 @@ function IngredientsTable({
                   <Link
                     to={`/ingredientes/${ingrediente.id}`}
                     aria-label={`Ver ingrediente ${ingrediente.nombre}`}
-                    className="rounded font-medium text-text-primary hover:text-brand-700 hover:underline underline-offset-2"
+                    className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
                   >
                     {ingrediente.nombre}
                   </Link>
@@ -294,7 +294,7 @@ function IngredientsTable({
               </td>
               <td
                 aria-hidden="true"
-                className="px-4 py-3 text-right text-brand-600 font-medium"
+                className="px-4 py-3 text-right text-accent font-medium"
               >
                 Ver
               </td>
@@ -313,7 +313,7 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
       {ingredientes.map((ingrediente) => (
         <article
           key={ingrediente.id}
-          className="relative bg-card border border-border rounded-xl p-4 hover:border-brand-600 transition-colors focus-within:ring-2 focus-within:ring-brand-600"
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent transition-colors focus-within:ring-2 focus-within:ring-accent"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -326,7 +326,7 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
                   {ingrediente.nombre}
                 </Link>
               </h2>
-              <p className="text-[13px] text-brand-600 uppercase">
+              <p className="text-[13px] text-accent uppercase">
                 {ingrediente.codigo_interno ?? "—"}
               </p>
             </div>

@@ -16,6 +16,9 @@
   --color-brand-700: #255747;
   --color-brand-800: #1c4336;
 
+  --color-accent: #2f6b57;
+  --color-accent-strong: #255747;
+
   --color-surface: #f7f8f7;
   --color-card: #ffffff;
   --color-border: #e5e7e5;
@@ -123,4 +126,54 @@ body {
 /* La barra de acciones entra con un deslizamiento corto al pasar a flotante. */
 .form-actions-float {
   animation: form-actions-float 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Modo oscuro: solo se redefinen los tokens; los componentes no cambian.
+   Los rellenos de marca (brand-600/700/800) se mantienen, porque llevan texto blanco.
+   El color de acento para texto, anillos y bordes pasa a un verde claro (accent). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-brand-50: #14231d;
+  --color-brand-100: #1b3027;
+  --color-brand-200: #2b4a3d;
+  --color-brand-500: #4f9c80;
+
+  --color-accent: #5fb592;
+  --color-accent-strong: #86cdb0;
+
+  --color-surface: #0e1311;
+  --color-card: #151b18;
+  --color-border: #26302b;
+  --color-border-strong: #6b7872;
+  --color-text-primary: #e6ebe8;
+  --color-text-secondary: #a8b3ad;
+  --color-text-muted: #8d9993;
+
+  --color-error: #f97066;
+  --color-error-bg: #2a1311;
+  --color-error-border: #5c2420;
+  --color-success: #6ce9a6;
+  --color-success-bg: #0f2a1c;
+  --color-success-border: #14532d;
+  --color-warning: #fdb022;
+  --color-warning-bg: #2b2008;
+  --color-warning-border: #6b4d0f;
+  --color-info: #84caff;
+  --color-info-bg: #0f2236;
+  --color-info-border: #1e4a73;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px rgb(0 0 0 / 0.3);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.45), 0 12px 28px rgb(0 0 0 / 0.45);
+}
+
+/* El anillo de enfoque deja un hueco del color de la superficie, no blanco. */
+*,
+::before,
+::after {
+  --tw-ring-offset-color: var(--color-card);
+}
+
+body {
+  transition: background-color 200ms ease, color 200ms ease;
 }

@@ -45,7 +45,11 @@ export default function AppShell({
     if (!drawerOpen) return;
 
     const wrap = sidebarWrapRef.current;
-    wrap?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    // El foco inicial va a la primera sección de navegación, no al botón de modo.
+    (
+      wrap?.querySelector<HTMLElement>("nav a[href]") ??
+      wrap?.querySelector<HTMLElement>(FOCUSABLE)
+    )?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {

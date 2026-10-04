@@ -137,7 +137,7 @@ export default function ProductImageField({
           />
           <label
             htmlFor="imagen_producto"
-            className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+            className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
           >
             {displayUrl ? "Cambiar imagen" : "Elegir imagen"}
           </label>
@@ -167,7 +167,7 @@ export default function ProductImageField({
           {removeExistingImage && onUndoRemoveExistingImage && (
             <button
               type="button"
-              className="text-sm text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline disabled:opacity-50"
+              className="text-sm text-accent hover:text-accent-strong underline-offset-2 hover:underline disabled:opacity-50"
               disabled={disabled}
               onClick={onUndoRemoveExistingImage}
             >

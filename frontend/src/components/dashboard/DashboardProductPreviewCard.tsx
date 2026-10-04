@@ -22,10 +22,10 @@ export default function DashboardProductPreviewCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full cursor-pointer items-start gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all duration-150 hover:border-brand-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+      className="group flex w-full cursor-pointer items-start gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all duration-150 hover:border-brand-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-sm font-semibold text-brand-700"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-sm font-semibold text-accent-strong"
         aria-hidden
       >
         {product.nombre.trim().charAt(0).toUpperCase()}

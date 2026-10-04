@@ -1,4 +1,5 @@
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem, { NavItemSoon } from "@/components/layout/NavItem";
 
 export type AppSection = "inicio" | "productos" | "ingredientes" | "perfil";
@@ -24,8 +25,9 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
         ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border pl-5 pr-3">
         <Logo size="sm" />
+        <ThemeToggle />
       </div>
 
       <nav

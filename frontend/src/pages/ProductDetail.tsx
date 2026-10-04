@@ -329,7 +329,7 @@ function CategoryBadges({ categorias }: { categorias: Categoria[] }) {
       {categorias.map((categoria) => (
         <span
           key={categoria.id}
-          className="inline-flex items-center rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
+          className="inline-flex items-center rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
         >
           {categoria.nombre}
         </span>

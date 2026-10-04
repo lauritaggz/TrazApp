@@ -163,7 +163,7 @@ export default function IngredientAllergensSection({
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
                     obligatorioIds.has(alergeno.id)
                       ? "bg-warning-bg text-warning border-warning-border"
-                      : "bg-brand-50 text-brand-700 border-brand-100"
+                      : "bg-brand-50 text-accent-strong border-brand-100"
                   }`}
                 >
                   <span>{alergeno.nombre}</span>
@@ -179,7 +179,7 @@ export default function IngredientAllergensSection({
                   )}
                   <button
                     type="button"
-                    className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-black/5 hover:text-error"
+                    className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-text-primary/10 hover:text-error"
                     aria-label={`Eliminar alérgeno ${alergeno.nombre}`}
                     onClick={() => setDeleteTarget(alergeno)}
                   >

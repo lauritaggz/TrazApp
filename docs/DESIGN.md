@@ -38,6 +38,17 @@ Un solo acento (verde), saturación por debajo del 80 %. Sin morados ni neones. 
 
 **Sombras tintadas** (nunca grises ni negras): `shadow-soft` para tarjetas en reposo, `shadow-lift` para elementos flotantes (barra de acciones) y al pasar el cursor sobre tarjetas.
 
+### Modo oscuro
+
+El selector (luna / sol) está junto al logo, en el menú lateral y en las pantallas de acceso. Se aplica con `data-theme` en `<html>` y se recuerda en el navegador (`trazapp_tema`); sin elección guardada, sigue la preferencia del sistema. Un script en `index.html` fija el modo antes de pintar para evitar el parpadeo.
+
+- **Solo cambian los tokens** (`:root[data-theme="dark"]` en `index.css`); los componentes no tienen variantes propias.
+- **Rellenos de marca** (`brand-600/700/800`) no cambian porque llevan texto blanco. Para texto, enlaces, anillos de foco y bordes de acento se usan `accent` y `accent-strong`, que en oscuro pasan a un verde claro.
+- Superficies: fondo `#0e1311`, tarjeta `#151b18`. Texto `#e6ebe8` / `#a8b3ad` / `#8d9993`. Sombras más densas, sin color.
+- Los mismos contrastes (4.5:1 texto, 3:1 bordes y anillos) están protegidos por pruebas en `src/ui/modoOscuro.test.tsx`.
+- **Regla:** nunca usar `text-brand-600/700` ni `ring-brand-600` en componentes nuevos; usar `text-accent`, `text-accent-strong` y `ring-accent`.
+
+
 ## 3. Typography Rules
 
 - **Interfaz:** **Geist** (300–700). Cabecera con peso 600 y espaciado ajustado; la jerarquía viene del peso y del color, no de tamaños enormes.

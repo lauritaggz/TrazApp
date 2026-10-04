@@ -16,7 +16,7 @@ export default function DashboardStatCard({
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div
-        className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600"
+        className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-accent"
       >
         {icon}
       </div>

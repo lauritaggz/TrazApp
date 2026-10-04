@@ -28,7 +28,7 @@ export default function DashboardSection({
           <button
             type="button"
             onClick={onAction}
-            className="shrink-0 text-sm font-medium text-brand-600 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
+            className="shrink-0 text-sm font-medium text-accent underline-offset-2 transition-colors hover:text-accent-strong hover:underline"
             aria-label={actionLabel}
           >
             {actionLabel}

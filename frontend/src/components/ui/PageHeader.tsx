@@ -36,7 +36,7 @@ export default function PageHeader({
                   {item.to && !last ? (
                     <Link
                       to={item.to}
-                      className="rounded font-medium text-brand-700 underline-offset-2 hover:underline"
+                      className="rounded font-medium text-accent-strong underline-offset-2 hover:underline"
                     >
                       {item.label}
                     </Link>

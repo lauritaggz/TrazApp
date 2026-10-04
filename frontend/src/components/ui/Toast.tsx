@@ -99,7 +99,7 @@ function ToastMessage({
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="-m-1 rounded p-1 hover:bg-black/5"
+        className="-m-1 rounded p-1 hover:bg-text-primary/10"
         aria-label="Cerrar notificación"
       >
         <svg

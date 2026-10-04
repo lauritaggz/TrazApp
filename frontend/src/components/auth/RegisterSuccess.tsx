@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import Button from "@/components/ui/Button";
 
 interface RegisterSuccessProps {
@@ -10,7 +11,10 @@ export default function RegisterSuccess({ name }: RegisterSuccessProps) {
   return (
     <div className="min-h-screen flex bg-surface">
       <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 bg-brand-600 px-12 py-14">
-        <Logo size="lg" variant="light" />
+        <div className="flex items-center gap-2">
+          <Logo size="lg" variant="light" />
+          <ThemeToggle variant="onBrand" />
+        </div>
         <div className="space-y-4">
           <p className="text-3xl font-semibold text-white leading-tight">
             Tu cuenta está lista.

@@ -78,7 +78,7 @@ export default function ListToolbar({
           {chips.map((chip) => (
             <span
               key={chip.key}
-              className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 py-0.5 pl-3 pr-1 text-xs font-medium text-brand-700"
+              className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 py-0.5 pl-3 pr-1 text-xs font-medium text-accent-strong"
             >
               {chip.label}
               <button
@@ -106,7 +106,7 @@ export default function ListToolbar({
           <button
             type="button"
             onClick={onClearAll}
-            className="rounded px-1 text-xs font-medium text-brand-700 underline-offset-2 hover:underline"
+            className="rounded px-1 text-xs font-medium text-accent-strong underline-offset-2 hover:underline"
           >
             Limpiar todo
           </button>

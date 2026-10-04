@@ -95,7 +95,7 @@ export default function CategoryMultiSelect({
                       disabled={disabled || loading}
                       className="peer sr-only"
                     />
-                    <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-strong bg-card px-3.5 text-sm text-text-primary transition-colors hover:bg-surface peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:font-medium peer-checked:text-brand-700 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-offset-2">
+                    <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-strong bg-card px-3.5 text-sm text-text-primary transition-colors hover:bg-surface peer-checked:border-accent peer-checked:bg-brand-50 peer-checked:font-medium peer-checked:text-accent-strong peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2">
                       {checked && (
                         <svg
                           aria-hidden="true"

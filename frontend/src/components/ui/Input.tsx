@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={`
               w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 transition-all duration-150
-              focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
+              focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
               ${leftIcon ? "pl-10" : ""}
               ${
@@ -97,7 +97,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             className={`
               w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 pr-12 transition-all duration-150
-              focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
+              focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
               ${
                 error

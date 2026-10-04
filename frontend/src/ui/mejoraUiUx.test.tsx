@@ -147,7 +147,7 @@ describe("AppShell accesible", () => {
     renderShell("/productos");
 
     await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-    const first = screen.getByRole("link", { name: "Inicio" });
+    const first = screen.getByRole("button", { name: "Cambiar a modo oscuro" });
     const last = screen.getByRole("link", { name: "Ingredientes" });
     last.focus();
 

@@ -56,7 +56,7 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
             <Link
               to={`/productos/${product.id}/editar`}
               aria-label={`Completar producto ${product.nombre}`}
-              className="shrink-0 self-start rounded text-sm font-medium text-brand-700 underline-offset-2 hover:underline sm:self-center"
+              className="shrink-0 self-start rounded text-sm font-medium text-accent-strong underline-offset-2 hover:underline sm:self-center"
             >
               Completar
             </Link>
@@ -69,7 +69,7 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
           y {hidden} producto{hidden === 1 ? "" : "s"} más.{" "}
           <Link
             to="/productos"
-            className="font-medium text-brand-700 underline-offset-2 hover:underline"
+            className="font-medium text-accent-strong underline-offset-2 hover:underline"
           >
             Ver todos los productos
           </Link>

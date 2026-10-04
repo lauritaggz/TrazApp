@@ -364,7 +364,7 @@ function ProductRow({
               <Link
                 to={`/productos/${product.id}`}
                 aria-label={`Ver producto ${product.nombre}`}
-                className="rounded font-medium text-text-primary hover:text-brand-700 hover:underline underline-offset-2"
+                className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
               >
                 {product.nombre}
               </Link>
@@ -391,7 +391,7 @@ function ProductRow({
       <td className="px-4 py-3 text-right">
         <span
           aria-hidden="true"
-          className="inline-flex items-center gap-1 text-brand-600 font-medium"
+          className="inline-flex items-center gap-1 text-accent font-medium"
         >
           Ver
           <ArrowRightIcon />
@@ -407,7 +407,7 @@ function ProductsCards({ products }: { products: Product[] }) {
       {products.map((product) => (
         <article
           key={product.id}
-          className="relative bg-card border border-border rounded-xl p-4 hover:border-brand-600 hover:shadow-sm transition-all focus-within:ring-2 focus-within:ring-brand-600"
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent hover:shadow-sm transition-all focus-within:ring-2 focus-within:ring-accent"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -425,7 +425,7 @@ function ProductsCards({ products }: { products: Product[] }) {
                     {product.nombre}
                   </Link>
                 </h2>
-                <p className="text-[13px] font-medium text-brand-600 uppercase tracking-wide">
+                <p className="text-[13px] font-medium text-accent uppercase tracking-wide">
                   {product.codigo_interno ?? "—"}
                 </p>
                 {formatCategoriasCompact(product.categorias) ? (
@@ -448,7 +448,7 @@ function ProductsCards({ products }: { products: Product[] }) {
             </div>
             <span
               aria-hidden="true"
-              className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-600 shrink-0"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-accent shrink-0"
             >
               Ver
               <ArrowRightIcon />

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
@@ -65,7 +66,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-surface">
       <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 bg-brand-600 px-12 py-14">
-        <Logo size="lg" variant="light" />
+        <div className="flex items-center gap-2">
+          <Logo size="lg" variant="light" />
+          <ThemeToggle variant="onBrand" />
+        </div>
 
         <div className="space-y-6">
           <div className="space-y-2">
@@ -105,8 +109,9 @@ export default function Login() {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
-        <div className="mb-10 lg:hidden">
+        <div className="mb-10 flex items-center gap-2 lg:hidden">
           <Logo size="md" />
+          <ThemeToggle />
         </div>
 
         <div className="w-full max-w-[400px]">
@@ -160,7 +165,7 @@ export default function Login() {
             ¿Todavía no tienes una cuenta?{" "}
             <Link
               to="/register"
-              className="font-medium text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline transition-colors"
+              className="font-medium text-accent hover:text-accent-strong underline-offset-2 hover:underline transition-colors"
             >
               Crear cuenta
             </Link>

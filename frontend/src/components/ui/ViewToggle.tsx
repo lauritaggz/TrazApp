@@ -32,7 +32,7 @@ export default function ViewToggle<T extends string>({
             onClick={() => onChange(option.value)}
             className={`min-h-9 rounded-md px-3 text-sm font-medium transition-colors ${
               active
-                ? "bg-brand-50 text-brand-700"
+                ? "bg-brand-50 text-accent-strong"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >

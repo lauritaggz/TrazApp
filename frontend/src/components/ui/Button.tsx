@@ -22,11 +22,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
 
   const variants = {
     primary:
-      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-600 active:bg-brand-800",
+      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-accent active:bg-brand-800",
     secondary:
-      "bg-card text-text-primary border border-border hover:bg-surface focus-visible:ring-brand-600 active:bg-brand-50",
+      "bg-card text-text-primary border border-border hover:bg-surface focus-visible:ring-accent active:bg-brand-50",
     ghost:
-      "text-brand-600 hover:bg-brand-50 focus-visible:ring-brand-600 active:bg-brand-100",
+      "text-accent hover:bg-brand-50 focus-visible:ring-accent active:bg-brand-100",
   };
 
   return (

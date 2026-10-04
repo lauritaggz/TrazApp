@@ -44,7 +44,7 @@ export default function DashboardHeader({
       <div className="mt-5 flex flex-wrap gap-3">
         <Link
           to="/productos/nuevo"
-          className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline-white"
+          className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-white/90 focus-visible:outline-white"
         >
           + Nuevo producto
         </Link>

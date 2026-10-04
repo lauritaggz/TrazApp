@@ -162,7 +162,7 @@ export default function ProductForm({
                 <button
                   type="button"
                   onClick={() => update("codigo_interno", codeSuggestion)}
-                  className="rounded text-[13px] font-medium text-brand-700 underline-offset-2 hover:underline"
+                  className="rounded text-[13px] font-medium text-accent-strong underline-offset-2 hover:underline"
                 >
                   Usar sugerencia: {codeSuggestion}
                 </button>
