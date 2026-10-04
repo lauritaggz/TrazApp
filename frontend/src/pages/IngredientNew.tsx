@@ -6,45 +6,29 @@ import IngredientForm from "@/components/ingredients/IngredientForm";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useIngredientCreateForm } from "@/hooks/useIngredientCreateForm";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import {
-  isIngredienteFormDirty,
-  toCreatePayload,
-  validateIngredienteForm,
-  type IngredienteFormFieldErrors,
-} from "@/lib/ingredientFormValidation";
-import { createIngredient } from "@/services/ingredientService";
-import { ApiError } from "@/types/auth";
-import { EMPTY_INGREDIENTE_FORM_VALUES, type IngredienteFormValues } from "@/types/ingredient";
-
-const DUPLICATE_CODE_MESSAGE =
-  "Ya existe un ingrediente con este código interno.";
-const SAVE_ERROR_MESSAGE =
-  "No pudimos guardar el ingrediente. Inténtalo nuevamente.";
+import { isIngredienteFormDirty } from "@/lib/ingredientFormValidation";
 
 export default function IngredientNew() {
   const navigate = useNavigate();
   const { handleLogout, producerName, businessName } =
     useAppShell();
 
-  const [values, setValues] = useState<IngredienteFormValues>(
-    EMPTY_INGREDIENTE_FORM_VALUES,
+  const {
+    values,
+    errors,
+    errorFocusToken,
+    globalError,
+    loading,
+    handleChange,
+    handleSubmit,
+  } = useIngredientCreateForm((created) =>
+    navigate("/ingredientes", {
+      state: { ingredientCreated: true, ingredientId: created?.id },
+    }),
   );
-  const [errors, setErrors] = useState<IngredienteFormFieldErrors>({});
-  const [errorFocusToken, setErrorFocusToken] = useState(0);
-  const [globalError, setGlobalError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-
-  function setFieldErrors(next: IngredienteFormFieldErrors) {
-    setErrors(next);
-    setErrorFocusToken((token) => token + 1);
-  }
-
-  function handleChange(next: IngredienteFormValues) {
-    setValues(next);
-    if (globalError) setGlobalError("");
-  }
 
   function handleCancel() {
     if (loading) return;
@@ -53,39 +37,6 @@ export default function IngredientNew() {
       return;
     }
     navigate("/ingredientes");
-  }
-
-  async function handleSubmit() {
-    setGlobalError("");
-    const validationErrors = validateIngredienteForm(values);
-    if (Object.keys(validationErrors).length > 0) {
-      setFieldErrors(validationErrors);
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-    try {
-      const created = await createIngredient(toCreatePayload(values));
-      navigate("/ingredientes", {
-        state: { ingredientCreated: true, ingredientId: created?.id },
-      });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 409) {
-          setFieldErrors({ codigo_interno: DUPLICATE_CODE_MESSAGE });
-          return;
-        }
-        if (err.status === 422 && Object.keys(err.fieldErrors).length > 0) {
-          setFieldErrors(err.fieldErrors);
-          setGlobalError(err.message);
-          return;
-        }
-      }
-      setGlobalError(SAVE_ERROR_MESSAGE);
-    } finally {
-      setLoading(false);
-    }
   }
 
   const { pendingHref, clearPending } = useUnsavedChangesGuard(

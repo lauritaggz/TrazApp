@@ -1,6 +1,16 @@
-"""Product version formulation management tests (T02-09)."""
+"""Product version formulation read tests (T02-09, adapted in HU03 / T03-03).
 
-from app.models import LoteProducto, VersionProducto
+Formulation is written only through PUT /gestion/productos/{id}/formulacion
+(see test_gestion_formulacion_hu03.py); per-version endpoints are read-only.
+"""
+
+import pytest
+
+from app.models import VersionProducto
+from app.repositories.ingrediente_repository import IngredienteRepository
+from app.repositories.producto_formulacion_repository import ProductoFormulacionRepository
+from app.repositories.producto_repository import ProductoRepository
+from app.services.producto_formulacion_service import ProductoFormulacionService
 from tests.test_gestion_ingredientes import (
     INGREDIENTE_BASE,
     PRODUCTOR_A,
@@ -47,200 +57,99 @@ def _formulacion_url(producto_id: int, version_id: int, linea_id: int | None = N
     return f"{base}/{linea_id}"
 
 
-def _add_linea(
-    client,
-    headers,
-    producto_id: int,
-    version_id: int,
-    ingrediente_id: int,
-    *,
-    porcentaje: str | None = "50",
-    cantidad: str | None = None,
-    unidad: str | None = None,
-    orden: int | None = 1,
-):
-    payload: dict = {"ingrediente_id": ingrediente_id}
-    if porcentaje is not None:
-        payload["porcentaje"] = porcentaje
-    if cantidad is not None:
-        payload["cantidad"] = cantidad
-    if unidad is not None:
-        payload["unidad"] = unidad
-    if orden is not None:
-        payload["orden"] = orden
-    return client.post(
-        _formulacion_url(producto_id, version_id),
+def _guardar(client, headers, producto_id: int, lineas: list[dict]) -> dict:
+    response = client.put(
+        f"/gestion/productos/{producto_id}/formulacion",
         headers=headers,
-        json=payload,
+        json={"lineas": lineas},
     )
+    assert response.status_code == 200, response.text
+    return response.json()["version"]
 
 
-def test_crear_formulacion_valida(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-f09", "Harina")
-    version = _create_version_producto(db_session, producto["id"])
-
-    response = _add_linea(
-        client,
-        headers,
-        producto["id"],
-        version.id,
-        harina["id"],
-        porcentaje="62.5",
-        orden=1,
-    )
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body["ingrediente_id"] == harina["id"]
-    assert body["ingrediente_nombre"] == "Harina"
-    assert body["ingrediente_codigo_interno"] == "HAR-F09"
-    assert body["ingrediente_tipo"] == "simple"
-    assert body["porcentaje"] == "62.500"
-    assert body["orden"] == 1
+def _marcar_usada(db_session, version_id: int) -> None:
+    ProductoFormulacionService(
+        ProductoFormulacionRepository(db_session),
+        ProductoRepository(db_session),
+        IngredienteRepository(db_session),
+    ).marcar_version_usada(version_id)
+    db_session.commit()
 
 
-def test_listar_formulacion(client, db_session) -> None:
+def test_listar_formulacion(client) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
     headers = _auth_headers(login["access_token"])
     producto = _create_producto(client, headers)
     harina = _create_ingrediente(client, headers, "har-f09b", "Harina lista")
     agua = _create_ingrediente(client, headers, "agua-f09b", "Agua lista")
-    version = _create_version_producto(db_session, producto["id"])
-
-    assert _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="60", orden=1
-    ).status_code == 201
-    assert _add_linea(
-        client, headers, producto["id"], version.id, agua["id"], porcentaje="40", orden=2
-    ).status_code == 201
-
-    response = client.get(
-        _formulacion_url(producto["id"], version.id),
-        headers=headers,
-    )
-
-    assert response.status_code == 200
-    items = response.json()
-    assert len(items) == 2
-    assert items[0]["ingrediente_nombre"] == "Harina lista"
-    assert items[1]["ingrediente_nombre"] == "Agua lista"
-
-
-def test_actualizar_formulacion(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-f09c", "Harina update")
-    version = _create_version_producto(db_session, producto["id"])
-    created = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="50", orden=1
-    ).json()
-
-    response = client.patch(
-        _formulacion_url(producto["id"], version.id, created["id"]),
-        headers=headers,
-        json={"porcentaje": "75", "orden": 3, "notas": "Tamizada"},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["porcentaje"] == "75.000"
-    assert body["orden"] == 3
-    assert body["notas"] == "Tamizada"
-
-
-def test_actualizar_cantidad_y_unidad(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    agua = _create_ingrediente(client, headers, "agua-f09d", "Agua qty")
-    version = _create_version_producto(db_session, producto["id"])
-    created = _add_linea(
+    version = _guardar(
         client,
         headers,
         producto["id"],
-        version.id,
-        agua["id"],
-        porcentaje=None,
-        cantidad="100",
-        unidad="ml",
-        orden=1,
-    ).json()
-
-    response = client.patch(
-        _formulacion_url(producto["id"], version.id, created["id"]),
-        headers=headers,
-        json={"cantidad": "250", "unidad": "ml"},
+        [{"ingrediente_id": harina["id"], "cantidad": "500", "unidad": "g"}, {"ingrediente_id": agua["id"]}],
     )
+
+    response = client.get(_formulacion_url(producto["id"], version["id"]), headers=headers)
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["porcentaje"] is None
-    assert body["cantidad"] == "250.000"
-    assert body["unidad"] == "ml"
+    items = response.json()
+    assert [(i["ingrediente_nombre"], i["cantidad"], i["unidad"], i["orden"]) for i in items] == [
+        ("Harina lista", "500.000", "g", 1),
+        ("Agua lista", None, None, 2),
+    ]
 
 
-def test_eliminar_linea_formulacion(client, db_session) -> None:
+def test_version_anterior_se_consulta_intacta(client, db_session) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
     headers = _auth_headers(login["access_token"])
     producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-f09e", "Harina delete")
-    version = _create_version_producto(db_session, producto["id"])
-    created = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="100", orden=1
-    ).json()
-
-    delete_response = client.delete(
-        _formulacion_url(producto["id"], version.id, created["id"]),
-        headers=headers,
+    harina = _create_ingrediente(client, headers, "har-hist", "Harina historial")
+    v1 = _guardar(
+        client, headers, producto["id"], [{"ingrediente_id": harina["id"], "cantidad": "1", "unidad": "kg"}]
     )
-    assert delete_response.status_code == 204
-
-    list_response = client.get(
-        _formulacion_url(producto["id"], version.id),
-        headers=headers,
+    _marcar_usada(db_session, v1["id"])
+    v2 = _guardar(
+        client, headers, producto["id"], [{"ingrediente_id": harina["id"], "cantidad": "2", "unidad": "kg"}]
     )
+
+    anterior = client.get(_formulacion_url(producto["id"], v1["id"]), headers=headers).json()
+    vigente = client.get(_formulacion_url(producto["id"], v2["id"]), headers=headers).json()
+
+    assert v2["id"] != v1["id"]
+    assert [i["cantidad"] for i in anterior] == ["1.000"]
+    assert [i["cantidad"] for i in vigente] == ["2.000"]
+
+
+def test_snapshot_conserva_datos_originales(client, db_session) -> None:
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    harina = _create_ingrediente(client, headers, "har-snap", "Harina snapshot")
+    version = _guardar(client, headers, producto["id"], [{"ingrediente_id": harina["id"]}])
+    _marcar_usada(db_session, version["id"])
+
+    patch_ingrediente = client.patch(
+        f"/gestion/ingredientes/{harina['id']}",
+        headers=headers,
+        json={"nombre": "Harina renombrada", "codigo_interno": "HAR-NEW"},
+    )
+    assert patch_ingrediente.status_code == 200
+
+    list_response = client.get(_formulacion_url(producto["id"], version["id"]), headers=headers)
     assert list_response.status_code == 200
-    assert list_response.json() == []
+    linea = list_response.json()[0]
+    assert linea["ingrediente_nombre"] == "Harina snapshot"
+    assert linea["ingrediente_codigo_interno"] == "HAR-SNAP"
 
 
-def test_ingrediente_inexistente(client, db_session) -> None:
+def test_listar_requiere_autenticacion(client, db_session) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
+    producto = _create_producto(client, _auth_headers(login["access_token"]))
     version = _create_version_producto(db_session, producto["id"])
 
-    response = _add_linea(
-        client, headers, producto["id"], version.id, 999_999, porcentaje="100", orden=1
-    )
+    response = client.get(_formulacion_url(producto["id"], version.id))
 
-    assert response.status_code == 404
-
-
-def test_ingrediente_de_otro_productor(client, db_session) -> None:
-    login_a = _register_and_login(client, PRODUCTOR_A)
-    login_b = _register_and_login(client, PRODUCTOR_B)
-    headers_a = _auth_headers(login_a["access_token"])
-    headers_b = _auth_headers(login_b["access_token"])
-
-    producto_a = _create_producto(client, headers_a)
-    harina_b = _create_ingrediente(client, headers_b, "har-ajeno", "Harina ajena")
-    version_a = _create_version_producto(db_session, producto_a["id"])
-
-    response = _add_linea(
-        client,
-        headers_a,
-        producto_a["id"],
-        version_a.id,
-        harina_b["id"],
-        porcentaje="100",
-        orden=1,
-    )
-
-    assert response.status_code == 404
+    assert response.status_code == 401
 
 
 def test_producto_ajeno(client, db_session) -> None:
@@ -263,7 +172,7 @@ def test_version_ajena(client, db_session) -> None:
     login = _register_and_login(client, PRODUCTOR_A)
     headers = _auth_headers(login["access_token"])
     producto = _create_producto(client, headers)
-    version = _create_version_producto(db_session, producto["id"])
+    _create_version_producto(db_session, producto["id"])
 
     response = client.get(
         _formulacion_url(producto["id"], 999_999),
@@ -271,113 +180,6 @@ def test_version_ajena(client, db_session) -> None:
     )
 
     assert response.status_code == 404
-
-
-def test_ingrediente_inactivo(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-inact", "Harina inactiva")
-    version = _create_version_producto(db_session, producto["id"])
-
-    deactivate = client.delete(f"/gestion/ingredientes/{harina['id']}", headers=headers)
-    assert deactivate.status_code == 204
-
-    response = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="100", orden=1
-    )
-
-    assert response.status_code == 422
-
-
-def test_ingrediente_duplicado(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-dup", "Harina dup")
-    version = _create_version_producto(db_session, producto["id"])
-
-    first = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="50", orden=1
-    )
-    assert first.status_code == 201
-
-    duplicate = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="10", orden=2
-    )
-    assert duplicate.status_code == 422
-
-
-def test_snapshot_conserva_datos_originales(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-snap", "Harina snapshot")
-    version = _create_version_producto(db_session, producto["id"])
-    created = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="100", orden=1
-    ).json()
-
-    patch_ingrediente = client.patch(
-        f"/gestion/ingredientes/{harina['id']}",
-        headers=headers,
-        json={"nombre": "Harina renombrada", "codigo_interno": "HAR-NEW"},
-    )
-    assert patch_ingrediente.status_code == 200
-
-    list_response = client.get(
-        _formulacion_url(producto["id"], version.id),
-        headers=headers,
-    )
-    assert list_response.status_code == 200
-    linea = list_response.json()[0]
-    assert linea["id"] == created["id"]
-    assert linea["ingrediente_nombre"] == "Harina snapshot"
-    assert linea["ingrediente_codigo_interno"] == "HAR-SNAP"
-
-
-def test_bloqueo_modificacion_cuando_existe_lote(client, db_session) -> None:
-    login = _register_and_login(client, PRODUCTOR_A)
-    headers = _auth_headers(login["access_token"])
-    producto = _create_producto(client, headers)
-    harina = _create_ingrediente(client, headers, "har-lote", "Harina lote")
-    agua = _create_ingrediente(client, headers, "agua-lote", "Agua lote")
-    version = _create_version_producto(db_session, producto["id"])
-    created = _add_linea(
-        client, headers, producto["id"], version.id, harina["id"], porcentaje="100", orden=1
-    ).json()
-
-    db_session.add(
-        LoteProducto(
-            codigo_lote="LP-F09-001",
-            version_producto_id=version.id,
-        )
-    )
-    db_session.commit()
-
-    post_blocked = _add_linea(
-        client, headers, producto["id"], version.id, agua["id"], porcentaje="10", orden=2
-    )
-    patch_blocked = client.patch(
-        _formulacion_url(producto["id"], version.id, created["id"]),
-        headers=headers,
-        json={"porcentaje": "80"},
-    )
-    delete_blocked = client.delete(
-        _formulacion_url(producto["id"], version.id, created["id"]),
-        headers=headers,
-    )
-
-    assert post_blocked.status_code == 409
-    assert patch_blocked.status_code == 409
-    assert delete_blocked.status_code == 409
-
-    list_response = client.get(
-        _formulacion_url(producto["id"], version.id),
-        headers=headers,
-    )
-    assert list_response.status_code == 200
-    assert len(list_response.json()) == 1
 
 
 def test_version_sin_formulacion_lista_vacia(client, db_session) -> None:
@@ -393,6 +195,76 @@ def test_version_sin_formulacion_lista_vacia(client, db_session) -> None:
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+@pytest.mark.parametrize(
+    ("method", "con_linea", "esperado"),
+    [("post", False, 405), ("patch", True, 404), ("delete", True, 404)],
+)
+def test_endpoints_de_escritura_por_version_eliminados(
+    client, db_session, method: str, con_linea: bool, esperado: int
+) -> None:
+    """HU03: previous versions can never be modified through a version_id."""
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    harina = _create_ingrediente(client, headers, "har-405", "Harina 405")
+    version = _guardar(client, headers, producto["id"], [{"ingrediente_id": harina["id"]}])
+    linea_id = version["lineas"][0]["id"] if con_linea else None
+    kwargs = {"json": {"ingrediente_id": harina["id"]}} if method != "delete" else {}
+
+    response = getattr(client, method)(
+        _formulacion_url(producto["id"], version["id"], linea_id),
+        headers=headers,
+        **kwargs,
+    )
+
+    assert response.status_code == esperado
+    lineas = client.get(_formulacion_url(producto["id"], version["id"]), headers=headers).json()
+    assert [linea["ingrediente_id"] for linea in lineas] == [harina["id"]]
+
+
+def test_version_anterior_no_se_puede_modificar_ni_eliminar(client, db_session) -> None:
+    """PT03-10: no route writes to a non-current version, and it stays intact."""
+    login = _register_and_login(client, PRODUCTOR_A)
+    headers = _auth_headers(login["access_token"])
+    producto = _create_producto(client, headers)
+    harina = _create_ingrediente(client, headers, "har-ant", "Harina anterior")
+    agua = _create_ingrediente(client, headers, "agua-ant", "Agua anterior")
+    v1 = _guardar(
+        client, headers, producto["id"], [{"ingrediente_id": harina["id"], "cantidad": "1", "unidad": "kg"}]
+    )
+    _marcar_usada(db_session, v1["id"])
+    v2 = _guardar(client, headers, producto["id"], [{"ingrediente_id": agua["id"]}])
+    assert v2["id"] != v1["id"]
+
+    formulacion_v1 = _formulacion_url(producto["id"], v1["id"])
+    linea_v1 = _formulacion_url(producto["id"], v1["id"], v1["lineas"][0]["id"])
+    version_v1 = f"/gestion/productos/{producto['id']}/versiones/{v1['id']}"
+    linea_nueva = {"ingrediente_id": agua["id"]}
+    intentos = [
+        ("post", formulacion_v1, linea_nueva),
+        ("put", formulacion_v1, {"lineas": [linea_nueva]}),
+        ("patch", linea_v1, {"cantidad": "9", "unidad": "kg"}),
+        ("delete", linea_v1, None),
+        ("put", version_v1, {"descripcion": "Editada"}),
+        ("patch", version_v1, {"vigente": True}),
+        ("delete", version_v1, None),
+    ]
+    for method, url, body in intentos:
+        kwargs = {"json": body} if body is not None else {}
+        response = getattr(client, method)(url, headers=headers, **kwargs)
+        assert response.status_code in (404, 405), (method, url, response.status_code)
+
+    lineas = client.get(formulacion_v1, headers=headers).json()
+    assert [(l["ingrediente_id"], l["cantidad"], l["unidad"]) for l in lineas] == [
+        (harina["id"], "1.000", "kg")
+    ]
+    versiones = client.get(f"/gestion/productos/{producto['id']}/versiones", headers=headers).json()
+    assert [(v["numero_version"], v["vigente"], v["usada_en_elaboracion"]) for v in versiones] == [
+        (2, True, False),
+        (1, False, True),
+    ]
 
 
 def test_rt01_sigue_funcionando_sin_formulacion_gestion(client) -> None:

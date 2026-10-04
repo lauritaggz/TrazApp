@@ -304,6 +304,46 @@ def test_rechaza_cantidad_sin_unidad(db_session) -> None:
     db_session.rollback()
 
 
+def test_rechaza_unidad_sin_cantidad(db_session) -> None:
+    productor = _create_productor(db_session, email="sin-cantidad@ejemplo.com")
+    _, version = _create_version_producto(db_session, productor_id=productor.id)
+    agua = _create_ingrediente(db_session, productor.id, codigo="AGU-SC", nombre="Agua")
+
+    db_session.add(
+        FormulacionVersionProducto(
+            version_producto_id=version.id,
+            ingrediente_id=agua.id,
+            ingrediente_nombre=agua.nombre,
+            unidad="ml",
+            orden=1,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
+
+def test_formulacion_valida_sin_cuantificacion(db_session) -> None:
+    """HU03: cantidad, unidad y porcentaje son opcionales."""
+    productor = _create_productor(db_session, email="sin-cuant@ejemplo.com")
+    _, version = _create_version_producto(db_session, productor_id=productor.id)
+    sal = _create_ingrediente(db_session, productor.id, codigo="SAL-001", nombre="Sal")
+
+    linea = _create_linea_formulacion(db_session, version, sal, orden=1)
+
+    assert linea.id is not None
+    assert linea.porcentaje is None
+    assert linea.cantidad is None
+    assert linea.unidad is None
+
+
+def test_version_producto_no_usada_por_defecto(db_session) -> None:
+    _, version = _create_version_producto(db_session)
+
+    assert version.usada_en_elaboracion is False
+
+
 def test_rechaza_orden_invalido(db_session) -> None:
     productor = _create_productor(db_session, email="orden@ejemplo.com")
     _, version = _create_version_producto(db_session, productor_id=productor.id)
