@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import Badge from "@/components/ui/Badge";
+import PageHeader from "@/components/ui/PageHeader";
+import { useToast } from "@/components/ui/toastContext";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
@@ -24,13 +27,13 @@ export default function IngredientDetail() {
   const location = useLocation();
   const { id: rawId } = useParams();
   const ingredientId = parseIngredientId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [ingredient, setIngredient] = useState<Ingrediente | null>(null);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -61,9 +64,9 @@ export default function IngredientDetail() {
   useEffect(() => {
     const state = location.state as { ingredientUpdated?: boolean } | null;
     if (!state?.ingredientUpdated) return;
-    setSuccessMessage("Ingrediente actualizado correctamente.");
+    notify("Ingrediente actualizado correctamente.");
     navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
   async function handleDeleteConfirm() {
     if (!ingredient) return;
@@ -87,7 +90,7 @@ export default function IngredientDetail() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle={ingredient?.nombre ?? "Detalle del ingrediente"}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
@@ -103,19 +106,33 @@ export default function IngredientDetail() {
 
         {!loading && ingredient && ingredientId != null && (
           <>
-            <header className="space-y-2">
-              <p className="text-sm text-brand-600 font-medium">
-                Ingredientes / {ingredient.nombre}
-              </p>
-              <h1 className="text-2xl font-semibold text-text-primary">
-                {ingredient.nombre}
-              </h1>
-              <p className="text-sm font-medium text-text-secondary tracking-wide">
-                {ingredient.codigo_interno ?? "—"}
-              </p>
-            </header>
-
-            {successMessage && <Alert type="success">{successMessage}</Alert>}
+            <PageHeader
+              title={ingredient.nombre}
+              description={ingredient.codigo_interno ?? "—"}
+              breadcrumbs={[
+                { label: "Ingredientes", to: "/ingredientes" },
+                { label: ingredient.nombre },
+              ]}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate("/ingredientes")}
+                  >
+                    Volver a ingredientes
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
+                  >
+                    Editar ingrediente
+                  </Button>
+                </>
+              }
+            />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
             <ProductDetailSection id="ingredient-detail-general" title="Información general">
@@ -127,7 +144,9 @@ export default function IngredientDetail() {
                   {ingredient.descripcion?.trim() || "—"}
                 </DetailField>
                 <DetailField label="Estado">
-                  {ingredient.activo ? "Activo" : "Inactivo"}
+                  <Badge variant={ingredient.activo ? "success" : "neutral"}>
+                    {ingredient.activo ? "Activo" : "Inactivo"}
+                  </Badge>
                 </DetailField>
               </dl>
             </ProductDetailSection>
@@ -136,28 +155,13 @@ export default function IngredientDetail() {
               <IngredientAllergensSection ingredienteId={ingredientId} />
             </ProductDetailSection>
 
-            <section className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
-                Acciones
-              </h2>
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate("/ingredientes")}
-                >
-                  Volver a ingredientes
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
-                >
-                  Editar ingrediente
-                </Button>
-              </div>
-              <div className="border-t border-border pt-4 space-y-3">
+            <section
+              aria-label="Desactivar ingrediente"
+              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
+            >
+              <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium">Desactivar ingrediente</h3>
+                  <h2 className="text-sm font-semibold text-text-primary">Desactivar ingrediente</h2>
                   <p className="text-sm text-text-secondary mt-1">
                     Al desactivar, el ingrediente dejará de aparecer en tu catálogo.
                   </p>

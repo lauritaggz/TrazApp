@@ -303,7 +303,9 @@ describe("Protección y logout HU12", () => {
     expect(
       await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Productor")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Menú de usuario: Ana Perez" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Panaderia La Espiga").length).toBeGreaterThan(0);
     expect(
       await screen.findByText("Aún no has registrado productos."),
@@ -356,7 +358,13 @@ describe("Protección y logout HU12", () => {
       await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
     ).toBeInTheDocument();
 
+    await user.click(
+      screen.getByRole("button", { name: /Menú de usuario/ }),
+    );
     await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    await user.click(
+      screen.getByRole("button", { name: "Sí, cerrar sesión" }),
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
@@ -428,7 +436,7 @@ describe("Perfil HU12", () => {
     await user.type(businessInput, "Espiga Artesanal");
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect(await screen.findByRole("status")).toHaveTextContent(
       "Perfil actualizado correctamente.",
     );
     expect(authService.updateProfile).toHaveBeenCalledWith({

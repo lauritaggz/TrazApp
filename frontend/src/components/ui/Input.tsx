@@ -39,13 +39,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={`
               w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 transition-all duration-150
-              focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
+              focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
               ${leftIcon ? "pl-10" : ""}
               ${
                 error
                   ? "border-error focus:ring-error bg-error-bg"
-                  : "border-border hover:border-[#b0b7b0]"
+                  : "border-border-strong hover:border-text-secondary"
               }
               ${className}
             `}
@@ -55,13 +55,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p id={errorId} className="text-xs text-error flex items-center gap-1">
+          <p id={errorId} className="text-[13px] text-error flex items-center gap-1">
             <ErrorIcon />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p id={hintId} className="text-xs text-text-secondary">
+          <p id={hintId} className="text-[13px] text-text-secondary">
             {hint}
           </p>
         )}
@@ -77,6 +77,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, error, hint, id, className = "", ...props }, ref) => {
     const [visible, setVisible] = useState(false);
     const inputId = id || "password";
+    const errorId = error ? `${inputId}-error` : undefined;
+    const hintId = hint && !error ? `${inputId}-hint` : undefined;
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -94,36 +96,39 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type={visible ? "text" : "password"}
             className={`
               w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
-              px-3 py-2.5 pr-10 transition-all duration-150
-              focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent
+              px-3 py-2.5 pr-12 transition-all duration-150
+              focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
               ${
                 error
                   ? "border-error focus:ring-error bg-error-bg"
-                  : "border-border hover:border-[#b0b7b0]"
+                  : "border-border-strong hover:border-text-secondary"
               }
               ${className}
             `}
             {...props}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={errorId || hintId}
           />
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-3 flex items-center text-text-secondary hover:text-text-primary transition-colors"
-            tabIndex={-1}
+            className="absolute inset-y-0 right-1 my-auto flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:text-text-primary transition-colors"
             aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
           >
             {visible ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
         {error && (
-          <p className="text-xs text-error flex items-center gap-1">
+          <p id={errorId} className="text-[13px] text-error flex items-center gap-1">
             <ErrorIcon />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p className="text-xs text-text-secondary">{hint}</p>
+          <p id={hintId} className="text-[13px] text-text-secondary">
+            {hint}
+          </p>
         )}
       </div>
     );

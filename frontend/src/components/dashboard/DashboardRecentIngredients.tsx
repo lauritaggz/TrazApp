@@ -27,7 +27,7 @@ export default function DashboardRecentIngredients({
         <button
           type="button"
           onClick={onViewAll}
-          className="text-xs font-medium text-brand-600 underline-offset-2 hover:underline"
+          className="text-xs font-medium text-accent underline-offset-2 hover:underline"
           aria-label="Ver todos los ingredientes"
         >
           Ver todos
@@ -44,7 +44,7 @@ export default function DashboardRecentIngredients({
           <button
             type="button"
             onClick={onRetry}
-            className="text-sm font-medium text-brand-600 hover:text-brand-700"
+            className="text-sm font-medium text-accent hover:text-accent-strong"
           >
             Reintentar
           </button>
@@ -57,7 +57,7 @@ export default function DashboardRecentIngredients({
         <ul className="space-y-2.5">
           {recent.map((ingredient) => (
             <li key={ingredient.id} className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-accent">
                 <LeafIcon size={12} />
               </div>
               <div className="min-w-0 flex-1">

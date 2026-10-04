@@ -1,30 +1,23 @@
 import Logo from "@/components/Logo";
-import NavItem from "@/components/layout/NavItem";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import NavItem, { NavItemSoon } from "@/components/layout/NavItem";
 
 export type AppSection = "inicio" | "productos" | "ingredientes" | "perfil";
 
 interface SidebarProps {
-  activePage: AppSection;
-  onNavigate: (page: AppSection) => void;
-  onLogout: () => void;
   open: boolean;
   onClose: () => void;
+  /** Cuando es false el panel móvil está fuera de pantalla y no debe recibir foco. */
+  interactive: boolean;
+  id?: string;
 }
 
-export default function Sidebar({
-  activePage,
-  onNavigate,
-  onLogout,
-  open,
-  onClose,
-}: SidebarProps) {
-  function go(page: AppSection) {
-    onNavigate(page);
-    onClose();
-  }
-
+export default function Sidebar({ open, onClose, interactive, id }: SidebarProps) {
   return (
     <aside
+      id={id}
+      aria-label="Navegación principal"
+      inert={!interactive}
       className={`
         fixed lg:static inset-y-0 left-0 z-30 flex flex-col
         w-[240px] bg-card border-r border-border
@@ -32,46 +25,34 @@ export default function Sidebar({
         ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border pl-5 pr-3">
         <Logo size="sm" />
+        <ThemeToggle />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        <NavItem
-          icon={<HomeIcon />}
-          label="Inicio"
-          active={activePage === "inicio"}
-          onClick={() => go("inicio")}
-        />
-        <NavItem
-          icon={<BoxIcon />}
-          label="Productos"
-          active={activePage === "productos"}
-          onClick={() => go("productos")}
-        />
-        <NavItem
-          icon={<LeafIcon />}
-          label="Ingredientes"
-          active={activePage === "ingredientes"}
-          onClick={() => go("ingredientes")}
-        />
+      <nav
+        aria-label="Secciones"
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-6"
+      >
+        <div className="space-y-1">
+          <NavItem icon={<HomeIcon />} label="Inicio" to="/dashboard" onClick={onClose} />
+          <NavItem icon={<BoxIcon />} label="Productos" to="/productos" onClick={onClose} />
+          <NavItem
+            icon={<LeafIcon />}
+            label="Ingredientes"
+            to="/ingredientes"
+            onClick={onClose}
+          />
+        </div>
+
+        <div className="space-y-1">
+          <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+            Trazabilidad
+          </p>
+          <NavItemSoon icon={<LotIcon />} label="Lotes" />
+          <NavItemSoon icon={<HistoryIcon />} label="Consulta histórica" />
+        </div>
       </nav>
-
-      <div className="px-3 pb-4 border-t border-border pt-3 shrink-0 space-y-1">
-        <NavItem
-          icon={<UserIcon />}
-          label="Mi perfil"
-          active={activePage === "perfil"}
-          onClick={() => go("perfil")}
-        />
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm text-text-secondary hover:text-error hover:bg-error-bg transition-colors"
-        >
-          <LogoutIcon />
-          Cerrar sesión
-        </button>
-      </div>
     </aside>
   );
 }
@@ -79,6 +60,7 @@ export default function Sidebar({
 function HomeIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -97,6 +79,7 @@ function HomeIcon() {
 function BoxIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -116,6 +99,7 @@ function BoxIcon() {
 function LeafIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -131,9 +115,10 @@ function LeafIcon() {
   );
 }
 
-function UserIcon() {
+function LotIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -143,15 +128,16 @@ function UserIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
     </svg>
   );
 }
 
-function LogoutIcon() {
+function HistoryIcon() {
   return (
     <svg
+      aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -161,9 +147,9 @@ function LogoutIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
+      <path d="M3 3v5h5" />
+      <path d="M3.05 13A9 9 0 106 5.3L3 8" />
+      <polyline points="12 7 12 12 15 14" />
     </svg>
   );
 }

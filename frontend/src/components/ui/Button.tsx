@@ -18,15 +18,15 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   ref,
 ) {
   const base =
-    "inline-flex items-center justify-center gap-2 font-medium text-sm rounded-lg px-4 py-2.5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none";
+    "inline-flex min-h-11 items-center justify-center gap-2 font-medium text-sm rounded-lg px-4 py-2.5 transition-all duration-150 active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none";
 
   const variants = {
     primary:
-      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-600 active:bg-brand-800",
+      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-accent active:bg-brand-800",
     secondary:
-      "bg-card text-text-primary border border-border hover:bg-surface focus-visible:ring-brand-600 active:bg-brand-50",
+      "bg-card text-text-primary border border-border hover:bg-surface focus-visible:ring-accent active:bg-brand-50",
     ghost:
-      "text-brand-600 hover:bg-brand-50 focus-visible:ring-brand-600 active:bg-brand-100",
+      "text-accent hover:bg-brand-50 focus-visible:ring-accent active:bg-brand-100",
   };
 
   return (

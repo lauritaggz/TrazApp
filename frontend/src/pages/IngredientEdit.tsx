@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
 import IngredientForm from "@/components/ingredients/IngredientForm";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import {
   buildUpdatePayload,
   ingredienteToFormValues,
@@ -36,7 +38,7 @@ export default function IngredientEdit() {
   const navigate = useNavigate();
   const { id: rawId } = useParams();
   const ingredientId = parseIngredientId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [baseline, setBaseline] = useState<IngredienteFormValues>(
@@ -151,15 +153,19 @@ export default function IngredientEdit() {
     }
   }
 
+  const { pendingHref, clearPending } = useUnsavedChangesGuard(
+    (isIngredienteFormDirtyComparedTo(values, baseline)) && !saving,
+  );
+
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle="Editar ingrediente"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {loadingProduct && (
           <p className="text-sm text-text-secondary">Cargando ingrediente...</p>
         )}
@@ -170,14 +176,17 @@ export default function IngredientEdit() {
 
         {!loadingProduct && !unavailable && (
           <>
-            <header>
-              <p className="text-sm text-brand-600 font-medium mb-1">
-                Ingredientes / {ingredientName || "Editar"} / Editar
-              </p>
-              <h1 className="text-2xl font-semibold text-text-primary">
-                Editar ingrediente
-              </h1>
-            </header>
+            <PageHeader
+              title="Editar ingrediente"
+              breadcrumbs={[
+                { label: "Ingredientes", to: "/ingredientes" },
+                {
+                  label: ingredientName || "Ingrediente",
+                  to: ingredientId != null ? `/ingredientes/${ingredientId}` : undefined,
+                },
+                { label: "Editar" },
+              ]}
+            />
 
             {globalError && <Alert type="error">{globalError}</Alert>}
 
@@ -196,17 +205,26 @@ export default function IngredientEdit() {
       </div>
 
       <ConfirmDialog
-        open={showCancelConfirm}
+        open={showCancelConfirm || pendingHref !== null}
         title="Salir sin guardar"
         description="Tienes cambios sin guardar. ¿Deseas salir sin guardar?"
         confirmLabel="Salir sin guardar"
         cancelLabel="Seguir editando"
         destructive
         onConfirm={() => {
+          const href = pendingHref;
+          clearPending();
           setShowCancelConfirm(false);
+          if (href) {
+            navigate(href);
+            return;
+          }
           goToDetail();
+          }}
+        onCancel={() => {
+          setShowCancelConfirm(false);
+          clearPending();
         }}
-        onCancel={() => setShowCancelConfirm(false)}
       />
     </AppShell>
   );

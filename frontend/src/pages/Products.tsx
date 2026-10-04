@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
-import Alert from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import EmptyStateCard from "@/components/ui/EmptyStateCard";
+import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
+import ProductsGrid from "@/components/products/ProductsGrid";
+import PageHeader from "@/components/ui/PageHeader";
+import ViewToggle from "@/components/ui/ViewToggle";
+import Select from "@/components/ui/Select";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useStoredView } from "@/hooks/useStoredView";
 import {
   filterAndSortProducts,
   formatCategoriasCompact,
@@ -26,13 +33,14 @@ import {
 export default function Products() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
+  const [view, setView] = useStoredView();
   const [filters, setFilters] = useState<ProductListFilters>(
     DEFAULT_PRODUCT_LIST_FILTERS,
   );
@@ -61,24 +69,25 @@ export default function Products() {
       productUpdated?: boolean;
     } | null;
     if (state?.productCreated) {
-      setSuccessMessage("Producto creado correctamente.");
+      notify("Producto creado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productDeleted) {
-      setSuccessMessage("Producto eliminado correctamente.");
+      notify("Producto eliminado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productUpdated) {
-      setSuccessMessage("Producto actualizado correctamente.");
+      notify("Producto actualizado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
+  const deferredSearch = useDeferredValue(filters.search);
   const filteredProducts = useMemo(
-    () => filterAndSortProducts(products, filters),
-    [products, filters],
+    () => filterAndSortProducts(products, { ...filters, search: deferredSearch }),
+    [products, filters, deferredSearch],
   );
 
   const totalCount = products.length;
@@ -103,37 +112,31 @@ export default function Products() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       <div className="w-full space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
-            <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-              Productos
-            </h1>
-            <p className="text-text-secondary text-sm leading-relaxed">
+        <PageHeader
+          title="Productos"
+          description={
+            <>
               Administra los productos de tu negocio.
-            </p>
-            {!loading && !error && (
-              <p className="text-sm text-text-secondary mt-2">
-                {productCountLabel(totalCount)}
-              </p>
-            )}
-          </div>
-          <Button
-            type="button"
-            className="w-full sm:w-auto shrink-0"
-            onClick={goToNewProduct}
-          >
-            + Nuevo producto
-          </Button>
-        </header>
-
-        {successMessage && <Alert type="success">{successMessage}</Alert>}
+              {!loading && !error && (
+                <span className="mt-2 block">{productCountLabel(totalCount)}</span>
+              )}
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              className="w-full sm:w-auto shrink-0"
+              onClick={goToNewProduct}
+            >
+              + Nuevo producto
+            </Button>
+          }
+        />
 
         {!showEmptyState && !error && (
           <ProductListControls
@@ -160,6 +163,24 @@ export default function Products() {
         )}
 
         {showList && (
+          <div className="flex justify-end">
+            <ViewToggle
+              label="Vista del listado"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "lista", label: "Lista" },
+                { value: "cuadricula", label: "Cuadrícula" },
+              ]}
+            />
+          </div>
+        )}
+
+        {showList && view === "cuadricula" && (
+          <ProductsGrid products={filteredProducts} />
+        )}
+
+        {showList && view === "lista" && (
           <>
             <ProductsTable
               products={filteredProducts}
@@ -167,7 +188,6 @@ export default function Products() {
             />
             <ProductsCards
               products={filteredProducts}
-              onSelect={goToProduct}
             />
           </>
         )}
@@ -189,24 +209,54 @@ function ProductListControls({
   resultCount: number;
   showResultCount: boolean;
 }) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      <Input
-        label="Buscar"
-        type="search"
-        placeholder="Buscar por nombre o código..."
-        value={filters.search}
-        onChange={(e) =>
-          onChange({ ...filters, search: e.target.value })
-        }
-        disabled={disabled}
-        aria-label="Buscar por nombre o código"
-      />
+  const unitLabel =
+    PRODUCT_UNIT_OPTIONS.find((option) => option.value === filters.unit)?.label ??
+    filters.unit;
+  const sortLabel =
+    PRODUCT_SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ??
+    filters.sort;
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Unidad</span>
-          <select
+  const chips: FilterChip[] = [];
+  if (filters.search.trim()) {
+    chips.push({
+      key: "search",
+      label: `Búsqueda: «${filters.search.trim()}»`,
+      onRemove: () => onChange({ ...filters, search: "" }),
+    });
+  }
+  if (filters.unit !== "all") {
+    chips.push({
+      key: "unit",
+      label: `Unidad: ${unitLabel}`,
+      onRemove: () => onChange({ ...filters, unit: "all" }),
+    });
+  }
+  if (filters.sort !== "recent") {
+    chips.push({
+      key: "sort",
+      label: `Orden: ${sortLabel}`,
+      onRemove: () => onChange({ ...filters, sort: "recent" }),
+    });
+  }
+
+  return (
+    <ListToolbar
+      search={filters.search}
+      onSearchChange={(search) => onChange({ ...filters, search })}
+      searchLabel="Buscar por nombre o código"
+      searchPlaceholder="Buscar por nombre o código..."
+      disabled={disabled}
+      chips={chips}
+      onClearAll={() => onChange(DEFAULT_PRODUCT_LIST_FILTERS)}
+      status={
+        showResultCount && hasActiveFilters(filters)
+          ? `Mostrando ${resultCount} resultado${resultCount === 1 ? "" : "s"}`
+          : undefined
+      }
+      controls={
+        <>
+          <Select
+            label="Unidad"
             value={filters.unit}
             onChange={(e) =>
               onChange({
@@ -215,22 +265,16 @@ function ProductListControls({
               })
             }
             disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50"
             aria-label="Filtrar por unidad de medida"
           >
             {PRODUCT_UNIT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label === "Todas"
-                  ? "Todas"
-                  : option.label}
+                {option.label}
               </option>
             ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Ordenar</span>
-          <select
+          </Select>
+          <Select
+            label="Ordenar"
             value={filters.sort}
             onChange={(e) =>
               onChange({
@@ -239,7 +283,6 @@ function ProductListControls({
               })
             }
             disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent disabled:opacity-50"
             aria-label="Ordenar productos"
           >
             {PRODUCT_SORT_OPTIONS.map((option) => (
@@ -247,16 +290,10 @@ function ProductListControls({
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
-      </div>
-
-      {showResultCount && hasActiveFilters(filters) && (
-        <p className="text-xs text-text-secondary">
-          Mostrando {resultCount} resultado{resultCount === 1 ? "" : "s"}
-        </p>
-      )}
-    </div>
+          </Select>
+        </>
+      }
+    />
   );
 }
 
@@ -312,16 +349,9 @@ function ProductRow({
   return (
     <tr
       className="border-b border-border last:border-b-0 hover:bg-brand-50/40 transition-colors cursor-pointer focus-within:bg-brand-50/40"
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest("a")) onSelect();
       }}
-      tabIndex={0}
-      role="link"
-      aria-label={`Ver producto ${product.nombre}`}
     >
       <td className="px-4 py-3 text-text-primary">
         <div className="flex items-center gap-3 min-w-0">
@@ -330,16 +360,24 @@ function ProductRow({
             nombre={product.nombre}
           />
           <div className="space-y-0.5 min-w-0">
-            <p className="font-medium truncate">{product.nombre}</p>
-            <p className="text-xs text-text-secondary truncate">
+            <p className="truncate">
+              <Link
+                to={`/productos/${product.id}`}
+                aria-label={`Ver producto ${product.nombre}`}
+                className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
+              >
+                {product.nombre}
+              </Link>
+            </p>
+            <p className="text-[13px] text-text-secondary truncate">
               {product.codigo_interno ?? "—"}
             </p>
             {formatCategoriasCompact(product.categorias) ? (
-              <p className="text-xs text-text-secondary truncate">
+              <p className="text-[13px] text-text-secondary truncate">
                 {formatCategoriasCompact(product.categorias)}
               </p>
             ) : (
-              <p className="text-xs text-text-muted">Sin categorías</p>
+              <p className="text-[13px] text-text-muted">Sin categorías</p>
             )}
           </div>
         </div>
@@ -351,7 +389,10 @@ function ProductRow({
         {formatPresentacion(product.presentacion)}
       </td>
       <td className="px-4 py-3 text-right">
-        <span className="inline-flex items-center gap-1 text-brand-600 font-medium">
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center gap-1 text-accent font-medium"
+        >
           Ver
           <ArrowRightIcon />
         </span>
@@ -360,29 +401,13 @@ function ProductRow({
   );
 }
 
-function ProductsCards({
-  products,
-  onSelect,
-}: {
-  products: Product[];
-  onSelect: (id: number) => void;
-}) {
+function ProductsCards({ products }: { products: Product[] }) {
   return (
     <div className="md:hidden space-y-3">
       {products.map((product) => (
         <article
           key={product.id}
-          className="bg-card border border-border rounded-xl p-4 hover:border-brand-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-          onClick={() => onSelect(product.id)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onSelect(product.id);
-            }
-          }}
-          tabIndex={0}
-          role="link"
-          aria-label={`Ver producto ${product.nombre}`}
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent hover:shadow-sm transition-all focus-within:ring-2 focus-within:ring-accent"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -392,17 +417,23 @@ function ProductsCards({
               />
               <div className="min-w-0 space-y-0.5">
                 <h2 className="text-sm font-semibold text-text-primary truncate">
-                  {product.nombre}
+                  <Link
+                    to={`/productos/${product.id}`}
+                    aria-label={`Ver producto ${product.nombre}`}
+                    className="after:absolute after:inset-0 focus:outline-none"
+                  >
+                    {product.nombre}
+                  </Link>
                 </h2>
-                <p className="text-xs font-medium text-brand-600 uppercase tracking-wide">
+                <p className="text-[13px] font-medium text-accent uppercase tracking-wide">
                   {product.codigo_interno ?? "—"}
                 </p>
                 {formatCategoriasCompact(product.categorias) ? (
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-[13px] text-text-secondary">
                     {formatCategoriasCompact(product.categorias)}
                   </p>
                 ) : (
-                  <p className="text-xs text-text-muted">Sin categorías</p>
+                  <p className="text-[13px] text-text-muted">Sin categorías</p>
                 )}
                 <p className="text-sm text-text-secondary">
                   {formatProductContent(
@@ -410,12 +441,15 @@ function ProductsCards({
                     product.unidad_medida,
                   )}
                 </p>
-                <p className="text-xs text-text-secondary">
+                <p className="text-[13px] text-text-secondary">
                   {formatPresentacion(product.presentacion)}
                 </p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0">
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-accent shrink-0"
+            >
               Ver
               <ArrowRightIcon />
             </span>
@@ -427,33 +461,25 @@ function ProductsCards({
 }
 
 function ProductsLoadingSkeleton() {
-  return (
-    <div className="space-y-3" aria-live="polite" aria-busy="true">
-      <p className="text-sm text-text-secondary">Cargando productos...</p>
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="h-16 rounded-xl border border-border bg-card animate-pulse"
-        />
-      ))}
-    </div>
-  );
+  return <ListSkeleton label="Cargando productos..." />;
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 sm:p-10 text-center">
-      <h2 className="text-lg font-semibold text-text-primary mb-2">
-        Aún no tienes productos
-      </h2>
-      <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-md mx-auto">
-        Registra tu primer producto para comenzar a organizar su información
-        de trazabilidad.
-      </p>
-      <Button type="button" onClick={onCreate}>
-        Registrar primer producto
-      </Button>
-    </div>
+    <EmptyStateCard
+      title="Aún no tienes productos"
+      description="Registra tu primer producto para comenzar a organizar su información de trazabilidad."
+      steps={[
+        "Escribe su nombre, código y contenido.",
+        "Agrega categorías, precio e imagen cuando quieras.",
+        "Luego vincularás sus ingredientes y lotes.",
+      ]}
+      action={
+        <Button type="button" onClick={onCreate}>
+          Registrar primer producto
+        </Button>
+      }
+    />
   );
 }
 

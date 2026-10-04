@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
 import IngredientForm from "@/components/ingredients/IngredientForm";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import {
   isIngredienteFormDirty,
   toCreatePayload,
@@ -22,7 +24,7 @@ const SAVE_ERROR_MESSAGE =
 
 export default function IngredientNew() {
   const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [values, setValues] = useState<IngredienteFormValues>(
@@ -64,8 +66,10 @@ export default function IngredientNew() {
     setErrors({});
     setLoading(true);
     try {
-      await createIngredient(toCreatePayload(values));
-      navigate("/ingredientes", { state: { ingredientCreated: true } });
+      const created = await createIngredient(toCreatePayload(values));
+      navigate("/ingredientes", {
+        state: { ingredientCreated: true, ingredientId: created?.id },
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
@@ -84,23 +88,23 @@ export default function IngredientNew() {
     }
   }
 
+  const { pendingHref, clearPending } = useUnsavedChangesGuard(
+    (isIngredienteFormDirty(values)) && !loading,
+  );
+
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
+      pageTitle="Nuevo ingrediente"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-xl mx-auto space-y-6">
-        <header>
-          <p className="text-sm text-brand-600 font-medium mb-1">
-            Ingredientes / Nuevo ingrediente
-          </p>
-          <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-            Nuevo ingrediente
-          </h1>
-        </header>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <PageHeader
+          title="Nuevo ingrediente"
+          breadcrumbs={[{ label: "Ingredientes", to: "/ingredientes" }, { label: "Nuevo ingrediente" }]}
+        />
 
         {globalError && <Alert type="error">{globalError}</Alert>}
 
@@ -117,17 +121,26 @@ export default function IngredientNew() {
       </div>
 
       <ConfirmDialog
-        open={showCancelConfirm}
+        open={showCancelConfirm || pendingHref !== null}
         title="Salir sin guardar"
         description="Tienes cambios sin guardar. ¿Deseas salir sin guardar?"
         confirmLabel="Salir sin guardar"
         cancelLabel="Seguir editando"
         destructive
         onConfirm={() => {
+          const href = pendingHref;
+          clearPending();
           setShowCancelConfirm(false);
+          if (href) {
+            navigate(href);
+            return;
+          }
           navigate("/ingredientes");
+          }}
+        onCancel={() => {
+          setShowCancelConfirm(false);
+          clearPending();
         }}
-        onCancel={() => setShowCancelConfirm(false)}
       />
     </AppShell>
   );

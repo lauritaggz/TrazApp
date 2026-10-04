@@ -88,9 +88,9 @@ export default function ProductImageField({
         </p>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start">
+      <div className="flex flex-col gap-3">
         <div
-          className="w-full sm:w-40 h-40 rounded-xl border border-border bg-surface overflow-hidden flex items-center justify-center shrink-0"
+          className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-surface"
           aria-hidden={!displayUrl}
         >
           {displayUrl ? (
@@ -100,7 +100,22 @@ export default function ProductImageField({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="text-center px-3 text-xs text-text-secondary">
+            <div className="flex flex-col items-center gap-2 px-3 text-center text-[13px] text-text-secondary">
+              <svg
+                aria-hidden="true"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
               Sin imagen
             </div>
           )}
@@ -118,8 +133,14 @@ export default function ProductImageField({
             onChange={(event) =>
               handleFileChange(event.target.files?.[0] ?? null)
             }
-            className="block w-full text-sm text-text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-50"
+            className="peer sr-only"
           />
+          <label
+            htmlFor="imagen_producto"
+            className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+          >
+            {displayUrl ? "Cambiar imagen" : "Elegir imagen"}
+          </label>
           {previewUrl && (
             <button
               type="button"
@@ -146,7 +167,7 @@ export default function ProductImageField({
           {removeExistingImage && onUndoRemoveExistingImage && (
             <button
               type="button"
-              className="text-sm text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline disabled:opacity-50"
+              className="text-sm text-accent hover:text-accent-strong underline-offset-2 hover:underline disabled:opacity-50"
               disabled={disabled}
               onClick={onUndoRemoveExistingImage}
             >

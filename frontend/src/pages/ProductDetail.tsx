@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/ui/PageHeader";
+import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -25,13 +27,13 @@ export default function ProductDetail() {
   const location = useLocation();
   const { id: rawId } = useParams();
   const productId = parseProductId(rawId);
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -63,10 +65,10 @@ export default function ProductDetail() {
   useEffect(() => {
     const state = location.state as { productUpdated?: boolean } | null;
     if (!state?.productUpdated) return;
-    setSuccessMessage("Producto actualizado correctamente.");
+    notify("Producto actualizado correctamente.");
     setJustUpdated(true);
     navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
   function handleDeleteRequest() {
     if (!product || deleting) return;
@@ -102,7 +104,7 @@ export default function ProductDetail() {
   return (
     <AppShell
       activePage="productos"
-      onNavigate={handleNavigate}
+      pageTitle={product?.nombre ?? "Detalle del producto"}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
@@ -116,19 +118,33 @@ export default function ProductDetail() {
 
         {!loading && product && (
           <>
-            <header className="space-y-2">
-              <p className="text-sm text-brand-600 font-medium">
-                Productos / {product.nombre}
-              </p>
-              <h1 className="text-2xl font-semibold text-text-primary">
-                {product.nombre}
-              </h1>
-              <p className="text-sm font-medium text-text-secondary tracking-wide">
-                {product.codigo_interno ?? "—"}
-              </p>
-            </header>
-
-            {successMessage && <Alert type="success">{successMessage}</Alert>}
+            <PageHeader
+              title={product.nombre}
+              description={product.codigo_interno ?? "—"}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={handleBackToProducts}
+                  >
+                    Volver a productos
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/productos/${product.id}/editar`)}
+                  >
+                    Editar producto
+                  </Button>
+                </>
+              }
+              breadcrumbs={[
+                { label: "Productos", to: "/productos" },
+                { label: product.nombre },
+              ]}
+            />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
             <ProductDetailSection id="product-detail-image" title="Imagen principal">
@@ -195,35 +211,14 @@ export default function ProductDetail() {
             </ProductDetailSection>
 
             <section
-              aria-label="Acciones del producto"
-              className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-4"
+              aria-label="Eliminar producto"
+              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
             >
-              <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
-                Acciones
-              </h2>
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                  onClick={handleBackToProducts}
-                >
-                  Volver a productos
-                </Button>
-                <Button
-                  type="button"
-                  className="w-full sm:w-auto"
-                  onClick={() => navigate(`/productos/${product.id}/editar`)}
-                >
-                  Editar producto
-                </Button>
-              </div>
-
-              <div className="border-t border-border pt-4 space-y-3">
+              <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium text-text-primary">
+                  <h2 className="text-sm font-semibold text-text-primary">
                     Eliminar producto
-                  </h3>
+                  </h2>
                   <p className="text-sm text-text-secondary leading-relaxed mt-1">
                     Al eliminar, el producto dejará de aparecer en tu catálogo.
                     La información histórica de trazabilidad se conservará.
@@ -334,7 +329,7 @@ function CategoryBadges({ categorias }: { categorias: Categoria[] }) {
       {categorias.map((categoria) => (
         <span
           key={categoria.id}
-          className="inline-flex items-center rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
+          className="inline-flex items-center rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
         >
           {categoria.nombre}
         </span>

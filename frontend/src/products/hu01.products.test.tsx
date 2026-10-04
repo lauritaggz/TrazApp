@@ -106,7 +106,8 @@ describe("Productos HU01 — listado y navegación", () => {
       await screen.findByRole("heading", { name: /Bienvenida/ }),
     ).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Productos" })).toBeInTheDocument();
+    const productsLink = screen.getByRole("link", { name: "Productos" });
+    expect(productsLink).toBeInTheDocument();
 
     expect(
       await screen.findByText("Aún no has registrado productos."),

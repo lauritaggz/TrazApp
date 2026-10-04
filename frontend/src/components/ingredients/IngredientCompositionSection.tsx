@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
 import { formatPorcentaje } from "@/lib/ingredientListUtils";
@@ -261,11 +262,8 @@ export default function IngredientCompositionSection({
             </Button>
           ) : (
             <div className="border border-border rounded-lg p-4 space-y-3">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-text-primary">
-                  Componente
-                </span>
-                <select
+              <Select
+                label="Componente"
                   value={componenteId}
                   onChange={(e) => setComponenteId(e.target.value)}
                   disabled={submitting}
@@ -278,8 +276,7 @@ export default function IngredientCompositionSection({
                       {item.codigo_interno ?? "—"} — {item.nombre}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Porcentaje"

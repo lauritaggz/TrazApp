@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
-import Alert from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import EmptyStateCard from "@/components/ui/EmptyStateCard";
+import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
+import PageHeader from "@/components/ui/PageHeader";
+import Select from "@/components/ui/Select";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   filterAndSortIngredientes,
@@ -21,13 +25,13 @@ import {
 export default function Ingredients() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [filters, setFilters] = useState<IngredienteListFilters>(
     DEFAULT_INGREDIENTE_LIST_FILTERS,
   );
@@ -52,28 +56,40 @@ export default function Ingredients() {
   useEffect(() => {
     const state = location.state as {
       ingredientCreated?: boolean;
+      ingredientId?: number;
       ingredientDeleted?: boolean;
       ingredientUpdated?: boolean;
     } | null;
     if (state?.ingredientCreated) {
-      setSuccessMessage("Ingrediente creado correctamente.");
+      notify(
+        "Ingrediente creado correctamente.",
+        "success",
+        typeof state.ingredientId === "number"
+          ? {
+              label: "Declarar alérgenos y composición",
+              to: `/ingredientes/${state.ingredientId}`,
+            }
+          : undefined,
+      );
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.ingredientDeleted) {
-      setSuccessMessage("Ingrediente desactivado correctamente.");
+      notify("Ingrediente desactivado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.ingredientUpdated) {
-      setSuccessMessage("Ingrediente actualizado correctamente.");
+      notify("Ingrediente actualizado correctamente.");
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notify]);
 
+  const deferredSearch = useDeferredValue(filters.search);
   const filteredIngredientes = useMemo(
-    () => filterAndSortIngredientes(ingredientes, filters),
-    [ingredientes, filters],
+    () =>
+      filterAndSortIngredientes(ingredientes, { ...filters, search: deferredSearch }),
+    [ingredientes, filters, deferredSearch],
   );
 
   const totalCount = ingredientes.length;
@@ -90,37 +106,31 @@ export default function Ingredients() {
   return (
     <AppShell
       activePage="ingredientes"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
     >
       <div className="w-full space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm text-brand-600 font-medium mb-1">Catálogo</p>
-            <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
-              Ingredientes
-            </h1>
-            <p className="text-text-secondary text-sm leading-relaxed">
+        <PageHeader
+          title="Ingredientes"
+          description={
+            <>
               Administra los ingredientes de tu negocio.
-            </p>
-            {!loading && !error && (
-              <p className="text-sm text-text-secondary mt-2">
-                {ingredientCountLabel(totalCount)}
-              </p>
-            )}
-          </div>
-          <Button
-            type="button"
-            className="w-full sm:w-auto shrink-0"
-            onClick={() => navigate("/ingredientes/nuevo")}
-          >
-            + Nuevo ingrediente
-          </Button>
-        </header>
-
-        {successMessage && <Alert type="success">{successMessage}</Alert>}
+              {!loading && !error && (
+                <span className="mt-2 block">{ingredientCountLabel(totalCount)}</span>
+              )}
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              className="w-full sm:w-auto shrink-0"
+              onClick={() => navigate("/ingredientes/nuevo")}
+            >
+              + Nuevo ingrediente
+            </Button>
+          }
+        />
 
         {!showEmptyState && !error && (
           <IngredientListControls
@@ -152,7 +162,6 @@ export default function Ingredients() {
             />
             <IngredientsCards
               ingredientes={filteredIngredientes}
-              onSelect={(id) => navigate(`/ingredientes/${id}`)}
             />
           </>
         )}
@@ -174,45 +183,60 @@ function IngredientListControls({
   resultCount: number;
   showResultCount: boolean;
 }) {
+  const sortLabel =
+    INGREDIENTE_SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ??
+    filters.sort;
+
+  const chips: FilterChip[] = [];
+  if (filters.search.trim()) {
+    chips.push({
+      key: "search",
+      label: `Búsqueda: «${filters.search.trim()}»`,
+      onRemove: () => onChange({ ...filters, search: "" }),
+    });
+  }
+  if (filters.sort !== "recent") {
+    chips.push({
+      key: "sort",
+      label: `Orden: ${sortLabel}`,
+      onRemove: () => onChange({ ...filters, sort: "recent" }),
+    });
+  }
+
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      <Input
-        label="Buscar"
-        type="search"
-        placeholder="Buscar por nombre o código..."
-        value={filters.search}
-        onChange={(e) => onChange({ ...filters, search: e.target.value })}
-        disabled={disabled}
-        aria-label="Buscar por nombre o código"
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Ordenar</span>
-          <select
-            value={filters.sort}
-            onChange={(e) =>
-              onChange({
-                ...filters,
-                sort: e.target.value as IngredienteListFilters["sort"],
-              })
-            }
-            disabled={disabled}
-            className="w-full rounded-lg border border-border bg-card text-sm text-text-primary px-3 py-2.5"
-          >
-            {INGREDIENTE_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {showResultCount && hasActiveIngredientFilters(filters) && (
-        <p className="text-xs text-text-secondary">
-          Mostrando {resultCount} resultado{resultCount === 1 ? "" : "s"}
-        </p>
-      )}
-    </div>
+    <ListToolbar
+      search={filters.search}
+      onSearchChange={(search) => onChange({ ...filters, search })}
+      searchLabel="Buscar por nombre o código"
+      searchPlaceholder="Buscar por nombre o código..."
+      disabled={disabled}
+      chips={chips}
+      onClearAll={() => onChange(DEFAULT_INGREDIENTE_LIST_FILTERS)}
+      status={
+        showResultCount && hasActiveIngredientFilters(filters)
+          ? `Mostrando ${resultCount} resultado${resultCount === 1 ? "" : "s"}`
+          : undefined
+      }
+      controls={
+        <Select
+          label="Ordenar"
+          value={filters.sort}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              sort: e.target.value as IngredienteListFilters["sort"],
+            })
+          }
+          disabled={disabled}
+        >
+          {INGREDIENTE_SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      }
+    />
   );
 }
 
@@ -244,27 +268,34 @@ function IngredientsTable({
           {ingredientes.map((ingrediente) => (
             <tr
               key={ingrediente.id}
-              className="border-b border-border last:border-b-0 hover:bg-brand-50/40 cursor-pointer"
-              onClick={() => onSelect(ingrediente.id)}
-              tabIndex={0}
-              role="link"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
+              className="border-b border-border last:border-b-0 hover:bg-brand-50/40 cursor-pointer focus-within:bg-brand-50/40"
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest("a")) {
                   onSelect(ingrediente.id);
                 }
               }}
             >
               <td className="px-4 py-3">
-                <p className="font-medium">{ingrediente.nombre}</p>
-                <p className="text-xs text-text-secondary">
+                <p>
+                  <Link
+                    to={`/ingredientes/${ingrediente.id}`}
+                    aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                    className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
+                  >
+                    {ingrediente.nombre}
+                  </Link>
+                </p>
+                <p className="text-[13px] text-text-secondary">
                   {ingrediente.codigo_interno ?? "—"}
                 </p>
               </td>
               <td className="px-4 py-3">
                 <StatusBadge activo={ingrediente.activo} />
               </td>
-              <td className="px-4 py-3 text-right text-brand-600 font-medium">
+              <td
+                aria-hidden="true"
+                className="px-4 py-3 text-right text-accent font-medium"
+              >
                 Ver
               </td>
             </tr>
@@ -276,27 +307,26 @@ function IngredientsTable({
   );
 }
 
-function IngredientsCards({
-  ingredientes,
-  onSelect,
-}: {
-  ingredientes: Ingrediente[];
-  onSelect: (id: number) => void;
-}) {
+function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
   return (
     <div className="md:hidden space-y-3">
       {ingredientes.map((ingrediente) => (
         <article
           key={ingrediente.id}
-          className="bg-card border border-border rounded-xl p-4 cursor-pointer"
-          onClick={() => onSelect(ingrediente.id)}
+          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent transition-colors focus-within:ring-2 focus-within:ring-accent"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold break-words">
-                {ingrediente.nombre}
+                <Link
+                  to={`/ingredientes/${ingrediente.id}`}
+                  aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                  className="after:absolute after:inset-0 focus:outline-none"
+                >
+                  {ingrediente.nombre}
+                </Link>
               </h2>
-              <p className="text-xs text-brand-600 uppercase">
+              <p className="text-[13px] text-accent uppercase">
                 {ingrediente.codigo_interno ?? "—"}
               </p>
             </div>
@@ -311,7 +341,7 @@ function IngredientsCards({
 function StatusBadge({ activo }: { activo: boolean }) {
   return (
     <span
-      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
+      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-medium ${
         activo
           ? "bg-success-bg text-success border border-success/20"
           : "bg-surface text-text-secondary border border-border"
@@ -323,30 +353,25 @@ function StatusBadge({ activo }: { activo: boolean }) {
 }
 
 function IngredientsLoadingSkeleton() {
-  return (
-    <div className="space-y-3" aria-live="polite" aria-busy="true">
-      <p className="text-sm text-text-secondary">Cargando ingredientes...</p>
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="h-16 rounded-xl border border-border bg-card animate-pulse"
-        />
-      ))}
-    </div>
-  );
+  return <ListSkeleton label="Cargando ingredientes..." />;
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold mb-2">Aún no tienes ingredientes</h2>
-      <p className="text-sm text-text-secondary mb-6">
-        Registra tu primer ingrediente para comenzar a organizar su información.
-      </p>
-      <Button type="button" onClick={onCreate}>
-        Registrar primer ingrediente
-      </Button>
-    </div>
+    <EmptyStateCard
+      title="Aún no tienes ingredientes"
+      description="Registra tu primer ingrediente para comenzar a organizar su información."
+      steps={[
+        "Escribe su nombre y código interno.",
+        "Declara sus alérgenos desde el detalle.",
+        "Si es compuesto, indica su composición.",
+      ]}
+      action={
+        <Button type="button" onClick={onCreate}>
+          Registrar primer ingrediente
+        </Button>
+      }
+    />
   );
 }
 

@@ -33,7 +33,7 @@ export default function DashboardGettingStarted({
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="mb-4 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-accent">
           <FlagIcon />
         </div>
         <h2 className="text-sm font-semibold text-text-primary">Primeros pasos</h2>
@@ -65,7 +65,7 @@ export default function DashboardGettingStarted({
       <div className="mt-4 border-t border-border pt-4">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs text-text-secondary">Progreso general</span>
-          <span className="text-xs font-semibold text-brand-600">
+          <span className="text-xs font-semibold text-accent">
             {progressPercent}%
           </span>
         </div>

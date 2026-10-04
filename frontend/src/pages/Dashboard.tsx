@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardAttention from "@/components/dashboard/DashboardAttention";
 import DashboardGettingStarted from "@/components/dashboard/DashboardGettingStarted";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardProductPreviewCard from "@/components/dashboard/DashboardProductPreviewCard";
 import DashboardRecentIngredients from "@/components/dashboard/DashboardRecentIngredients";
 import DashboardSection from "@/components/dashboard/DashboardSection";
 import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
-import { BoxIcon, LeafIcon } from "@/components/dashboard/dashboardIcons";
+import { BoxIcon, FlagIcon, LeafIcon } from "@/components/dashboard/dashboardIcons";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
+import { productsWithGaps } from "@/lib/productCompleteness";
 import { listIngredients } from "@/services/ingredientService";
 import { listProducts } from "@/services/productService";
 import type { Ingrediente } from "@/types/ingredient";
@@ -33,7 +35,7 @@ function sortRecentIngredients(ingredientes: Ingrediente[]): Ingrediente[] {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,13 +92,13 @@ export default function Dashboard() {
     [ingredients],
   );
 
+  const incompleteProducts = useMemo(() => productsWithGaps(products), [products]);
   const hasProducts = products.length > 0 && !productsError;
   const hasIngredients = ingredients.length > 0 && !ingredientsError;
 
   return (
     <AppShell
       activePage="inicio"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
@@ -104,22 +106,30 @@ export default function Dashboard() {
       <div className="w-full space-y-7">
         <DashboardHeader firstName={firstName} businessName={businessName} />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <DashboardStatCard
             label="Productos registrados"
             value={productsError ? "—" : products.length}
             icon={<BoxIcon />}
-            accent="#2f6b57"
             loading={loadingProducts}
           />
           <DashboardStatCard
             label="Ingredientes"
             value={ingredientsError ? "—" : ingredients.length}
             icon={<LeafIcon />}
-            accent="#2f6b57"
             loading={loadingIngredients}
           />
+          <DashboardStatCard
+            label="Productos por completar"
+            value={productsError ? "—" : incompleteProducts.length}
+            icon={<FlagIcon />}
+            loading={loadingProducts}
+          />
         </div>
+
+        {!loadingProducts && !productsError && incompleteProducts.length > 0 && (
+          <DashboardAttention items={incompleteProducts} />
+        )}
 
         <DashboardSection
           title="Tus productos"
@@ -154,11 +164,10 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {recentProducts.map((product, index) => (
+              {recentProducts.map((product) => (
                 <DashboardProductPreviewCard
                   key={product.id}
                   product={product}
-                  index={index}
                   onClick={() => navigate(`/productos/${product.id}`)}
                 />
               ))}

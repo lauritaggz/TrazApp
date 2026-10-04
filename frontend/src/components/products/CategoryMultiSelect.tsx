@@ -22,10 +22,6 @@ export default function CategoryMultiSelect({
   error,
   onChange,
 }: CategoryMultiSelectProps) {
-  const selectedCategories = categories.filter((category) =>
-    selectedIds.includes(category.id),
-  );
-
   function toggleCategory(categoryId: number) {
     if (disabled || loading) return;
     if (selectedIds.includes(categoryId)) {
@@ -69,8 +65,8 @@ export default function CategoryMultiSelect({
       ) : (
         <div
           className={`
-            rounded-lg border bg-card p-3 space-y-2
-            ${error ? "border-error bg-error-bg" : "border-border"}
+            space-y-2 rounded-lg
+            ${error ? "border border-error bg-error-bg p-3" : ""}
           `}
           role="group"
           aria-label="Categorías del producto"
@@ -82,40 +78,46 @@ export default function CategoryMultiSelect({
               No hay categorías disponibles.
             </p>
           ) : (
-            categories.map((category) => {
-              const checked = selectedIds.includes(category.id);
-              return (
-                <label
-                  key={category.id}
-                  className="flex items-center gap-2.5 text-sm text-text-primary cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    name="categoria_ids"
-                    value={category.id}
-                    checked={checked}
-                    onChange={() => toggleCategory(category.id)}
-                    disabled={disabled || loading}
-                    className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-600"
-                  />
-                  <span>{category.nombre}</span>
-                </label>
-              );
-            })
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => {
+                const checked = selectedIds.includes(category.id);
+                return (
+                  <label
+                    key={category.id}
+                    className="cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
+                  >
+                    <input
+                      type="checkbox"
+                      name="categoria_ids"
+                      value={category.id}
+                      checked={checked}
+                      onChange={() => toggleCategory(category.id)}
+                      disabled={disabled || loading}
+                      className="peer sr-only"
+                    />
+                    <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-strong bg-card px-3.5 text-sm text-text-primary transition-colors hover:bg-surface peer-checked:border-accent peer-checked:bg-brand-50 peer-checked:font-medium peer-checked:text-accent-strong peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2">
+                      {checked && (
+                        <svg
+                          aria-hidden="true"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                      {category.nombre}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           )}
-        </div>
-      )}
-
-      {selectedCategories.length > 0 && (
-        <div className="flex flex-wrap gap-2" aria-live="polite">
-          {selectedCategories.map((category) => (
-            <span
-              key={category.id}
-              className="inline-flex items-center rounded-full bg-brand-50 text-brand-700 border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
-            >
-              {category.nombre}
-            </span>
-          ))}
         </div>
       )}
 

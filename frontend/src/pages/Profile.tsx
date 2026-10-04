@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import { useToast } from "@/components/ui/toastContext";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,7 +11,7 @@ import { ApiError } from "@/types/auth";
 
 export default function Profile() {
   const { productor, setProductor } = useAuth();
-  const { handleLogout, handleNavigate, producerName, businessName } =
+  const { handleLogout, producerName, businessName } =
     useAppShell();
   const [form, setForm] = useState({
     name: productor?.nombre ?? "",
@@ -18,7 +19,7 @@ export default function Profile() {
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify } = useToast();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -53,7 +54,6 @@ export default function Profile() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setGlobalError("");
-    setSuccessMessage("");
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -68,7 +68,7 @@ export default function Profile() {
         nombre_negocio: form.businessName.trim(),
       });
       setProductor(updated);
-      setSuccessMessage("Perfil actualizado correctamente.");
+      notify("Perfil actualizado correctamente.");
     } catch (err) {
       if (err instanceof ApiError) {
         if (Object.keys(err.fieldErrors).length > 0) {
@@ -88,14 +88,13 @@ export default function Profile() {
   return (
     <AppShell
       activePage="perfil"
-      onNavigate={handleNavigate}
       onLogout={handleLogout}
       producerName={producerName ?? productor?.nombre}
       businessName={businessName ?? productor?.nombre_negocio}
     >
       <div className="max-w-xl space-y-6">
         <div>
-          <p className="text-sm text-brand-600 font-medium mb-1">Cuenta</p>
+          <p className="text-sm text-accent font-medium mb-1">Cuenta</p>
           <h1 className="text-2xl font-semibold text-text-primary mb-1.5">
             Mi perfil
           </h1>
@@ -111,7 +110,6 @@ export default function Profile() {
           noValidate
         >
           {globalError && <Alert type="error">{globalError}</Alert>}
-          {successMessage && <Alert type="success">{successMessage}</Alert>}
 
           <Input
             label="Nombre"
