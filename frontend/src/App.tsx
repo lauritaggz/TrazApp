@@ -4,6 +4,10 @@ import Dashboard from "@/pages/Dashboard";
 import IngredientDetail from "@/pages/IngredientDetail";
 import IngredientEdit from "@/pages/IngredientEdit";
 import IngredientNew from "@/pages/IngredientNew";
+import InsumoDetail from "@/pages/InsumoDetail";
+import InsumoEdit from "@/pages/InsumoEdit";
+import InsumoNew from "@/pages/InsumoNew";
+import Insumos from "@/pages/Insumos";
 import Ingredients from "@/pages/Ingredients";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
@@ -33,6 +37,10 @@ export default function App() {
         <Route path="/ingredientes/nuevo" element={<IngredientNew />} />
         <Route path="/ingredientes/:id/editar" element={<IngredientEdit />} />
         <Route path="/ingredientes/:id" element={<IngredientDetail />} />
+        <Route path="/insumos" element={<Insumos />} />
+        <Route path="/insumos/nuevo" element={<InsumoNew />} />
+        <Route path="/insumos/:id/editar" element={<InsumoEdit />} />
+        <Route path="/insumos/:id" element={<InsumoDetail />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

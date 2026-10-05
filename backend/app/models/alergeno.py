@@ -38,3 +38,6 @@ class Alergeno(Base):
         secondary=ingredientes_alergenos,
         back_populates="alergenos",
     )
+    insumos: Mapped[list["InsumoAlergeno"]] = relationship(
+        back_populates="alergeno",
+    )
