@@ -13,7 +13,20 @@ const FRIENDLY_FIELD_MESSAGES: Record<string, string> = {
   categoria_ids: "Revisa las categorías seleccionadas.",
   tipo: "Revisa el tipo de ingrediente.",
   alergeno_id: "Revisa el alérgeno seleccionado.",
+  ingrediente_id: "Revisa el ingrediente seleccionado.",
+  marca_origen: "Revisa la marca u origen.",
+  codigo_barras: "Revisa el código de barras.",
+  ingredientes_declarados: "Revisa los ingredientes declarados.",
+  advertencias: "Revisa las advertencias.",
+  habitual: "Revisa la opción de insumo habitual.",
 };
+
+/** Fields whose backend message is specific and useful to the user (check digit, length...). */
+const BACKEND_MESSAGE_FIELDS = new Set(["codigo_barras"]);
+
+function cleanBackendMessage(msg: string): string {
+  return msg.replace(/^Value error,\s*/, "");
+}
 
 export function getApiBaseUrl(): string {
   const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
@@ -43,8 +56,11 @@ function extractFieldErrors(detail: unknown): Record<string, string> {
       .at(-1);
     if (!field || fieldErrors[field]) continue;
 
+    const msg = (item as { msg?: unknown }).msg;
     fieldErrors[field] =
-      FRIENDLY_FIELD_MESSAGES[field] ?? "Revisa este campo.";
+      BACKEND_MESSAGE_FIELDS.has(field) && typeof msg === "string"
+        ? cleanBackendMessage(msg)
+        : (FRIENDLY_FIELD_MESSAGES[field] ?? "Revisa este campo.");
   }
   return fieldErrors;
 }
@@ -62,6 +78,16 @@ async function parseError(response: Response): Promise<ApiError> {
     return new ApiError("Credenciales inválidas", 401);
   }
   if (response.status === 409) {
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+      // Structured conflict, e.g. a repeated barcode: {mensaje, insumo_id, activo}.
+      const mensaje = (detail as { mensaje?: unknown }).mensaje;
+      return new ApiError(
+        typeof mensaje === "string" ? mensaje : "El recurso ya existe",
+        409,
+        {},
+        detail,
+      );
+    }
     const message =
       typeof detail === "string" ? detail : "El recurso ya existe";
     return new ApiError(message, 409);

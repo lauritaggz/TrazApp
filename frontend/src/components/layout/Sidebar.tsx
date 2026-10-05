@@ -2,7 +2,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem, { NavItemSoon } from "@/components/layout/NavItem";
 
-export type AppSection = "inicio" | "productos" | "ingredientes" | "perfil";
+export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "perfil";
 
 interface SidebarProps {
   open: boolean;
@@ -43,6 +43,7 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
             to="/ingredientes"
             onClick={onClose}
           />
+          <NavItem icon={<SupplyIcon />} label="Insumos" to="/insumos" onClick={onClose} />
         </div>
 
         <div className="space-y-1">
@@ -150,6 +151,26 @@ function HistoryIcon() {
       <path d="M3 3v5h5" />
       <path d="M3.05 13A9 9 0 106 5.3L3 8" />
       <polyline points="12 7 12 12 15 14" />
+    </svg>
+  );
+}
+
+function SupplyIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 01-8 0" />
     </svg>
   );
 }

@@ -4,6 +4,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { ROTULACION_OBLIGATORIA_AYUDA } from "@/lib/alergenos";
 import {
   addIngredientAllergen,
   deleteIngredientAllergen,
@@ -12,9 +13,6 @@ import {
 } from "@/services/ingredientService";
 import { ApiError } from "@/types/auth";
 import type { Alergeno, AlergenoCatalogo } from "@/types/ingredient";
-
-const ROTULACION_OBLIGATORIA_AYUDA =
-  "Alérgeno de declaración obligatoria en el rotulado según la Resolución Exenta N.º 427 del Minsal.";
 
 interface IngredientAllergensSectionProps {
   ingredienteId: number;

@@ -33,15 +33,19 @@ export interface LoginResponse {
 export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors: Record<string, string>;
+  /** Structured `detail` of the response when the API sends an object (e.g. a 409 with data). */
+  readonly detail?: unknown;
 
   constructor(
     message: string,
     status: number,
     fieldErrors: Record<string, string> = {},
+    detail?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.detail = detail;
   }
 }
