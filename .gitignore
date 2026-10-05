@@ -59,3 +59,6 @@ docker-data/
 
 # Alembic (runtime only; keep versions/)
 alembic/versions/*.pyc
+
+# Informes de pruebas generados por CI
+resultados.xml
