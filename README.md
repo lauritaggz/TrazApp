@@ -1,5 +1,7 @@
 # TrazApp
 
+[![CI](https://github.com/lauritaggz/TrazApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lauritaggz/TrazApp/actions/workflows/ci.yml)
+
 Plataforma web para la **gestión y comunicación de trazabilidad de alimentos elaborados**, pensada para pequeños productores.
 
 ## Qué es TrazApp
