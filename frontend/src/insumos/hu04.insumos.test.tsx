@@ -1053,6 +1053,189 @@ describe("Alérgenos declarados del insumo", () => {
   });
 });
 
+// --- casos del plan de pruebas que faltaban en la interfaz (T04-06) ---
+
+describe("Plan de pruebas HU04: casos de la interfaz", () => {
+  it("PT04-03: registra un insumo con origen en vez de marca, por ejemplo «Feria local», sin código de barras", async () => {
+    const user = userEvent.setup();
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(
+      insumo({ id: 21, nombre: "Huevos de campo", marca_origen: "Feria local", codigo_barras: null }),
+    );
+    openPage("/insumos/nuevo");
+    await screen.findByRole("option", { name: "Leche" });
+
+    await user.type(screen.getByLabelText("Nombre"), "Huevos de campo");
+    await user.type(screen.getByLabelText("Marca u origen"), "Feria local");
+    await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+
+    await waitFor(() =>
+      expect(insumoService.createInsumo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nombre: "Huevos de campo",
+          marca_origen: "Feria local",
+          codigo_barras: null,
+        }),
+      ),
+    );
+    expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
+  });
+
+  it("PT04-07: varios insumos de un mismo ingrediente se listan y el filtro por ingrediente los muestra todos", async () => {
+    const user = userEvent.setup();
+    const otraLeche = insumo({
+      id: 13,
+      nombre: "Leche Soprole Entera 1 L",
+      marca_origen: "Soprole",
+      codigo_barras: null,
+      habitual: false,
+      alergenos_declarados: [],
+    });
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([INS_LECHE, otraLeche, INS_CHOCOLATE]);
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    await user.selectOptions(screen.getByLabelText("Filtrar por ingrediente"), "1");
+
+    expect(screen.getAllByRole("link", { name: "Ver insumo Leche Colun Semidescremada 1 L" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Ver insumo Leche Soprole Entera 1 L" }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("link", { name: /Ver insumo Chocolate/ })).toHaveLength(0);
+    // The ingredient appears once in the filter, not once per supply.
+    const opciones = within(screen.getByLabelText("Filtrar por ingrediente")).getAllByRole("option");
+    expect(opciones.map((option) => option.textContent)).toEqual(["Todos", "Chocolate", "Leche"]);
+  });
+
+  it("PT04-07: se puede registrar un segundo insumo para un ingrediente que ya tiene uno", async () => {
+    const user = userEvent.setup();
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 22, habitual: false }));
+    openPage("/insumos/nuevo");
+    await fillValidForm(user);
+
+    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+
+    await waitFor(() =>
+      expect(insumoService.createInsumo).toHaveBeenCalledWith(
+        expect.objectContaining({ ingrediente_id: 1, habitual: false }),
+      ),
+    );
+  });
+
+  it("PT04-08: marcar un insumo como habitual al editarlo envía solo habitual: true", async () => {
+    const user = userEvent.setup();
+    vi.mocked(insumoService.updateInsumo).mockResolvedValue({ ...INS_CHOCOLATE, habitual: true });
+    openPage("/insumos/11/editar");
+    await screen.findByRole("option", { name: "Leche" });
+    const casilla = screen.getByRole("checkbox", { name: "Insumo habitual" });
+    expect(casilla).not.toBeChecked();
+
+    await user.click(casilla);
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => expect(insumoService.updateInsumo).toHaveBeenCalledWith(11, { habitual: true }));
+  });
+
+  it("PT04-08: el detalle refleja que otro insumo pasó a ser el habitual", async () => {
+    vi.mocked(insumoService.getInsumo).mockResolvedValue({ ...INS_LECHE, habitual: false });
+    openPage("/insumos/10");
+
+    await screen.findByRole("heading", { name: INS_LECHE.nombre, level: 1 });
+
+    expect(screen.queryByText("Habitual")).not.toBeInTheDocument();
+    expect(screen.getByText("No")).toBeInTheDocument();
+  });
+
+  it("PT04-08: al quitar la marca de habitual se envía habitual: false", async () => {
+    const user = userEvent.setup();
+    vi.mocked(insumoService.updateInsumo).mockResolvedValue({ ...INS_LECHE, habitual: false });
+    openPage("/insumos/10/editar");
+    await screen.findByRole("option", { name: "Chocolate" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Insumo habitual" }));
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => expect(insumoService.updateInsumo).toHaveBeenCalledWith(10, { habitual: false }));
+  });
+});
+
+// jsdom no calcula estilos: estas pruebas verifican que la interfaz declare el comportamiento
+// adaptable (clases responsive), no la apariencia real. La verificación en un celular real
+// (PT04-13) queda como prueba manual pendiente.
+describe("PT04-13: adaptación a dispositivos móviles (verificación estructural)", () => {
+  it("el formulario usa campos y botones a ancho completo en celular y en fila desde sm", async () => {
+    openPage("/insumos/nuevo");
+    await screen.findByRole("option", { name: "Leche" });
+
+    for (const label of ["Nombre", "Marca u origen", "Ingrediente", "Código de barras", "Advertencias"]) {
+      expect(screen.getByLabelText(label)).toHaveClass("w-full");
+    }
+    const guardar = screen.getByRole("button", { name: "Guardar insumo" });
+    const cancelar = screen.getByRole("button", { name: "Cancelar" });
+    for (const boton of [guardar, cancelar]) {
+      expect(boton).toHaveClass("w-full", "sm:w-auto", "min-h-11");
+    }
+    expect(guardar.parentElement).toHaveClass("flex-col-reverse", "sm:flex-row");
+    expect(guardar.closest("form")).toHaveClass("max-w-2xl");
+  });
+
+  it("el listado muestra tarjetas en celular y tabla desde md", async () => {
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    expect(screen.getByRole("table").closest("div.hidden")).toHaveClass("md:block");
+    const tarjetas = screen.getAllByRole("article");
+    expect(tarjetas).toHaveLength(2);
+    expect(tarjetas[0].parentElement).toHaveClass("md:hidden");
+  });
+
+  it("los filtros se pliegan detrás de un botón en celular", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    const boton = screen.getByRole("button", { name: /^Filtros/ });
+    expect(boton).toHaveClass("sm:hidden");
+    expect(boton).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(boton);
+
+    expect(boton).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("el detalle apila las acciones a ancho completo en celular", async () => {
+    openPage("/insumos/10");
+    await screen.findByRole("heading", { name: INS_LECHE.nombre, level: 1 });
+
+    for (const nombre of ["Volver a insumos", "Editar insumo"]) {
+      expect(screen.getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
+    }
+  });
+
+  it("la sección de alérgenos pasa de una a dos columnas desde sm", async () => {
+    openPage("/insumos/10");
+    const contiene = await screen.findByRole("region", { name: "Contiene" });
+
+    expect(contiene.parentElement).toHaveClass("grid", "sm:grid-cols-2");
+  });
+
+  it("el formulario embebido (diálogo de HU05) conserva los botones a ancho completo", () => {
+    render(
+      <MemoryRouter>
+        <InsumoForm
+          values={EMPTY_INSUMO_FORM_VALUES}
+          errors={{}}
+          ingredientes={[LECHE]}
+          embedded
+          onChange={vi.fn()}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: "Guardar insumo" })).toHaveClass("w-full", "sm:w-auto");
+  });
+});
+
 // --- reutilización: diálogo (HU05) y precarga (HU13) ---
 
 describe("Formulario reutilizable", () => {
