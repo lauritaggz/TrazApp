@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models import Productor
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.ingrediente_repository import IngredienteRepository
+from app.repositories.insumo_repository import InsumoRepository
 from app.repositories.producto_formulacion_repository import ProductoFormulacionRepository
 from app.repositories.producto_repository import ProductoRepository
 from app.repositories.productor_repository import ProductorRepository
@@ -18,6 +19,7 @@ from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.services.auth_service import AuthService
 from app.services.categoria_service import CategoriaService
 from app.services.ingrediente_service import IngredienteService
+from app.services.insumo_service import InsumoService
 from app.services.product_image_service import ProductImageService
 from app.services.producto_formulacion_service import ProductoFormulacionService
 from app.services.producto_service import ProductoService
@@ -58,6 +60,10 @@ def get_categoria_service(db: Session = Depends(get_db)) -> CategoriaService:
 def get_ingrediente_service(db: Session = Depends(get_db)) -> IngredienteService:
     repository = IngredienteRepository(db)
     return IngredienteService(repository)
+
+
+def get_insumo_service(db: Session = Depends(get_db)) -> InsumoService:
+    return InsumoService(InsumoRepository(db))
 
 
 def get_product_image_service(db: Session = Depends(get_db)) -> ProductImageService:
