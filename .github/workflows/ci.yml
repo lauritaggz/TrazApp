@@ -28,6 +28,9 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      # app/main.py crea esta carpeta al importarse; /uploads (el valor por defecto) no es escribible en el runner.
+      UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
     steps:
       - uses: actions/checkout@v4
 
@@ -73,6 +76,8 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
+      # app/main.py crea esta carpeta al importarse; /uploads (el valor por defecto) no es escribible en el runner.
+      UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
       # La base trazapp_test la crea conftest.py si no existe.
       TEST_DATABASE_URL: postgresql+psycopg2://trazapp_ci:ci_password_desechable@localhost:5432/trazapp_test
     steps:
