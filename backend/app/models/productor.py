@@ -32,3 +32,6 @@ class Productor(Base):
     ingredientes: Mapped[list["Ingrediente"]] = relationship(
         back_populates="productor",
     )
+    insumos: Mapped[list["InsumoComercial"]] = relationship(
+        back_populates="productor",
+    )

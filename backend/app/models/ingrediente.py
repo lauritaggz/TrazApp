@@ -71,6 +71,9 @@ class Ingrediente(Base):
     formulaciones_producto: Mapped[list["FormulacionVersionProducto"]] = relationship(
         back_populates="ingrediente",
     )
+    insumos: Mapped[list["InsumoComercial"]] = relationship(
+        back_populates="ingrediente",
+    )
 
 
 class ComposicionIngrediente(Base):
