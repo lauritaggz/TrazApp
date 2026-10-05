@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -21,6 +22,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 FUENTE_MANUAL = "manual"
+
+# How an allergen is declared on the supply label (HU04, CA05).
+TIPO_CONTIENE = "contiene"
+TIPO_TRAZAS = "trazas"
+TIPOS_DECLARACION = (TIPO_CONTIENE, TIPO_TRAZAS)
 
 
 class InsumoComercial(Base):
@@ -91,6 +97,41 @@ class InsumoComercial(Base):
 
     productor: Mapped["Productor"] = relationship(back_populates="insumos")
     ingrediente: Mapped["Ingrediente"] = relationship(back_populates="insumos")
+    alergenos_declarados: Mapped[list["InsumoAlergeno"]] = relationship(
+        back_populates="insumo",
+        cascade="all, delete-orphan",
+    )
+
+
+class InsumoAlergeno(Base):
+    """Allergen declared by a commercial supply, with its declaration type (HU04).
+
+    Same pattern as ingredientes_alergenos (HU02): composite primary key, so an allergen
+    appears once per supply (never as "contiene" and "trazas" at the same time); deleting
+    the supply removes its rows (CASCADE) and a catalog allergen in use cannot be deleted
+    (RESTRICT). Unlike HU02 this is a mapped class because it carries "tipo".
+    """
+
+    __tablename__ = "insumos_alergenos"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo IN ('contiene', 'trazas')",
+            name="ck_insumos_alergenos_tipo",
+        ),
+    )
+
+    insumo_id: Mapped[int] = mapped_column(
+        ForeignKey("insumos_comerciales.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    alergeno_id: Mapped[int] = mapped_column(
+        ForeignKey("alergenos.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    insumo: Mapped["InsumoComercial"] = relationship(back_populates="alergenos_declarados")
+    alergeno: Mapped["Alergeno"] = relationship(back_populates="insumos")
 
 
 # Plain indexes on the foreign keys: every query filters by productor and the supplies
