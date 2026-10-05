@@ -1,7 +1,7 @@
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Ingrediente, InsumoAlergeno, InsumoComercial
+from app.models import Alergeno, Ingrediente, InsumoAlergeno, InsumoComercial
 
 
 class InsumoRepository:
@@ -108,6 +108,30 @@ class InsumoRepository:
             stmt = stmt.where(InsumoComercial.id != except_id)
         self.db.execute(stmt)
         self.db.flush()
+
+    def get_alergeno(self, alergeno_id: int) -> Alergeno | None:
+        return self.db.get(Alergeno, alergeno_id)
+
+    def get_declarado(self, insumo_id: int, alergeno_id: int) -> InsumoAlergeno | None:
+        stmt = (
+            select(InsumoAlergeno)
+            .options(joinedload(InsumoAlergeno.alergeno))
+            .where(
+                InsumoAlergeno.insumo_id == insumo_id,
+                InsumoAlergeno.alergeno_id == alergeno_id,
+            )
+        )
+        return self.db.scalar(stmt)
+
+    def touch(self, insumo: InsumoComercial) -> None:
+        """Renew updated_at: declared allergens are part of the supply but live in another table."""
+        insumo.updated_at = func.now()
+
+    def add_declarado(self, insumo_id: int, alergeno_id: int, tipo: str) -> None:
+        self.db.add(InsumoAlergeno(insumo_id=insumo_id, alergeno_id=alergeno_id, tipo=tipo))
+
+    def delete_declarado(self, declarado: InsumoAlergeno) -> None:
+        self.db.delete(declarado)
 
     def add(self, insumo: InsumoComercial) -> None:
         self.db.add(insumo)

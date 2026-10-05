@@ -2,12 +2,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import get_current_productor, get_insumo_service
 from app.models import Productor
-from app.schemas.insumo import InsumoCreate, InsumoRead, InsumoUpdate
+from app.schemas.insumo import (
+    AlergenoDeclaradoRead,
+    InsumoAlergenoCreate,
+    InsumoAlergenoUpdate,
+    InsumoCreate,
+    InsumoRead,
+    InsumoUpdate,
+)
 from app.services.insumo_service import (
     DuplicateCodigoBarrasError,
+    InsumoAlergenoNotFoundError,
     InsumoConflictError,
     InsumoNotFoundError,
     InsumoService,
+    InvalidInsumoAlergenoError,
     InvalidInsumoError,
 )
 
@@ -106,4 +115,76 @@ def desactivar_insumo(
     try:
         service.delete_mine(current_productor, insumo_id)
     except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+# --- allergens declared by the supply (T04-04) ---
+
+
+@router.get("/{insumo_id}/alergenos", response_model=list[AlergenoDeclaradoRead])
+def listar_alergenos_insumo(
+    insumo_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> list[AlergenoDeclaradoRead]:
+    try:
+        return service.list_alergenos_mine(current_productor, insumo_id)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{insumo_id}/alergenos",
+    response_model=AlergenoDeclaradoRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def agregar_alergeno_insumo(
+    insumo_id: int,
+    payload: InsumoAlergenoCreate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> AlergenoDeclaradoRead:
+    try:
+        return service.add_alergeno_mine(current_productor, insumo_id, payload)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except InvalidInsumoAlergenoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except InsumoConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/{insumo_id}/alergenos/{alergeno_id}",
+    response_model=AlergenoDeclaradoRead,
+)
+def cambiar_tipo_alergeno_insumo(
+    insumo_id: int,
+    alergeno_id: int,
+    payload: InsumoAlergenoUpdate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> AlergenoDeclaradoRead:
+    try:
+        return service.update_alergeno_mine(current_productor, insumo_id, alergeno_id, payload)
+    except (InsumoNotFoundError, InsumoAlergenoNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.delete(
+    "/{insumo_id}/alergenos/{alergeno_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def quitar_alergeno_insumo(
+    insumo_id: int,
+    alergeno_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> None:
+    try:
+        service.delete_alergeno_mine(current_productor, insumo_id, alergeno_id)
+    except (InsumoNotFoundError, InsumoAlergenoNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

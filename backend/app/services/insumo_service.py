@@ -2,8 +2,20 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import Ingrediente, InsumoComercial, Productor
 from app.repositories.insumo_repository import InsumoRepository
-from app.schemas.insumo import InsumoCreate, InsumoRead, InsumoUpdate
+from app.schemas.insumo import (
+    AlergenoDeclaradoRead,
+    InsumoAlergenoCreate,
+    InsumoAlergenoUpdate,
+    InsumoCreate,
+    InsumoRead,
+    InsumoUpdate,
+    ordenar_declarados,
+)
 
+MENSAJE_ALERGENO_REPETIDO = "El alérgeno ya está asociado al insumo."
+MENSAJE_CAMBIO_SIMULTANEO = (
+    "No se pudo guardar el insumo por un cambio simultáneo. Inténtalo nuevamente."
+)
 MENSAJE_CODIGO_ACTIVO = "Ya existe un insumo con ese código de barras."
 MENSAJE_CODIGO_INACTIVO = (
     "Ya existe un insumo desactivado con ese código de barras. Puedes reactivarlo."
@@ -16,6 +28,14 @@ class InsumoNotFoundError(Exception):
 
 class InvalidInsumoError(Exception):
     """Raised when a supply operation violates HU04 business rules (422)."""
+
+
+class InsumoAlergenoNotFoundError(Exception):
+    """Raised when the allergen is not declared by the supply (404, URL resource)."""
+
+
+class InvalidInsumoAlergenoError(Exception):
+    """Raised when an allergen operation is not valid: unknown allergen or repeated (422)."""
 
 
 class InsumoConflictError(Exception):
@@ -119,7 +139,81 @@ class InsumoService:
         insumo.habitual = False
         self.repository.commit()
 
+    # --- allergens declared by the supply (T04-04) ---
+
+    def list_alergenos_mine(
+        self,
+        productor: Productor,
+        insumo_id: int,
+    ) -> list[AlergenoDeclaradoRead]:
+        insumo = self._get_owned_or_raise(productor.id, insumo_id)
+        return [
+            AlergenoDeclaradoRead.from_declarado(d)
+            for d in ordenar_declarados(insumo.alergenos_declarados)
+        ]
+
+    def add_alergeno_mine(
+        self,
+        productor: Productor,
+        insumo_id: int,
+        payload: InsumoAlergenoCreate,
+    ) -> AlergenoDeclaradoRead:
+        insumo = self._get_owned_or_raise(productor.id, insumo_id)
+        insumo_pk = insumo.id
+        if self.repository.get_alergeno(payload.alergeno_id) is None:
+            raise InvalidInsumoAlergenoError("Alérgeno no válido")
+        if self.repository.get_declarado(insumo_pk, payload.alergeno_id) is not None:
+            raise InvalidInsumoAlergenoError(MENSAJE_ALERGENO_REPETIDO)
+
+        self.repository.add_declarado(insumo_pk, payload.alergeno_id, payload.tipo)
+        self.repository.touch(insumo)
+        try:
+            self.repository.commit()
+        except IntegrityError as exc:
+            self.repository.rollback()
+            if self.repository.get_declarado(insumo_pk, payload.alergeno_id) is not None:
+                raise InvalidInsumoAlergenoError(MENSAJE_ALERGENO_REPETIDO) from exc
+            raise InsumoConflictError(MENSAJE_CAMBIO_SIMULTANEO) from exc
+        return AlergenoDeclaradoRead.from_declarado(
+            self._get_declarado_or_raise(insumo_pk, payload.alergeno_id)
+        )
+
+    def update_alergeno_mine(
+        self,
+        productor: Productor,
+        insumo_id: int,
+        alergeno_id: int,
+        payload: InsumoAlergenoUpdate,
+    ) -> AlergenoDeclaradoRead:
+        insumo = self._get_owned_or_raise(productor.id, insumo_id)
+        insumo_pk = insumo.id
+        declarado = self._get_declarado_or_raise(insumo_pk, alergeno_id)
+        if declarado.tipo != payload.tipo:
+            declarado.tipo = payload.tipo
+            self.repository.touch(insumo)
+            self.repository.commit()
+            declarado = self._get_declarado_or_raise(insumo_pk, alergeno_id)
+        return AlergenoDeclaradoRead.from_declarado(declarado)
+
+    def delete_alergeno_mine(
+        self,
+        productor: Productor,
+        insumo_id: int,
+        alergeno_id: int,
+    ) -> None:
+        insumo = self._get_owned_or_raise(productor.id, insumo_id)
+        declarado = self._get_declarado_or_raise(insumo.id, alergeno_id)
+        self.repository.delete_declarado(declarado)
+        self.repository.touch(insumo)
+        self.repository.commit()
+
     # --- helpers ---
+
+    def _get_declarado_or_raise(self, insumo_id: int, alergeno_id: int):
+        declarado = self.repository.get_declarado(insumo_id, alergeno_id)
+        if declarado is None:
+            raise InsumoAlergenoNotFoundError("Asociación de alérgeno no encontrada.")
+        return declarado
 
     def _get_owned_or_raise(self, productor_id: int, insumo_id: int) -> InsumoComercial:
         insumo = self.repository.get_by_id_and_productor(insumo_id, productor_id)
@@ -188,6 +282,4 @@ class InsumoService:
             existente = self.repository.find_by_codigo_barras(productor_id, codigo_barras)
             if existente is not None:
                 raise DuplicateCodigoBarrasError(existente) from exc
-        raise InsumoConflictError(
-            "No se pudo guardar el insumo por un cambio simultáneo. Inténtalo nuevamente."
-        ) from exc
+        raise InsumoConflictError(MENSAJE_CAMBIO_SIMULTANEO) from exc

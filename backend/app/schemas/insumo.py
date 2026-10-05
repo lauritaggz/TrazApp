@@ -14,6 +14,7 @@ from app.core.codigo_barras import normalizar_codigo_barras, validar_codigo_barr
 from app.models.insumo import TIPO_CONTIENE
 
 FuenteInsumo = Literal["manual", "open_food_facts"]
+TipoDeclaracion = Literal["contiene", "trazas"]
 
 # These fields cannot be cleared with an explicit null in a PATCH.
 _NOT_NULLABLE_UPDATE_FIELDS = (
@@ -150,14 +151,56 @@ class IngredienteResumenRead(BaseModel):
     nombre: str
 
 
+class InsumoAlergenoCreate(BaseModel):
+    """Declare an allergen from the global catalog on a supply (HU04 / T04-04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    alergeno_id: int = Field(gt=0)
+    tipo: TipoDeclaracion
+
+
+class InsumoAlergenoUpdate(BaseModel):
+    """Change the declaration type of an allergen already declared by the supply."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: TipoDeclaracion
+
+
 class AlergenoDeclaradoRead(BaseModel):
-    """Allergen declared by the supply with its declaration type (read-only here)."""
+    """Allergen declared by the supply with its declaration type."""
 
     alergeno_id: int
     codigo: str
     nombre: str
     obligatorio_chile: bool
-    tipo: Literal["contiene", "trazas"]
+    tipo: TipoDeclaracion
+
+    @classmethod
+    def from_declarado(cls, declarado: Any) -> "AlergenoDeclaradoRead":
+        return cls(
+            alergeno_id=declarado.alergeno_id,
+            codigo=declarado.alergeno.codigo,
+            nombre=declarado.alergeno.nombre,
+            obligatorio_chile=declarado.alergeno.obligatorio_chile,
+            tipo=declarado.tipo,
+        )
+
+
+def ordenar_declarados(declarados: Any) -> list[Any]:
+    """Order: those the supply contains first, then Chilean mandatory ones, then by name.
+
+    Single source of order for the supply detail and for the allergens endpoints.
+    """
+    return sorted(
+        declarados,
+        key=lambda d: (
+            d.tipo != TIPO_CONTIENE,
+            not d.alergeno.obligatorio_chile,
+            d.alergeno.nombre,
+        ),
+    )
 
 
 class InsumoRead(BaseModel):
@@ -186,14 +229,6 @@ class InsumoRead(BaseModel):
 
     @classmethod
     def from_insumo(cls, insumo: Any) -> "InsumoRead":
-        declarados = sorted(
-            insumo.alergenos_declarados,
-            key=lambda d: (
-                d.tipo != TIPO_CONTIENE,
-                not d.alergeno.obligatorio_chile,
-                d.alergeno.nombre,
-            ),
-        )
         return cls(
             id=insumo.id,
             productor_id=insumo.productor_id,
@@ -213,13 +248,7 @@ class InsumoRead(BaseModel):
             created_at=insumo.created_at,
             updated_at=insumo.updated_at,
             alergenos_declarados=[
-                AlergenoDeclaradoRead(
-                    alergeno_id=d.alergeno_id,
-                    codigo=d.alergeno.codigo,
-                    nombre=d.alergeno.nombre,
-                    obligatorio_chile=d.alergeno.obligatorio_chile,
-                    tipo=d.tipo,
-                )
-                for d in declarados
+                AlergenoDeclaradoRead.from_declarado(d)
+                for d in ordenar_declarados(insumo.alergenos_declarados)
             ],
         )
