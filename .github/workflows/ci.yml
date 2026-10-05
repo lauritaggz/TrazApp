@@ -28,9 +28,6 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    env:
-      # app/main.py crea esta carpeta al importarse; /uploads (el valor por defecto) no es escribible en el runner.
-      UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +41,11 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       # Sin TEST_DATABASE_URL, las pruebas usan SQLite en memoria.
+      # El contexto runner solo se permite dentro de los pasos, no en el env del trabajo.
+      # app/main.py crea esta carpeta al importarse; /uploads (por defecto) no es escribible en el runner.
       - name: Ejecutar pruebas
+        env:
+          UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
         run: python -m pytest -q --junitxml=resultados.xml
 
       # always(): se publica el resumen aunque las pruebas hayan fallado.
@@ -76,8 +77,6 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      # app/main.py crea esta carpeta al importarse; /uploads (el valor por defecto) no es escribible en el runner.
-      UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
       # La base trazapp_test la crea conftest.py si no existe.
       TEST_DATABASE_URL: postgresql+psycopg2://trazapp_ci:ci_password_desechable@localhost:5432/trazapp_test
     steps:
@@ -92,7 +91,11 @@ jobs:
       - name: Instalar dependencias
         run: python -m pip install -r requirements.txt
 
+      # El contexto runner solo se permite dentro de los pasos, no en el env del trabajo.
+      # app/main.py crea esta carpeta al importarse; /uploads (por defecto) no es escribible en el runner.
       - name: Ejecutar pruebas
+        env:
+          UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
         run: python -m pytest -q --junitxml=resultados.xml
 
       - name: Resumen de pruebas
