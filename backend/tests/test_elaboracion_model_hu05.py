@@ -170,16 +170,39 @@ def test_el_estado_solo_admite_borrador_o_finalizada(
 def test_finalizada_exige_su_fecha_de_finalizacion_y_borrador_no_la_admite(
     db_session: Session, escenario: dict
 ) -> None:
+    """finalizada_at goes with the state. An elaboración is born as borrador and is finalized later."""
     from datetime import datetime, timezone
 
     ahora = datetime(2026, 10, 6, 15, 0, tzinfo=timezone.utc)
     productor, producto, version = escenario["productor"], escenario["producto"], escenario["version"]
 
-    _rechaza(db_session, _elaboracion(productor, producto, version, "E-001", estado="finalizada"))
+    # A borrador cannot carry a finalization date.
     _rechaza(db_session, _elaboracion(productor, producto, version, "E-002", finalizada_at=ahora))
 
-    valida = _elaboracion(productor, producto, version, "E-003", estado="finalizada", finalizada_at=ahora)
+    # Becoming finalizada without the date is rejected (CHECK; on PostgreSQL the trigger says it first).
+    sin_fecha = _elaboracion(productor, producto, version, "E-001")
+    _guardar(db_session, sin_fecha)
+    sin_fecha.estado = "finalizada"
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
+    # With the date, and its use already carrying its copy, it is finalized.
+    valida = _elaboracion(productor, producto, version, "E-003")
     _guardar(db_session, valida)
+    _guardar(
+        db_session,
+        UsoInsumo(
+            elaboracion_id=valida.id,
+            ingrediente_id=escenario["ingrediente"].id,
+            insumo_id=escenario["insumo"].id,
+            sin_lote=True,
+            informacion_conservada={"esquema": 1},
+        ),
+    )
+    valida.estado = "finalizada"
+    valida.finalizada_at = ahora
+    db_session.commit()
     assert db_session.get(Elaboracion, valida.id).estado == "finalizada"
 
 

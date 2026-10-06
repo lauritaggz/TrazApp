@@ -88,12 +88,20 @@ class ElaboracionRepository:
             self.db.scalars(select(Elaboracion.codigo).where(Elaboracion.producto_id == producto_id))
         )
 
-    def find_by_codigo(self, producto_id: int, codigo: str) -> Elaboracion | None:
+    def find_by_codigo(
+        self,
+        producto_id: int,
+        codigo: str,
+        *,
+        exclude_id: int | None = None,
+    ) -> Elaboracion | None:
         """Elaboración of the product with that code, ignoring case."""
         stmt = select(Elaboracion).where(
             Elaboracion.producto_id == producto_id,
             func.lower(Elaboracion.codigo) == codigo.lower(),
         )
+        if exclude_id is not None:
+            stmt = stmt.where(Elaboracion.id != exclude_id)
         return self.db.scalar(stmt)
 
     def habituales_activos(
@@ -256,6 +264,10 @@ class ElaboracionRepository:
 
     def add(self, elaboracion: Elaboracion) -> None:
         self.db.add(elaboracion)
+
+    def delete(self, elaboracion: Elaboracion) -> None:
+        """Delete a borrador; its uses go with it (ORM cascade and ON DELETE CASCADE)."""
+        self.db.delete(elaboracion)
 
     def add_uso(self, uso: UsoInsumo) -> None:
         self.db.add(uso)

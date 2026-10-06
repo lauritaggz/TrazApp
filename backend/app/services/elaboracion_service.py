@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 
+from app.db.triggers_elaboracion import MARCADOR_FINALIZADA, MARCADOR_NACE_BORRADOR, MARCADORES
 from app.models import Elaboracion, LoteInsumo, Productor, UsoInsumo
 from app.models.elaboracion import ESTADO_BORRADOR, ESTADO_FINALIZADA
 from app.repositories.elaboracion_repository import ElaboracionRepository
@@ -13,6 +14,7 @@ from app.schemas.elaboracion import (
     ElaboracionCreate,
     ElaboracionRead,
     ElaboracionResumenRead,
+    ElaboracionUpdate,
     EstadoElaboracion,
     LoteExistenteInput,
     LoteNuevoInput,
@@ -37,6 +39,11 @@ MENSAJE_SIN_FORMULACION = (
 )
 MENSAJE_FECHA_FUTURA = "La fecha de elaboración no puede ser futura."
 MENSAJE_FINALIZADA = "La elaboración está finalizada y no puede modificarse."
+MENSAJE_NACE_BORRADOR = "Una elaboración debe crearse como borrador."
+MENSAJE_FINALIZADA_ELIMINAR = "La elaboración está finalizada y no puede eliminarse."
+MENSAJE_FINALIZACION_INCOMPLETA = (
+    "No se pudo finalizar: algún ingrediente no tiene su insumo o su información conservada."
+)
 MENSAJE_YA_FINALIZADA = "La elaboración ya está finalizada."
 MENSAJE_FINALIZACION_BLOQUEADA = (
     "No se puede finalizar la elaboración: hay ingredientes con información pendiente o no disponible."
@@ -112,6 +119,23 @@ class InvalidElaboracionError(Exception):
     def __init__(self, message: str, ingrediente_id: int | None = None) -> None:
         self.ingrediente_id = ingrediente_id
         super().__init__(message)
+
+
+def traducir_error_de_base(exc: IntegrityError, mensaje_finalizada: str = MENSAJE_FINALIZADA) -> Exception | None:
+    """409 error for a database trigger that protects a finalized elaboración, or None.
+
+    The service checks the state first, so the triggers are only reached by a bug or a race: they
+    answer the same 409 instead of a 500.
+    """
+    diag = getattr(getattr(exc, "orig", None), "diag", None)
+    texto = getattr(diag, "message_primary", None) or str(getattr(exc, "orig", exc))
+    if MARCADOR_FINALIZADA in texto:
+        return ElaboracionFinalizadaError(mensaje_finalizada)
+    if MARCADOR_NACE_BORRADOR in texto:
+        return ElaboracionConflictError(MENSAJE_NACE_BORRADOR)
+    if any(marcador in texto for marcador in MARCADORES):
+        return ElaboracionConflictError(MENSAJE_FINALIZACION_INCOMPLETA)
+    return None
 
 
 def hoy_santiago() -> date:
@@ -346,6 +370,12 @@ class ElaboracionService:
                 uso.sin_lote = sin_lote
             repo.flush()
             repo.commit()
+        except IntegrityError as exc:
+            repo.rollback()
+            traducido = traducir_error_de_base(exc)
+            if traducido is not None:
+                raise traducido from exc
+            raise
         except BaseException:
             repo.rollback()
             raise
@@ -391,6 +421,12 @@ class ElaboracionService:
             repo.flush()
             repo.marcar_finalizada(elaboracion, ahora)
             repo.commit()
+        except IntegrityError as exc:
+            repo.rollback()
+            traducido = traducir_error_de_base(exc)
+            if traducido is not None:
+                raise traducido from exc
+            raise
         except BaseException:
             repo.rollback()
             raise
@@ -421,6 +457,85 @@ class ElaboracionService:
             elif uso.lote_id is None and not uso.sin_lote:
                 problema(linea, "lote")
         return problemas
+
+    def update_borrador_mine(
+        self,
+        productor: Productor,
+        elaboracion_id: int,
+        payload: ElaboracionUpdate,
+    ) -> ElaboracionRead:
+        """Change the code and/or the date of a borrador (same rules as the creation).
+
+        A finalizada answers 409. The change is atomic: nothing is applied if any field is invalid.
+        """
+        # Read the id up front: after a failed flush the session cannot refresh ORM objects.
+        productor_id = productor.id
+        repo = self.repository
+        cambios = payload.model_dump(exclude_unset=True)
+        producto_id: int | None = None
+        codigo: str | None = None
+        try:
+            elaboracion = repo.lock_elaboracion(elaboracion_id, productor_id)
+            if elaboracion is None:
+                raise ElaboracionNotFoundError("Elaboración no encontrada")
+            if elaboracion.estado != ESTADO_BORRADOR:
+                raise ElaboracionFinalizadaError(MENSAJE_FINALIZADA)
+            producto_id = elaboracion.producto_id
+            if "fecha" in cambios and cambios["fecha"] > hoy_santiago():
+                raise InvalidElaboracionError(MENSAJE_FECHA_FUTURA)
+            if "codigo" in cambios:
+                codigo = cambios["codigo"]
+                if repo.find_by_codigo(producto_id, codigo, exclude_id=elaboracion_id) is not None:
+                    raise CodigoElaboracionRepetidoError(
+                        codigo, sugerir_codigo(repo.list_codigos(producto_id))
+                    )
+                elaboracion.codigo = codigo
+            if "fecha" in cambios:
+                elaboracion.fecha_elaboracion = cambios["fecha"]
+            repo.flush()
+            repo.commit()
+        except IntegrityError as exc:
+            repo.rollback()
+            traducido = traducir_error_de_base(exc)
+            if traducido is not None:
+                raise traducido from exc
+            if codigo is not None and producto_id is not None and repo.find_by_codigo(
+                producto_id, codigo, exclude_id=elaboracion_id
+            ) is not None:
+                raise CodigoElaboracionRepetidoError(
+                    codigo, sugerir_codigo(repo.list_codigos(producto_id))
+                ) from exc
+            raise
+        except BaseException:
+            repo.rollback()
+            raise
+        return self._read(repo.reload(elaboracion_id, productor_id))
+
+    def delete_borrador_mine(self, productor: Productor, elaboracion_id: int) -> None:
+        """Delete a borrador and its uses. A finalizada cannot be deleted (409).
+
+        The product version stays flagged as used: it was used by this borrador while it existed.
+        """
+        productor_id = productor.id
+        repo = self.repository
+        try:
+            elaboracion = repo.lock_elaboracion(elaboracion_id, productor_id)
+            if elaboracion is None:
+                raise ElaboracionNotFoundError("Elaboración no encontrada")
+            if elaboracion.estado != ESTADO_BORRADOR:
+                raise ElaboracionFinalizadaError(MENSAJE_FINALIZADA_ELIMINAR)
+            repo.delete(elaboracion)
+            repo.flush()
+            repo.commit()
+        except IntegrityError as exc:
+            repo.rollback()
+            traducido = traducir_error_de_base(exc, MENSAJE_FINALIZADA_ELIMINAR)
+            if traducido is not None:
+                raise traducido from exc
+            raise
+        except BaseException:
+            repo.rollback()
+            raise
 
     def list_lotes_mine(self, productor: Productor, insumo_id: int) -> list[LoteRead]:
         if self.repository.get_insumo_propio(insumo_id, productor.id) is None:

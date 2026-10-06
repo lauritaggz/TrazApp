@@ -20,6 +20,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.triggers_elaboracion import instalar_en_tablas
 
 # Lifecycle of an elaboración (HU05): editable while borrador, immutable once finalizada.
 ESTADO_BORRADOR = "borrador"
@@ -247,3 +248,6 @@ Index(
 Index("ix_elaboraciones_version_producto_id", Elaboracion.version_producto_id)
 Index("ix_usos_insumo_insumo_id", UsoInsumo.insumo_id)
 Index("ix_usos_insumo_lote_id", UsoInsumo.lote_id)
+
+# PostgreSQL triggers that make a finalized elaboración immutable (same SQL as migration 016).
+instalar_en_tablas(Elaboracion.__table__, UsoInsumo.__table__)

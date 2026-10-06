@@ -421,7 +421,16 @@ def test_finalizada_at_esta_ligada_al_estado_finalizada(db_at_015: Engine) -> No
     _rechaza(db_at_015, lambda: _elaborar(db_at_015, "E-001", estado="finalizada"))
     _rechaza(db_at_015, lambda: _elaborar(db_at_015, "E-002", finalizada_at="2026-10-06 12:00+00"))
 
-    _elaborar(db_at_015, "E-003", estado="finalizada", finalizada_at="2026-10-06 12:00+00")
+    # Born as borrador and finalized afterwards (the way the application does it).
+    borrador = _elaborar(db_at_015, "E-003")
+    with db_at_015.begin() as conn:
+        conn.execute(
+            text("UPDATE elaboraciones SET estado = 'finalizada', finalizada_at = '2026-10-06 12:00+00' WHERE id = :e"),
+            {"e": borrador},
+        )
+    with pytest.raises(IntegrityError):
+        with db_at_015.begin() as conn:
+            conn.execute(text("UPDATE elaboraciones SET estado = 'finalizada', finalizada_at = NULL WHERE id = :e"), {"e": _elaborar(db_at_015, "E-004")})
 
 
 @pytest.mark.parametrize("codigo", ["", "   "])

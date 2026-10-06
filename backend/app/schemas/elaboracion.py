@@ -12,6 +12,17 @@ FaltanteUso = Literal["insumo", "lote"]
 MAX_CODIGO = 100
 
 
+def _normalizar_codigo(value: str | None) -> str | None:
+    if value is None:
+        return None
+    codigo = value.strip()
+    if not codigo:
+        raise ValueError("codigo no puede estar vacío")
+    if len(codigo) > MAX_CODIGO:
+        raise ValueError(f"codigo no puede superar los {MAX_CODIGO} caracteres")
+    return codigo
+
+
 class ElaboracionCreate(BaseModel):
     """Create payload of an elaboración borrador (HU05).
 
@@ -27,14 +38,31 @@ class ElaboracionCreate(BaseModel):
     @field_validator("codigo")
     @classmethod
     def normalize_codigo(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        codigo = value.strip()
-        if not codigo:
-            raise ValueError("codigo no puede estar vacío")
-        if len(codigo) > MAX_CODIGO:
-            raise ValueError(f"codigo no puede superar los {MAX_CODIGO} caracteres")
-        return codigo
+        return _normalizar_codigo(value)
+
+
+class ElaboracionUpdate(BaseModel):
+    """Partial update of a borrador (HU05): only the code and the date can change.
+
+    Same rules as the creation; an explicit null is rejected because neither can be cleared.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    codigo: str | None = None
+    fecha: date | None = None
+
+    @field_validator("codigo")
+    @classmethod
+    def normalize_codigo(cls, value: str | None) -> str | None:
+        return _normalizar_codigo(value)
+
+    @model_validator(mode="after")
+    def reject_explicit_null(self) -> Self:
+        for campo in ("codigo", "fecha"):
+            if campo in self.model_fields_set and getattr(self, campo) is None:
+                raise ValueError(f"{campo} no puede ser null")
+        return self
 
 
 class CodigoSugeridoRead(BaseModel):

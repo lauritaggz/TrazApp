@@ -9,7 +9,7 @@ Persistence from an independent session and concurrency: test_persistencia_final
 from datetime import datetime
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 
 from app.models import Elaboracion, LoteInsumo, UsoInsumo, VersionProducto
 from tests.escenario_hu05 import (
@@ -411,8 +411,20 @@ def test_una_finalizada_sin_informacion_conservada_no_se_lee_desde_el_insumo_vig
     """Defensive: a corrupted row must fail loudly instead of silently showing live data."""
     _asignar(client, ctx)
     _finalizar(client, ctx)
-    db_session.execute(update(UsoInsumo).values(informacion_conservada=None))
-    db_session.commit()
+    # The PostgreSQL trigger forbids touching the uses of a finalizada: lift it to simulate the damage,
+    # and ALWAYS put it back, even if the update fails (the schema is shared by the next tests).
+    postgresql = db_session.get_bind().dialect.name == "postgresql"
+    if postgresql:
+        db_session.execute(text("ALTER TABLE usos_insumo DISABLE TRIGGER trg_usos_insumo_elaboracion_abierta"))
+        db_session.commit()
+    try:
+        db_session.execute(update(UsoInsumo).values(informacion_conservada=None))
+        db_session.commit()
+    finally:
+        db_session.rollback()
+        if postgresql:
+            db_session.execute(text("ALTER TABLE usos_insumo ENABLE TRIGGER trg_usos_insumo_elaboracion_abierta"))
+            db_session.commit()
 
     with pytest.raises(RuntimeError, match="no tiene información conservada"):
         _detalle(client, ctx)

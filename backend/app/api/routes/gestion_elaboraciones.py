@@ -7,6 +7,7 @@ from app.schemas.elaboracion import (
     ElaboracionCreate,
     ElaboracionRead,
     ElaboracionResumenRead,
+    ElaboracionUpdate,
     EstadoElaboracion,
     LoteRead,
     UsosReemplazo,
@@ -149,6 +150,37 @@ def finalizar_elaboracion(
 ) -> ElaboracionRead:
     try:
         return service.finalizar_mine(current_productor, elaboracion_id)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc
+
+
+@router.patch("/elaboraciones/{elaboracion_id}", response_model=ElaboracionRead)
+def actualizar_elaboracion(
+    elaboracion_id: int,
+    payload: ElaboracionUpdate,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionRead:
+    try:
+        return service.update_borrador_mine(current_productor, elaboracion_id, payload)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc
+    except InvalidElaboracionError as exc:
+        raise _invalid_error(exc) from exc
+
+
+@router.delete("/elaboraciones/{elaboracion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_elaboracion(
+    elaboracion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> None:
+    try:
+        service.delete_borrador_mine(current_productor, elaboracion_id)
     except ElaboracionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ElaboracionConflictError as exc:
