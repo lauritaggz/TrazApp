@@ -5,12 +5,10 @@ PUT /gestion/elaboraciones/{id}/usos and GET /gestion/insumos/{id}/lotes. Covers
 supply of an ingredient does not touch the formulation), and every validation.
 """
 
-from datetime import datetime, timezone
-
 import pytest
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 
-from app.models import Elaboracion, LoteInsumo, UsoInsumo, VersionProducto
+from app.models import LoteInsumo, UsoInsumo, VersionProducto
 from tests.escenario_hu05 import (
     PRODUCTOR_B,
     crear_elaboracion,
@@ -83,13 +81,10 @@ def _lotes(db_session, insumo_id: int | None = None) -> list[LoteInsumo]:
     return list(db_session.scalars(stmt))
 
 
-def _finalizar_en_la_base(db_session, elaboracion_id: int) -> None:
-    db_session.execute(
-        update(Elaboracion)
-        .where(Elaboracion.id == elaboracion_id)
-        .values(estado="finalizada", finalizada_at=datetime.now(timezone.utc))
+def _finalizar(client, ctx, elaboracion_id: int | None = None):
+    return client.post(
+        f"/gestion/elaboraciones/{elaboracion_id or ctx['elaboracion']['id']}/finalizar", headers=ctx["headers"]
     )
-    db_session.commit()
 
 
 # --- autenticación -----------------------------------------------------------------------
@@ -290,9 +285,9 @@ def test_una_elaboracion_ajena_o_inexistente_responde_404_y_no_cambia_nada(clien
 
 
 def test_una_elaboracion_finalizada_no_admite_cambios(client, ctx, db_session) -> None:
-    _put(client, ctx, _completo(ctx))
+    assert _put(client, ctx, _completo(ctx)).status_code == 200
+    assert _finalizar(client, ctx).status_code == 200
     antes = _detalle(client, ctx)
-    _finalizar_en_la_base(db_session, ctx["elaboracion"]["id"])
 
     response = _put(
         client,

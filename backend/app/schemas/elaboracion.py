@@ -4,6 +4,8 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.insumo import AlergenoDeclaradoRead, ordenar_declarados
+
 EstadoElaboracion = Literal["borrador", "finalizada"]
 FaltanteUso = Literal["insumo", "lote"]
 
@@ -127,14 +129,22 @@ class VersionResumenRead(BaseModel):
 
 
 class InsumoUsadoRead(BaseModel):
-    """Live data of the supply assigned to a borrador (a finalizada reads its copy, T05-04)."""
+    """The supply assigned to an ingredient.
+
+    A borrador shows the live supply (`activo` and `habitual` are its current flags); a finalizada
+    shows the copy conserved when it was finalized, which has no live flags (both are null).
+    """
 
     id: int
     nombre: str
     marca_origen: str
     presentacion: str | None
-    activo: bool
-    habitual: bool
+    codigo_barras: str | None
+    ingredientes_declarados: str | None
+    advertencias: str | None
+    alergenos: list[AlergenoDeclaradoRead]
+    activo: bool | None
+    habitual: bool | None
 
 
 class LoteUsadoRead(BaseModel):
@@ -156,6 +166,10 @@ class UsoInsumoRead(BaseModel):
     sin_lote: bool
     pendiente: bool
     falta: list[FaltanteUso]
+    # Warnings for a borrador, so the interface can show them before the productor saves or
+    # finalizes. Always false in a finalizada: its copy no longer depends on them.
+    insumo_desactivado: bool
+    ingrediente_desactivado: bool
 
 
 class ElaboracionRead(BaseModel):
@@ -176,9 +190,14 @@ class ElaboracionRead(BaseModel):
         elaboracion: Any,
         lineas: dict[int, Any],
     ) -> "ElaboracionRead":
-        """`lineas` maps ingrediente_id to the formulation line of the elaboración's version."""
+        """`lineas` maps ingrediente_id to the formulation line of the elaboración's version.
+
+        A finalizada is built ONLY from the information conserved in each use: it never reads the
+        current supply, its allergens or its lot. A borrador shows the live assignment.
+        """
+        construir = _uso_conservado_read if elaboracion.estado == "finalizada" else _uso_read
         usos = [
-            _uso_read(uso, lineas[uso.ingrediente_id])
+            construir(uso, lineas[uso.ingrediente_id])
             for uso in sorted(
                 elaboracion.usos,
                 key=lambda u: (
@@ -208,6 +227,40 @@ class ElaboracionRead(BaseModel):
         )
 
 
+def _uso_conservado_read(uso: Any, linea: Any) -> UsoInsumoRead:
+    """Read of a finalizada use from its conserved copy (never from the live supply)."""
+    copia = uso.informacion_conservada
+    if copia is None:
+        raise RuntimeError(f"El uso {uso.id} de una elaboración finalizada no tiene información conservada.")
+    insumo = copia["insumo"]
+    lote = copia["lote"]
+    return UsoInsumoRead(
+        ingrediente_id=copia["ingrediente"]["id"],
+        ingrediente_nombre=copia["ingrediente"]["nombre"],
+        orden=linea.orden,
+        cantidad=linea.cantidad,
+        unidad=linea.unidad,
+        insumo=InsumoUsadoRead(
+            id=insumo["id"],
+            nombre=insumo["nombre"],
+            marca_origen=insumo["marca_origen"],
+            presentacion=insumo["presentacion"],
+            codigo_barras=insumo["codigo_barras"],
+            ingredientes_declarados=insumo["ingredientes_declarados"],
+            advertencias=insumo["advertencias"],
+            alergenos=[AlergenoDeclaradoRead(**alergeno) for alergeno in copia["alergenos"]],
+            activo=None,
+            habitual=None,
+        ),
+        lote=LoteUsadoRead(**lote) if lote is not None else None,
+        sin_lote=copia["sin_lote"],
+        pendiente=False,
+        falta=[],
+        insumo_desactivado=False,
+        ingrediente_desactivado=False,
+    )
+
+
 def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
     insumo = uso.insumo
     lote = uso.lote
@@ -228,6 +281,13 @@ def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
                 nombre=insumo.nombre,
                 marca_origen=insumo.marca_origen,
                 presentacion=insumo.presentacion,
+                codigo_barras=insumo.codigo_barras,
+                ingredientes_declarados=insumo.ingredientes_declarados,
+                advertencias=insumo.advertencias,
+                alergenos=[
+                    AlergenoDeclaradoRead.from_declarado(declarado)
+                    for declarado in ordenar_declarados(insumo.alergenos_declarados)
+                ],
                 activo=insumo.activo,
                 habitual=insumo.habitual,
             )
@@ -246,6 +306,8 @@ def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
         sin_lote=uso.sin_lote,
         pendiente=bool(falta),
         falta=falta,
+        insumo_desactivado=insumo is not None and not insumo.activo,
+        ingrediente_desactivado=not linea.ingrediente.activo,
     )
 
 

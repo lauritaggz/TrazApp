@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models import (
     Elaboracion,
     FormulacionVersionProducto,
+    InsumoAlergeno,
     InsumoComercial,
     LoteInsumo,
     Producto,
     UsoInsumo,
 )
+from app.models.elaboracion import ESTADO_FINALIZADA
 
 
 class ElaboracionRepository:
@@ -26,11 +28,22 @@ class ElaboracionRepository:
         return (
             joinedload(Elaboracion.producto),
             joinedload(Elaboracion.version_producto),
-            selectinload(Elaboracion.usos).options(
-                joinedload(UsoInsumo.insumo),
-                joinedload(UsoInsumo.lote),
-            ),
+            selectinload(Elaboracion.usos),
         )
+
+    def cargar_asignacion_vigente(self, elaboracion_id: int) -> None:
+        """Load the live supplies, allergens and lots of a borrador's uses (not for a finalizada)."""
+        stmt = (
+            select(UsoInsumo)
+            .options(
+                joinedload(UsoInsumo.insumo)
+                .selectinload(InsumoComercial.alergenos_declarados)
+                .joinedload(InsumoAlergeno.alergeno),
+                joinedload(UsoInsumo.lote),
+            )
+            .where(UsoInsumo.elaboracion_id == elaboracion_id)
+        )
+        self.db.scalars(stmt).unique().all()
 
     def get_producto_activo(self, producto_id: int, productor_id: int) -> Producto | None:
         stmt = select(Producto).where(
@@ -180,6 +193,44 @@ class ElaboracionRepository:
             InsumoComercial.productor_id == productor_id,
         )
         return self.db.scalar(stmt)
+
+    def lock_insumos_compartido(
+        self,
+        productor_id: int,
+        insumo_ids: list[int],
+    ) -> dict[int, InsumoComercial]:
+        """Supplies of the productor with their allergens, locked FOR SHARE (no-op on SQLite).
+
+        Nobody can change them until the transaction ends: the copy taken while finalizing is
+        the state they have when the elaboración is finalized. Allergen changes renew the
+        supply row (`touch`), so they wait too.
+        """
+        if not insumo_ids:
+            return {}
+        stmt = (
+            select(InsumoComercial)
+            .options(
+                selectinload(InsumoComercial.alergenos_declarados).joinedload(InsumoAlergeno.alergeno)
+            )
+            .where(
+                InsumoComercial.id.in_(insumo_ids),
+                InsumoComercial.productor_id == productor_id,
+            )
+            .order_by(InsumoComercial.id)
+            .with_for_update(read=True)
+        )
+        return {insumo.id: insumo for insumo in self.db.scalars(stmt)}
+
+    def lotes_por_id(self, lote_ids: list[int]) -> dict[int, LoteInsumo]:
+        if not lote_ids:
+            return {}
+        stmt = select(LoteInsumo).where(LoteInsumo.id.in_(lote_ids))
+        return {lote.id: lote for lote in self.db.scalars(stmt)}
+
+    def marcar_finalizada(self, elaboracion: Elaboracion, finalizada_at) -> None:
+        elaboracion.estado = ESTADO_FINALIZADA
+        elaboracion.finalizada_at = finalizada_at
+        self.db.flush()
 
     def get_lote(self, lote_id: int) -> LoteInsumo | None:
         return self.db.get(LoteInsumo, lote_id)

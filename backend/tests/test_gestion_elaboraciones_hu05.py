@@ -321,6 +321,10 @@ def test_pt05_04_el_insumo_habitual_activo_queda_preseleccionado(client, ctx) ->
         "nombre": "Leche Colun Semidescremada 1 L",
         "marca_origen": "Marca",
         "presentacion": None,
+        "codigo_barras": None,
+        "ingredientes_declarados": None,
+        "advertencias": None,
+        "alergenos": [],
         "activo": True,
         "habitual": True,
     }

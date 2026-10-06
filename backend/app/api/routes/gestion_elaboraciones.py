@@ -16,6 +16,7 @@ from app.services.elaboracion_service import (
     ElaboracionConflictError,
     ElaboracionNotFoundError,
     ElaboracionService,
+    FinalizacionBloqueadaError,
     IngredientesDesactivadosError,
     InvalidElaboracionError,
     LoteRepetidoError,
@@ -38,6 +39,8 @@ def _conflict_error(exc: ElaboracionConflictError) -> HTTPException:
     """409; some conflicts carry data the client needs to resolve them."""
     if isinstance(exc, CodigoElaboracionRepetidoError):
         detail: object = {"mensaje": str(exc), "codigo_sugerido": exc.codigo_sugerido}
+    elif isinstance(exc, FinalizacionBloqueadaError):
+        detail = {"mensaje": str(exc), "problemas": exc.problemas}
     elif isinstance(exc, LoteRepetidoError):
         detail = {
             "mensaje": str(exc),
@@ -136,3 +139,17 @@ def listar_lotes_del_insumo(
         return service.list_lotes_mine(current_productor, insumo_id)
     except InsumoNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post("/elaboraciones/{elaboracion_id}/finalizar", response_model=ElaboracionRead)
+def finalizar_elaboracion(
+    elaboracion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionRead:
+    try:
+        return service.finalizar_mine(current_productor, elaboracion_id)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc

@@ -103,6 +103,60 @@ def preparar(client, headers) -> dict:
     }
 
 
+EAN_LECHE = "7802910000971"
+
+
+def crear_alergenos(sesion) -> dict[str, int]:
+    """Catalog allergens (the test schema has no seed): leche and apio, soya as traces."""
+    from app.models import Alergeno
+
+    filas = {
+        "leche": Alergeno(codigo="leche", nombre="Leche", obligatorio_chile=True),
+        "soya": Alergeno(codigo="soya", nombre="Soya", obligatorio_chile=True),
+        "apio": Alergeno(codigo="apio", nombre="Apio", obligatorio_chile=False),
+    }
+    sesion.add_all(filas.values())
+    sesion.commit()
+    return {codigo: alergeno.id for codigo, alergeno in filas.items()}
+
+
+def completar_insumo(client, headers, insumo_id: int, alergenos: dict[str, int]) -> None:
+    """Give the supply every conserved field, a raw source sheet and three declared allergens."""
+    response = client.patch(
+        f"/gestion/insumos/{insumo_id}",
+        headers=headers,
+        json={
+            "presentacion": "Caja 1 L",
+            "codigo_barras": EAN_LECHE,
+            "ingredientes_declarados": "Leche semidescremada, vitaminas A y D",
+            "advertencias": "Puede contener trazas de soya",
+            "ficha": {"product_name": "ficha cruda de la fuente"},
+            "fuente": "open_food_facts",
+            "fecha_recuperacion": "2026-10-01T12:00:00Z",
+        },
+    )
+    assert response.status_code == 200, response.text
+    for codigo, tipo in (("soya", "trazas"), ("apio", "contiene"), ("leche", "contiene")):
+        respuesta = client.post(
+            f"/gestion/insumos/{insumo_id}/alergenos",
+            headers=headers,
+            json={"alergeno_id": alergenos[codigo], "tipo": tipo},
+        )
+        assert respuesta.status_code == 201, respuesta.text
+
+
+def asignacion_completa(ctx: dict) -> list[dict]:
+    """Harina without lot and leche with a new lot: every line complete."""
+    return [
+        {"ingrediente_id": ctx["harina"]["id"], "insumo_id": ctx["insumo_harina"]["id"], "lote": {"tipo": "sin_lote"}},
+        {
+            "ingrediente_id": ctx["leche"]["id"],
+            "insumo_id": ctx["insumo_habitual"]["id"],
+            "lote": {"tipo": "nuevo", "codigo": "X123", "fecha_vencimiento": "2026-10-15"},
+        },
+    ]
+
+
 class Pausa:
     """Stops the first caller of a repository method until the test lets it continue."""
 
