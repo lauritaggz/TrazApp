@@ -27,10 +27,13 @@ const EMPTY_ERRORS: FormulacionDraftErrors = { lineas: {} };
 
 interface ProductFormulationSectionProps {
   productoId: number;
+  /** Called after a formulation was saved (the elaboraciones section depends on it). */
+  onSaved?: () => void;
 }
 
 export default function ProductFormulationSection({
   productoId,
+  onSaved,
 }: ProductFormulationSectionProps) {
   const [formulacion, setFormulacion] = useState<FormulacionVigente | null>(null);
   const [loading, setLoading] = useState(true);
@@ -169,6 +172,7 @@ export default function ProductFormulationSection({
       const result = await saveProductFormulation(productoId, buildReemplazoPayload(draft));
       setFormulacion({ existe: true, version: result.version });
       setHistoryRefreshKey((key) => key + 1);
+      onSaved?.();
       setSuccessMessage(
         resultadoGuardadoMessage(result.resultado, result.version.numero_version),
       );
