@@ -1,8 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 EstadoElaboracion = Literal["borrador", "finalizada"]
 FaltanteUso = Literal["insumo", "lote"]
@@ -37,6 +37,83 @@ class ElaboracionCreate(BaseModel):
 
 class CodigoSugeridoRead(BaseModel):
     codigo: str
+
+
+class LoteNuevoInput(BaseModel):
+    """A lot that does not exist yet: it is created with the assignment (HU05, CA06)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["nuevo"]
+    codigo: str
+    fecha_vencimiento: date | None = None
+
+    @field_validator("codigo")
+    @classmethod
+    def normalize_codigo(cls, value: str) -> str:
+        codigo = value.strip()
+        if not codigo:
+            raise ValueError("codigo del lote no puede estar vacío")
+        if len(codigo) > MAX_CODIGO:
+            raise ValueError(f"codigo del lote no puede superar los {MAX_CODIGO} caracteres")
+        return codigo
+
+
+class LoteExistenteInput(BaseModel):
+    """A lot already registered for the same supply (HU05, CA07)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["existente"]
+    lote_id: int = Field(gt=0)
+
+
+class SinLoteInput(BaseModel):
+    """The productor states that the supply has no lot (HU05, CA06)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["sin_lote"]
+
+
+LoteInput = Annotated[
+    LoteNuevoInput | LoteExistenteInput | SinLoteInput,
+    Field(discriminator="tipo"),
+]
+
+
+class UsoInsumoInput(BaseModel):
+    """Assignment of one ingredient: a null supply or a missing lot leave it pending."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ingrediente_id: int = Field(gt=0)
+    insumo_id: int | None = Field(default=None, gt=0)
+    lote: LoteInput | None = None
+
+    @model_validator(mode="after")
+    def lote_requires_insumo(self) -> Self:
+        if self.insumo_id is None and self.lote is not None:
+            raise ValueError("No se puede indicar un lote sin insumo")
+        return self
+
+
+class UsosReemplazo(BaseModel):
+    """Full replacement of the assignment: one entry per ingredient of the version."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    usos: list[UsoInsumoInput] = Field(min_length=1)
+
+
+class LoteRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    insumo_id: int
+    codigo: str
+    fecha_vencimiento: date | None
+    created_at: datetime
 
 
 class ProductoResumenRead(BaseModel):

@@ -1,6 +1,7 @@
 """Helpers shared by the HU05 test modules: build a productor, products, ingredients,
 supplies and formulations through the real API."""
 
+import threading
 from typing import Any
 
 PRODUCTOR_A = {
@@ -100,3 +101,38 @@ def preparar(client, headers) -> dict:
         "insumo_otro": otro,
         "version": formulacion["version"],
     }
+
+
+class Pausa:
+    """Stops the first caller of a repository method until the test lets it continue."""
+
+    def __init__(self) -> None:
+        self.leido = threading.Event()
+        self.continuar = threading.Event()
+        self._usada = False
+
+    def instalar(self, monkeypatch, clase, nombre: str) -> None:
+        original = getattr(clase, nombre)
+        pausa = self
+
+        def envuelto(self, *args, **kwargs):
+            resultado = original(self, *args, **kwargs)
+            if not pausa._usada:
+                pausa._usada = True
+                pausa.leido.set()
+                assert pausa.continuar.wait(timeout=30), "el test no liberó la pausa"
+            return resultado
+
+        monkeypatch.setattr(clase, nombre, envuelto)
+
+
+def en_hilo(resultados: list, clave: str, funcion) -> threading.Thread:
+    def correr() -> None:
+        try:
+            resultados.append((clave, funcion()))
+        except BaseException as exc:  # noqa: BLE001 - the test inspects what happened
+            resultados.append((clave, exc))
+
+    hilo = threading.Thread(target=correr, daemon=True)
+    hilo.start()
+    return hilo

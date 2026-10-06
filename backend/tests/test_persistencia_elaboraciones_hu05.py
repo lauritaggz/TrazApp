@@ -9,7 +9,6 @@ Concurrency (PostgreSQL only): the product row lock serializes creations and for
 edits. A request is paused in the middle of the transaction to make the race deterministic.
 """
 
-import threading
 import time
 
 import pytest
@@ -20,7 +19,7 @@ from app.main import app
 from app.models import Elaboracion, FormulacionVersionProducto, UsoInsumo, VersionProducto
 from app.repositories.elaboracion_repository import ElaboracionRepository
 from tests.conftest import USE_POSTGRESQL
-from tests.escenario_hu05 import crear_elaboracion, crear_ingrediente, preparar, registrar
+from tests.escenario_hu05 import Pausa, crear_elaboracion, crear_ingrediente, en_hilo, preparar, registrar
 
 solo_postgresql = pytest.mark.skipif(
     not USE_POSTGRESQL,
@@ -165,41 +164,6 @@ def test_la_base_respalda_la_unicidad_del_codigo_si_la_comprobacion_previa_no_la
 # --- concurrencia (PostgreSQL) -----------------------------------------------------------
 
 
-class Pausa:
-    """Stops the first caller of a repository method until the test lets it continue."""
-
-    def __init__(self) -> None:
-        self.leido = threading.Event()
-        self.continuar = threading.Event()
-        self._usada = False
-
-    def instalar(self, monkeypatch, clase, nombre: str) -> None:
-        original = getattr(clase, nombre)
-        pausa = self
-
-        def envuelto(self, *args, **kwargs):
-            resultado = original(self, *args, **kwargs)
-            if not pausa._usada:
-                pausa._usada = True
-                pausa.leido.set()
-                assert pausa.continuar.wait(timeout=30), "el test no liberó la pausa"
-            return resultado
-
-        monkeypatch.setattr(clase, nombre, envuelto)
-
-
-def _en_hilo(resultados: list, clave: str, funcion) -> threading.Thread:
-    def correr() -> None:
-        try:
-            resultados.append((clave, funcion()))
-        except BaseException as exc:  # noqa: BLE001 - the test inspects what happened
-            resultados.append((clave, exc))
-
-    hilo = threading.Thread(target=correr, daemon=True)
-    hilo.start()
-    return hilo
-
-
 @solo_postgresql
 def test_dos_creaciones_simultaneas_sin_codigo_reciben_codigos_distintos(api, ctx, monkeypatch) -> None:
     """Without the product lock both would read the same suggestion and one would be rejected."""
@@ -211,9 +175,9 @@ def test_dos_creaciones_simultaneas_sin_codigo_reciben_codigos_distintos(api, ct
     def crear():
         return crear_elaboracion(TestClient(app), ctx["headers"], producto_id)
 
-    primero = _en_hilo(resultados, "primero", crear)
+    primero = en_hilo(resultados, "primero", crear)
     assert pausa.leido.wait(timeout=20)
-    segundo = _en_hilo(resultados, "segundo", crear)
+    segundo = en_hilo(resultados, "segundo", crear)
     time.sleep(1.0)  # With the lock the second waits here; without it, it finishes first.
     pausa.continuar.set()
     primero.join(timeout=30)
@@ -234,9 +198,9 @@ def test_dos_creaciones_simultaneas_con_el_mismo_codigo_solo_una_gana(api, ctx, 
     def crear(codigo: str):
         return lambda: crear_elaboracion(TestClient(app), ctx["headers"], producto_id, codigo=codigo)
 
-    primero = _en_hilo(resultados, "primero", crear("E-050"))
+    primero = en_hilo(resultados, "primero", crear("E-050"))
     assert pausa.leido.wait(timeout=20)
-    segundo = _en_hilo(resultados, "segundo", crear("e-050"))
+    segundo = en_hilo(resultados, "segundo", crear("e-050"))
     time.sleep(1.0)
     pausa.continuar.set()
     primero.join(timeout=30)
@@ -275,9 +239,9 @@ def test_crear_una_elaboracion_mientras_se_edita_la_formulacion_no_modifica_la_v
             json={"lineas": [{"ingrediente_id": azucar["id"]}]},
         )
 
-    creacion = _en_hilo(resultados, "creacion", crear)
+    creacion = en_hilo(resultados, "creacion", crear)
     assert pausa.leido.wait(timeout=20)
-    edicion = _en_hilo(resultados, "edicion", editar)
+    edicion = en_hilo(resultados, "edicion", editar)
     time.sleep(1.0)  # With the lock the edit waits here; without it, it finishes first.
     pausa.continuar.set()
     creacion.join(timeout=30)

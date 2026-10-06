@@ -4,7 +4,8 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Elaboracion, Productor, UsoInsumo
+from app.models import Elaboracion, LoteInsumo, Productor, UsoInsumo
+from app.models.elaboracion import ESTADO_BORRADOR
 from app.repositories.elaboracion_repository import ElaboracionRepository
 from app.schemas.elaboracion import (
     CodigoSugeridoRead,
@@ -12,9 +13,16 @@ from app.schemas.elaboracion import (
     ElaboracionRead,
     ElaboracionResumenRead,
     EstadoElaboracion,
+    LoteExistenteInput,
+    LoteNuevoInput,
+    LoteRead,
     ProductoResumenRead,
+    SinLoteInput,
+    UsoInsumoInput,
+    UsosReemplazo,
     VersionResumenRead,
 )
+from app.services.insumo_service import InsumoNotFoundError
 from app.services.producto_formulacion_service import ProductoFormulacionService
 from app.services.producto_service import ProductoNotFoundError
 
@@ -26,6 +34,9 @@ MENSAJE_SIN_FORMULACION = (
     "El producto no tiene una formulación vigente. Defínela antes de registrar una elaboración."
 )
 MENSAJE_FECHA_FUTURA = "La fecha de elaboración no puede ser futura."
+MENSAJE_FINALIZADA = "La elaboración está finalizada y no puede modificarse."
+MENSAJE_INSUMO_NO_VALIDO = "Insumo no válido"
+MENSAJE_LOTE_NO_VALIDO = "Lote no válido"
 
 
 class ElaboracionNotFoundError(Exception):
@@ -60,8 +71,28 @@ class CodigoElaboracionRepetidoError(ElaboracionConflictError):
         super().__init__(f"Ya existe una elaboración con el código «{codigo}» para este producto.")
 
 
+class ElaboracionFinalizadaError(ElaboracionConflictError):
+    """The elaboración is finalizada: it cannot be modified."""
+
+
+class LoteRepetidoError(ElaboracionConflictError):
+    """A new lot uses a code that the supply already has: the client can use the existing lot."""
+
+    def __init__(self, codigo: str, ingrediente_id: int, lote_id: int) -> None:
+        self.ingrediente_id = ingrediente_id
+        self.lote_id = lote_id
+        super().__init__(f"Ya existe un lote «{codigo}» para este insumo. Puedes usarlo.")
+
+
 class InvalidElaboracionError(Exception):
-    """Raised when the data of the request violates HU05 business rules (422)."""
+    """Raised when the data of the request violates HU05 business rules (422).
+
+    `ingrediente_id` tells the client which line of the assignment is wrong, when there is one.
+    """
+
+    def __init__(self, message: str, ingrediente_id: int | None = None) -> None:
+        self.ingrediente_id = ingrediente_id
+        super().__init__(message)
 
 
 def hoy_santiago() -> date:
@@ -210,6 +241,119 @@ class ElaboracionService:
                 estado=estado,
             )
         ]
+
+    def replace_usos_mine(
+        self,
+        productor: Productor,
+        elaboracion_id: int,
+        payload: UsosReemplazo,
+    ) -> ElaboracionRead:
+        """Replace the whole assignment of supplies and lots of a borrador, in one transaction.
+
+        The payload must cover every ingredient of the elaboración's version exactly once; a
+        null supply or a missing lot keep the ingredient pending. New lots are created with
+        the assignment. Any invalid entry leaves everything as it was.
+        """
+        # Read the id up front: after a failed flush the session cannot refresh ORM objects.
+        productor_id = productor.id
+        repo = self.repository
+        try:
+            elaboracion = repo.lock_elaboracion(elaboracion_id, productor_id)
+            if elaboracion is None:
+                raise ElaboracionNotFoundError("Elaboración no encontrada")
+            if elaboracion.estado != ESTADO_BORRADOR:
+                raise ElaboracionFinalizadaError(MENSAJE_FINALIZADA)
+            version_id = elaboracion.version_producto_id
+            lineas = repo.lineas_por_ingrediente(version_id)
+            self._validar_ingredientes(payload.usos, lineas)
+
+            usos = repo.usos_por_ingrediente(elaboracion_id)
+            for item in payload.usos:
+                insumo_id = self._resolver_insumo(productor_id, item)
+                lote_id, sin_lote = self._resolver_lote(item, insumo_id)
+                uso = usos.get(item.ingrediente_id)
+                if uso is None:
+                    uso = UsoInsumo(elaboracion_id=elaboracion_id, ingrediente_id=item.ingrediente_id)
+                    repo.add_uso(uso)
+                uso.insumo_id = insumo_id
+                uso.lote_id = lote_id
+                uso.sin_lote = sin_lote
+            repo.flush()
+            repo.commit()
+        except BaseException:
+            repo.rollback()
+            raise
+        return self._read(repo.reload(elaboracion_id, productor_id))
+
+    def list_lotes_mine(self, productor: Productor, insumo_id: int) -> list[LoteRead]:
+        if self.repository.get_insumo_propio(insumo_id, productor.id) is None:
+            raise InsumoNotFoundError("Insumo no encontrado")
+        return [LoteRead.model_validate(lote) for lote in self.repository.list_lotes(insumo_id)]
+
+    @staticmethod
+    def _validar_ingredientes(items: list[UsoInsumoInput], lineas: dict) -> None:
+        vistos: set[int] = set()
+        for item in items:
+            if item.ingrediente_id in vistos:
+                raise InvalidElaboracionError(
+                    "Un ingrediente no puede repetirse en la asignación.",
+                    item.ingrediente_id,
+                )
+            vistos.add(item.ingrediente_id)
+        for item in items:
+            if item.ingrediente_id not in lineas:
+                raise InvalidElaboracionError(
+                    "El ingrediente no pertenece a la formulación de la elaboración.",
+                    item.ingrediente_id,
+                )
+        faltantes = [linea for ingrediente_id, linea in lineas.items() if ingrediente_id not in vistos]
+        if faltantes:
+            nombres = ", ".join(f"«{linea.ingrediente_nombre}»" for linea in faltantes)
+            raise InvalidElaboracionError(
+                f"Faltan ingredientes de la formulación en la asignación: {nombres}."
+            )
+
+    def _resolver_insumo(self, productor_id: int, item: UsoInsumoInput) -> int | None:
+        if item.insumo_id is None:
+            return None
+        insumo = self.repository.get_insumo_propio(item.insumo_id, productor_id)
+        if insumo is None or not insumo.activo or insumo.ingrediente_id != item.ingrediente_id:
+            raise InvalidElaboracionError(MENSAJE_INSUMO_NO_VALIDO, item.ingrediente_id)
+        return insumo.id
+
+    def _resolver_lote(self, item: UsoInsumoInput, insumo_id: int | None) -> tuple[int | None, bool]:
+        """(lote_id, sin_lote) of the assignment; creates the lot when it is new."""
+        lote = item.lote
+        if lote is None or insumo_id is None:
+            return None, False
+        if isinstance(lote, SinLoteInput):
+            return None, True
+        repo = self.repository
+        if isinstance(lote, LoteExistenteInput):
+            existente = repo.get_lote(lote.lote_id)
+            if existente is None or existente.insumo_id != insumo_id:
+                raise InvalidElaboracionError(MENSAJE_LOTE_NO_VALIDO, item.ingrediente_id)
+            return existente.id, False
+        assert isinstance(lote, LoteNuevoInput)
+        repetido = repo.find_lote_by_codigo(insumo_id, lote.codigo)
+        if repetido is not None:
+            raise LoteRepetidoError(lote.codigo, item.ingrediente_id, repetido.id)
+        nuevo = LoteInsumo(
+            insumo_id=insumo_id,
+            codigo=lote.codigo,
+            fecha_vencimiento=lote.fecha_vencimiento,
+        )
+        repo.add_lote(nuevo)
+        try:
+            repo.flush()
+        except IntegrityError as exc:
+            # Another request created the same lot between the check and the insert.
+            repo.rollback()
+            concurrente = repo.find_lote_by_codigo(insumo_id, lote.codigo)
+            if concurrente is None:
+                raise
+            raise LoteRepetidoError(lote.codigo, item.ingrediente_id, concurrente.id) from exc
+        return nuevo.id, False
 
     def _read(self, elaboracion: Elaboracion) -> ElaboracionRead:
         # A finalizada will be read from its conserved copy (T05-04); until then every

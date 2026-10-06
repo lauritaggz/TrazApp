@@ -8,6 +8,8 @@ from app.schemas.elaboracion import (
     ElaboracionRead,
     ElaboracionResumenRead,
     EstadoElaboracion,
+    LoteRead,
+    UsosReemplazo,
 )
 from app.services.elaboracion_service import (
     CodigoElaboracionRepetidoError,
@@ -16,16 +18,32 @@ from app.services.elaboracion_service import (
     ElaboracionService,
     IngredientesDesactivadosError,
     InvalidElaboracionError,
+    LoteRepetidoError,
 )
+from app.services.insumo_service import InsumoNotFoundError
 from app.services.producto_service import ProductoNotFoundError
 
 router = APIRouter(prefix="/gestion", tags=["gestion-elaboraciones"])
+
+
+def _invalid_error(exc: InvalidElaboracionError) -> HTTPException:
+    """422; an error of one line of the assignment says which ingredient it is."""
+    detail: object = str(exc)
+    if exc.ingrediente_id is not None:
+        detail = {"mensaje": str(exc), "ingrediente_id": exc.ingrediente_id}
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
 
 
 def _conflict_error(exc: ElaboracionConflictError) -> HTTPException:
     """409; some conflicts carry data the client needs to resolve them."""
     if isinstance(exc, CodigoElaboracionRepetidoError):
         detail: object = {"mensaje": str(exc), "codigo_sugerido": exc.codigo_sugerido}
+    elif isinstance(exc, LoteRepetidoError):
+        detail = {
+            "mensaje": str(exc),
+            "ingrediente_id": exc.ingrediente_id,
+            "lote_id": exc.lote_id,
+        }
     elif isinstance(exc, IngredientesDesactivadosError):
         detail = {"mensaje": str(exc), "ingredientes": exc.ingredientes}
     else:
@@ -66,10 +84,7 @@ def crear_elaboracion(
     except ElaboracionConflictError as exc:
         raise _conflict_error(exc) from exc
     except InvalidElaboracionError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+        raise _invalid_error(exc) from exc
 
 
 @router.get("/elaboraciones", response_model=list[ElaboracionResumenRead])
@@ -91,4 +106,33 @@ def obtener_elaboracion(
     try:
         return service.get_mine(current_productor, elaboracion_id)
     except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.put("/elaboraciones/{elaboracion_id}/usos", response_model=ElaboracionRead)
+def reemplazar_usos(
+    elaboracion_id: int,
+    payload: UsosReemplazo,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionRead:
+    try:
+        return service.replace_usos_mine(current_productor, elaboracion_id, payload)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc
+    except InvalidElaboracionError as exc:
+        raise _invalid_error(exc) from exc
+
+
+@router.get("/insumos/{insumo_id}/lotes", response_model=list[LoteRead])
+def listar_lotes_del_insumo(
+    insumo_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> list[LoteRead]:
+    try:
+        return service.list_lotes_mine(current_productor, insumo_id)
+    except InsumoNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

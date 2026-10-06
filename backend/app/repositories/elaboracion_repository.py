@@ -5,6 +5,7 @@ from app.models import (
     Elaboracion,
     FormulacionVersionProducto,
     InsumoComercial,
+    LoteInsumo,
     Producto,
     UsoInsumo,
 )
@@ -151,6 +152,56 @@ class ElaboracionRepository:
 
     def lineas_por_ingrediente(self, version_id: int) -> dict[int, FormulacionVersionProducto]:
         return {linea.ingrediente_id: linea for linea in self.list_lineas_formulacion(version_id)}
+
+    def lock_elaboracion(self, elaboracion_id: int, productor_id: int) -> Elaboracion | None:
+        """Lock the elaboración row (no-op on SQLite) so two changes to it are serialized.
+
+        Plain select on purpose: FOR UPDATE cannot be combined with the outer joins of the
+        eager loading used by the reads.
+        """
+        stmt = (
+            select(Elaboracion)
+            .where(
+                Elaboracion.id == elaboracion_id,
+                Elaboracion.productor_id == productor_id,
+            )
+            .with_for_update()
+        )
+        return self.db.scalar(stmt)
+
+    def usos_por_ingrediente(self, elaboracion_id: int) -> dict[int, UsoInsumo]:
+        stmt = select(UsoInsumo).where(UsoInsumo.elaboracion_id == elaboracion_id)
+        return {uso.ingrediente_id: uso for uso in self.db.scalars(stmt)}
+
+    def get_insumo_propio(self, insumo_id: int, productor_id: int) -> InsumoComercial | None:
+        """Supply of the productor, active or not (the service decides what is usable)."""
+        stmt = select(InsumoComercial).where(
+            InsumoComercial.id == insumo_id,
+            InsumoComercial.productor_id == productor_id,
+        )
+        return self.db.scalar(stmt)
+
+    def get_lote(self, lote_id: int) -> LoteInsumo | None:
+        return self.db.get(LoteInsumo, lote_id)
+
+    def find_lote_by_codigo(self, insumo_id: int, codigo: str) -> LoteInsumo | None:
+        """Lot of the supply with that code, ignoring case."""
+        stmt = select(LoteInsumo).where(
+            LoteInsumo.insumo_id == insumo_id,
+            func.lower(LoteInsumo.codigo) == codigo.lower(),
+        )
+        return self.db.scalar(stmt)
+
+    def list_lotes(self, insumo_id: int) -> list[LoteInsumo]:
+        stmt = (
+            select(LoteInsumo)
+            .where(LoteInsumo.insumo_id == insumo_id)
+            .order_by(LoteInsumo.created_at.desc(), LoteInsumo.id.desc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def add_lote(self, lote: LoteInsumo) -> None:
+        self.db.add(lote)
 
     def add(self, elaboracion: Elaboracion) -> None:
         self.db.add(elaboracion)
