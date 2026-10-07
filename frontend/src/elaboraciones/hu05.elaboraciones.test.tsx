@@ -1241,33 +1241,287 @@ describe("Registro: finalización", () => {
   });
 });
 
-// --- detalle mínimo ---
+// --- detalle de la elaboración (T05-07) ---
 
-describe("Detalle de la elaboración (vista mínima)", () => {
-  it("una finalizada muestra lo conservado, sin acciones de edición", async () => {
-    openPage("/elaboraciones/31");
+const ALERGENO = (
+  alergeno_id: number,
+  nombre: string,
+  tipo: "contiene" | "trazas",
+  obligatorio_chile: boolean,
+) => ({ alergeno_id, codigo: nombre.toLowerCase(), nombre, obligatorio_chile, tipo });
 
-    expect(await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Finalizada")).toBeInTheDocument();
-    expect(screen.getByText("06-10-2026")).toBeInTheDocument();
-    expect(screen.getByText("Leche Colun Semidescremada 1 L · Colun")).toBeInTheDocument();
-    expect(screen.getByText("Lote X123 · vence 15-10-2026")).toBeInTheDocument();
-    expect(screen.getByText("Sin lote")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Continuar registro" })).not.toBeInTheDocument();
+/** Harina declares gluten (contiene), soya and sésamo (trazas); leche declares leche and soya as
+ * "contiene" and sésamo as trazas: soya must end up only under "Contiene", sésamo only once. */
+const FINALIZADA_COMPLETA: Elaboracion = elaboracion({
+  id: 31,
+  estado: "finalizada",
+  finalizada_at: "2026-10-06T18:30:00Z",
+  version: { id: 1, numero_version: 3 },
+  usos: [
+    uso({
+      ingrediente_id: HARINA,
+      cantidad: "500",
+      unidad: "g",
+      insumo: {
+        ...insumoUsado(INS_HARINA),
+        presentacion: "Saco de 1 kg",
+        codigo_barras: "7802200000017",
+        ingredientes_declarados: "Harina de trigo, vitaminas",
+        advertencias: "Puede contener trazas de soya y sésamo",
+        alergenos: [
+          ALERGENO(1, "Gluten", "contiene", true),
+          ALERGENO(3, "Soya", "trazas", true),
+          ALERGENO(4, "Sésamo", "trazas", false),
+        ],
+        activo: null,
+        habitual: null,
+      },
+      sin_lote: true,
+      pendiente: false,
+      falta: [],
+    }),
+    uso({
+      ingrediente_id: LECHE,
+      insumo: {
+        ...insumoUsado(INS_HABITUAL),
+        alergenos: [
+          ALERGENO(2, "Leche", "contiene", true),
+          ALERGENO(3, "Soya", "contiene", true),
+          ALERGENO(4, "Sésamo", "trazas", false),
+        ],
+        activo: null,
+        habitual: null,
+      },
+      lote: { id: 50, codigo: "X123", fecha_vencimiento: "2026-10-15" },
+      pendiente: false,
+      falta: [],
+    }),
+  ],
+});
+
+describe("Detalle de la elaboración (T05-07)", () => {
+  beforeEach(() => {
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) => {
+      if (id === 30) return BORRADOR;
+      if (id === 31) return FINALIZADA_COMPLETA;
+      throw new ApiError("Elaboración no encontrada", 404);
+    });
   });
 
-  it("un borrador ofrece continuar el registro", async () => {
-    const user = userEvent.setup();
+  async function abrirDetalle() {
+    openPage("/elaboraciones/31");
+    await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
+  }
+
+  function tarjeta(ingrediente: string) {
+    return screen.getByRole("region", { name: ingrediente });
+  }
+
+  it("PT05-15: el encabezado muestra producto, código, fecha, estado y versión", async () => {
+    await abrirDetalle();
+
+    expect(screen.getByText("Finalizada")).toBeInTheDocument();
+    const datos = screen.getByRole("region", { name: "Datos de la elaboración" });
+    expect(within(datos).getByRole("link", { name: "Queque de vainilla" })).toHaveAttribute("href", "/productos/5");
+    expect(within(datos).getByText("E-001")).toBeInTheDocument();
+    expect(within(datos).getByText("06-10-2026")).toBeInTheDocument();
+    expect(within(datos).getByText("Versión 3")).toBeInTheDocument();
+  });
+
+  it("indica cuándo se conservó la información, en formato chileno y hora de Santiago", async () => {
+    await abrirDetalle();
+
+    // 18:30 UTC es 15:30 en Santiago (UTC-3 en octubre).
+    expect(
+      screen.getByText("Información conservada al finalizar el 06-10-2026 a las 15:30"),
+    ).toBeInTheDocument();
+  });
+
+  it("PT05-15: por cada ingrediente muestra el insumo, la marca u origen, la presentación y el código de barras", async () => {
+    await abrirDetalle();
+
+    const harina = tarjeta("Harina");
+    expect(within(harina).getByText("500 g")).toBeInTheDocument();
+    expect(within(harina).getByText("Harina Selecta 1 kg")).toBeInTheDocument();
+    expect(within(harina).getByText("Selecta")).toBeInTheDocument();
+    expect(within(harina).getByText("Saco de 1 kg")).toBeInTheDocument();
+    expect(within(harina).getByText("7802200000017")).toBeInTheDocument();
+  });
+
+  it("omite la presentación y el código de barras cuando no existen", async () => {
+    await abrirDetalle();
+
+    const leche = tarjeta("Leche");
+    expect(within(leche).queryByText("Presentación")).not.toBeInTheDocument();
+    expect(within(leche).queryByText("Código de barras")).not.toBeInTheDocument();
+    expect(within(leche).queryByText("Ingredientes declarados")).not.toBeInTheDocument();
+    expect(within(leche).queryByText("Advertencias")).not.toBeInTheDocument();
+  });
+
+  it("muestra los ingredientes declarados y las advertencias cuando existen", async () => {
+    await abrirDetalle();
+
+    const harina = tarjeta("Harina");
+    expect(within(harina).getByText("Ingredientes declarados")).toBeInTheDocument();
+    expect(within(harina).getByText("Harina de trigo, vitaminas")).toBeInTheDocument();
+    expect(within(harina).getByText("Advertencias")).toBeInTheDocument();
+    expect(within(harina).getByText("Puede contener trazas de soya y sésamo")).toBeInTheDocument();
+  });
+
+  it("muestra el código y el vencimiento del lote, o «Sin lote»", async () => {
+    await abrirDetalle();
+
+    expect(within(tarjeta("Leche")).getByText("X123 · vence 15-10-2026")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).getByText("Sin lote")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText(/vence/)).not.toBeInTheDocument();
+  });
+
+  it("agrupa los alérgenos de cada insumo en «Contiene» y «Puede contener»", async () => {
+    await abrirDetalle();
+
+    const contiene = within(tarjeta("Harina")).getByRole("group", { name: "Contiene · Harina" });
+    expect(within(contiene).getByText("Gluten")).toBeInTheDocument();
+    const trazas = within(tarjeta("Harina")).getByRole("group", { name: "Puede contener · Harina" });
+    expect(within(trazas).getAllByRole("listitem").map((li) => li.textContent?.replace(/Rotulación obligatoria.*$/, "").trim())).toEqual([
+      "Soya",
+      "Sésamo",
+    ]);
+  });
+
+  it("marca con «Rotulación obligatoria» solo los alérgenos obligatorios", async () => {
+    await abrirDetalle();
+
+    const trazas = within(tarjeta("Harina")).getByRole("group", { name: "Puede contener · Harina" });
+    const soya = within(trazas).getByText("Soya").closest("li") as HTMLElement;
+    const sesamo = within(trazas).getByText("Sésamo").closest("li") as HTMLElement;
+    expect(within(soya).getByText("Rotulación obligatoria")).toBeInTheDocument();
+    expect(within(sesamo).queryByText("Rotulación obligatoria")).not.toBeInTheDocument();
+  });
+
+  it("el resumen de alérgenos va al principio, antes de los ingredientes", async () => {
+    await abrirDetalle();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    const usos = screen.getByRole("region", { name: "Insumos utilizados" });
+    expect(resumen.compareDocumentPosition(usos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const datos = screen.getByRole("region", { name: "Datos de la elaboración" });
+    expect(datos.compareDocumentPosition(resumen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("el resumen reúne los alérgenos de todos los insumos, sin duplicados", async () => {
+    await abrirDetalle();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    const contiene = within(resumen).getByRole("group", { name: "Contiene · resumen" });
+    expect(within(contiene).getAllByRole("listitem").map((li) => li.textContent?.replace(/Rotulación obligatoria.*$/, "").trim())).toEqual([
+      "Gluten",
+      "Leche",
+      "Soya",
+    ]);
+    const trazas = within(resumen).getByRole("group", { name: "Puede contener · resumen" });
+    // Sésamo lo declaran dos insumos como trazas: aparece una sola vez.
+    expect(within(trazas).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(trazas).getByText("Sésamo")).toBeInTheDocument();
+  });
+
+  it("si un alérgeno es «contiene» en un insumo y «trazas» en otro, va solo en «Contiene»", async () => {
+    await abrirDetalle();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    const contiene = within(resumen).getByRole("group", { name: "Contiene · resumen" });
+    const trazas = within(resumen).getByRole("group", { name: "Puede contener · resumen" });
+    expect(within(contiene).getByText("Soya")).toBeInTheDocument();
+    expect(within(trazas).queryByText("Soya")).not.toBeInTheDocument();
+  });
+
+  it("el resumen marca la rotulación obligatoria y no marca los demás", async () => {
+    await abrirDetalle();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    expect(within(resumen).getAllByText("Rotulación obligatoria")).toHaveLength(3);
+    const sesamo = within(resumen).getByText("Sésamo").closest("li") as HTMLElement;
+    expect(within(sesamo).queryByText("Rotulación obligatoria")).not.toBeInTheDocument();
+  });
+
+  it("sin alérgenos declarados, lo indica en el resumen y en cada insumo", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockResolvedValue(FINALIZADA);
+    openPage("/elaboraciones/31");
+    await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    expect(
+      within(resumen).getByText("No hay alérgenos declarados en los insumos de esta elaboración."),
+    ).toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("Sin alérgenos declarados.")).toBeInTheDocument();
+  });
+
+  it("no consulta el insumo vigente: todo viene de lo que entrega la elaboración", async () => {
+    await abrirDetalle();
+
+    expect(elaboracionService.getElaboracion).toHaveBeenCalledWith(31);
+    expect(insumoService.getInsumo).not.toHaveBeenCalled();
+    expect(insumoService.listInsumos).not.toHaveBeenCalled();
+    expect(insumoService.listInsumoAlergenos).not.toHaveBeenCalled();
+    expect(elaboracionService.listLotesInsumo).not.toHaveBeenCalled();
+  });
+
+  it("no ofrece acciones de edición", async () => {
+    await abrirDetalle();
+
+    for (const nombre of ["Guardar borrador", "Finalizar elaboración", "Eliminar borrador", "Continuar registro"]) {
+      expect(screen.queryByRole("button", { name: nombre })).not.toBeInTheDocument();
+    }
+  });
+
+  it("un borrador abierto en esta ruta redirige a la pantalla de registro", async () => {
     openPage("/elaboraciones/30");
 
-    await user.click(await screen.findByRole("button", { name: "Continuar registro" }));
-
     expect(await screen.findByLabelText("Insumo de Leche")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeInTheDocument();
   });
 
-  it("una elaboración inexistente muestra el aviso de no disponible", async () => {
+  it("«Volver al producto» lleva al detalle del producto", async () => {
+    const user = userEvent.setup();
+    await abrirDetalle();
+
+    await user.click(screen.getByRole("button", { name: "Volver al producto" }));
+
+    expect(await screen.findByRole("heading", { name: "Queque de vainilla", level: 1 })).toBeInTheDocument();
+  });
+
+  it("muestra el estado de carga", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockReturnValue(new Promise(() => {}));
+    openPage("/elaboraciones/31");
+
+    expect(await screen.findByText("Cargando elaboración...")).toBeInTheDocument();
+  });
+
+  it("una elaboración inexistente o ajena muestra el aviso de no disponible", async () => {
     openPage("/elaboraciones/99");
 
     expect(await screen.findByRole("heading", { name: "Elaboración no disponible" })).toBeInTheDocument();
+    expect(screen.queryByText("No pudimos cargar la elaboración.")).not.toBeInTheDocument();
+  });
+
+  it("un fallo de carga se informa con reintento y no se confunde con «no disponible»", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockRejectedValueOnce(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    openPage("/elaboraciones/31");
+
+    expect(await screen.findByText("No pudimos cargar la elaboración.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Elaboración no disponible" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
+  });
+
+  it("es adaptable a móviles: datos e insumos en una columna y dos desde sm, acción a ancho completo", async () => {
+    await abrirDetalle();
+
+    const datos = screen.getByRole("region", { name: "Datos de la elaboración" });
+    expect(datos.querySelector("dl")).toHaveClass("grid", "sm:grid-cols-2");
+    expect(tarjeta("Harina").querySelector("dl")).toHaveClass("grid", "sm:grid-cols-2");
+    expect(screen.getByRole("button", { name: "Volver al producto" })).toHaveClass("w-full", "sm:w-auto");
+    expect(document.querySelector("main .max-w-3xl, .max-w-3xl")).not.toBeNull();
   });
 });

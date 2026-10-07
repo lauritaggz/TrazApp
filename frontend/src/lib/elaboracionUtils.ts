@@ -41,6 +41,24 @@ export function formatFechaHora(iso: string | null | undefined): string {
   });
 }
 
+/** "Información conservada al finalizar el DD-MM-AAAA a las HH:MM" (24 h, America/Santiago). */
+export function textoInformacionConservada(finalizadaAt: string | null | undefined): string | null {
+  if (!finalizadaAt) return null;
+  const date = new Date(finalizadaAt);
+  if (Number.isNaN(date.getTime())) return null;
+  const partes = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    hourCycle: "h23",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(date);
+  const valor = (tipo: string) => partes.find((parte) => parte.type === tipo)?.value ?? "";
+  return `Información conservada al finalizar el ${valor("day")}-${valor("month")}-${valor("year")} a las ${valor("hour")}:${valor("minute")}`;
+}
+
 export function encabezadoDesdeElaboracion(elaboracion: Elaboracion): RegistroEncabezado {
   return { codigo: elaboracion.codigo, fecha: elaboracion.fecha };
 }
