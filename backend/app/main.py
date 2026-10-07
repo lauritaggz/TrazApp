@@ -8,6 +8,7 @@ from app.api.routes import (
     auth,
     gestion_alergenos,
     gestion_categorias,
+    gestion_elaboraciones,
     gestion_ingredientes,
     gestion_insumos,
     gestion_producto_formulacion,
@@ -46,6 +47,7 @@ app.include_router(gestion_categorias.router)
 app.include_router(gestion_alergenos.router)
 app.include_router(gestion_ingredientes.router)
 app.include_router(gestion_insumos.router)
+app.include_router(gestion_elaboraciones.router)
 app.include_router(productos.router)
 app.include_router(ingredientes.router)
 app.include_router(lotes.router)

@@ -10,6 +10,7 @@ from app.core.security import TokenError, decode_access_token
 from app.db.session import get_db
 from app.models import Productor
 from app.repositories.categoria_repository import CategoriaRepository
+from app.repositories.elaboracion_repository import ElaboracionRepository
 from app.repositories.ingrediente_repository import IngredienteRepository
 from app.repositories.insumo_repository import InsumoRepository
 from app.repositories.producto_formulacion_repository import ProductoFormulacionRepository
@@ -18,6 +19,7 @@ from app.repositories.productor_repository import ProductorRepository
 from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.services.auth_service import AuthService
 from app.services.categoria_service import CategoriaService
+from app.services.elaboracion_service import ElaboracionService
 from app.services.ingrediente_service import IngredienteService
 from app.services.insumo_service import InsumoService
 from app.services.product_image_service import ProductImageService
@@ -82,6 +84,13 @@ def get_producto_formulacion_service(
         ProductoFormulacionRepository(db),
         ProductoRepository(db),
         IngredienteRepository(db),
+    )
+
+
+def get_elaboracion_service(db: Session = Depends(get_db)) -> ElaboracionService:
+    return ElaboracionService(
+        ElaboracionRepository(db),
+        get_producto_formulacion_service(db),
     )
 
 

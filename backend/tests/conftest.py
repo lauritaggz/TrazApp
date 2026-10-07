@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 import app.models  # noqa: F401
 from app.db.base import Base
@@ -77,6 +77,50 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
+    app.dependency_overrides.clear()
+
+
+# --- Persistence fixtures (HU04, HU05) ---------------------------------------------------
+# The API tests above share ONE session between the request and the assertions, so a missing
+# `commit` goes unnoticed. These fixtures mimic production: every request gets its own session,
+# closed when the request ends, and results are read with a brand new session on another
+# connection, which only sees what was committed. SQLite uses a temporary file database (the
+# in-memory one shares a single connection); PostgreSQL uses the test database.
+
+
+@pytest.fixture
+def motor(request, tmp_path) -> Generator[Engine, None, None]:
+    if USE_POSTGRESQL:
+        yield request.getfixturevalue("db_engine")
+        return
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'persistencia.db'}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
+    Base.metadata.create_all(engine)
+    yield engine
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture
+def fabrica(motor) -> sessionmaker:
+    return sessionmaker(bind=motor, autocommit=False, autoflush=False)
+
+
+@pytest.fixture
+def api(fabrica) -> Generator[TestClient, None, None]:
+    def sesion_por_peticion() -> Generator[Session, None, None]:
+        db = fabrica()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = sesion_por_peticion
+    with TestClient(app) as client:
+        yield client
     app.dependency_overrides.clear()
 
 

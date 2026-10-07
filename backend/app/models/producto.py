@@ -87,6 +87,9 @@ class VersionProducto(Base):
     __tablename__ = "versiones_producto"
     __table_args__ = (
         UniqueConstraint("producto_id", "numero_version", name="uq_version_producto_numero"),
+        # Target of the composite foreign key of elaboraciones (HU05): an elaboración can
+        # only reference a version of its own product.
+        UniqueConstraint("id", "producto_id", name="uq_version_producto_id_producto"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

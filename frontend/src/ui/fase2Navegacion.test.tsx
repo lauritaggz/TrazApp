@@ -72,12 +72,12 @@ describe("Menú lateral", () => {
     renderShell();
 
     expect(screen.getByText("Trazabilidad")).toBeInTheDocument();
-    expect(screen.getByText("Lotes")).toBeInTheDocument();
-    expect(screen.getByText("Consulta histórica")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Lotes/ })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /Consulta histórica/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("Elaboraciones")).toBeInTheDocument();
+    expect(screen.getByText("Elaboraciones relacionadas")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Elaboraciones/ })).not.toBeInTheDocument();
+    // Los términos del modelo anterior ya no aparecen en el menú.
+    expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();
   });
 });
 

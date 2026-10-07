@@ -4,6 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
+import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -39,6 +40,7 @@ export default function ProductDetail() {
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [formulationVersion, setFormulationVersion] = useState(0);
 
   const loadProduct = useCallback(async (id: number) => {
     setLoading(true);
@@ -64,7 +66,15 @@ export default function ProductDetail() {
   }, [loadProduct, productId]);
 
   useEffect(() => {
-    const state = location.state as { productUpdated?: boolean } | null;
+    const state = location.state as {
+      productUpdated?: boolean;
+      elaboracionEliminada?: boolean;
+    } | null;
+    if (state?.elaboracionEliminada) {
+      notify("Borrador eliminado.");
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
     if (!state?.productUpdated) return;
     notify("Producto actualizado correctamente.");
     setJustUpdated(true);
@@ -212,7 +222,17 @@ export default function ProductDetail() {
             </ProductDetailSection>
 
             <ProductDetailSection id="product-detail-formulation" title="Formulación">
-              <ProductFormulationSection productoId={product.id} />
+              <ProductFormulationSection
+                productoId={product.id}
+                onSaved={() => setFormulationVersion((key) => key + 1)}
+              />
+            </ProductDetailSection>
+
+            <ProductDetailSection id="product-detail-elaboraciones" title="Elaboraciones">
+              <ProductElaboracionesSection
+                productoId={product.id}
+                refreshKey={formulationVersion}
+              />
             </ProductDetailSection>
 
             <section

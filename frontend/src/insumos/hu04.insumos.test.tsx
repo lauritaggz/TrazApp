@@ -369,6 +369,100 @@ describe("Filtros del listado", () => {
   });
 });
 
+// --- presentación en el listado ---
+
+describe("Presentación del insumo en el listado", () => {
+  function filaDe(nombre: string): HTMLElement {
+    const enlace = within(screen.getByRole("table")).getByRole("link", { name: `Ver insumo ${nombre}` });
+    return enlace.closest("tr") as HTMLElement;
+  }
+
+  function tarjetaDe(nombre: string): HTMLElement {
+    return screen
+      .getAllByRole("article")
+      .find((tarjeta) => within(tarjeta).queryByRole("link", { name: `Ver insumo ${nombre}` })) as HTMLElement;
+  }
+
+  it("en la tabla la presentación va bajo el nombre, antes del código de barras", async () => {
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    const fila = filaDe("Leche Colun Semidescremada 1 L");
+    const celda = fila.querySelector("td") as HTMLElement;
+    const textos = within(celda).getAllByText(/./).map((el) => el.textContent);
+    expect(within(celda).getByText("Caja de 1 L")).toBeInTheDocument();
+    expect(textos.indexOf("Caja de 1 L")).toBeLessThan(textos.indexOf(EAN_13));
+    // La tabla conserva sus cuatro columnas: no se agregó otra.
+    expect(within(screen.getByRole("table")).getAllByRole("columnheader")).toHaveLength(4);
+  });
+
+  it("en la tarjeta del celular la presentación va junto al nombre", async () => {
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    const encabezado = tarjetaDe("Leche Colun Semidescremada 1 L").querySelector("h2") as HTMLElement;
+
+    expect(within(encabezado).getByRole("link", { name: /Leche Colun/ })).toBeInTheDocument();
+    expect(within(encabezado).getByText("Caja de 1 L")).toBeInTheDocument();
+  });
+
+  it("un insumo sin presentación no muestra nada: ni texto vacío ni un guion", async () => {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([
+      INS_LECHE,
+      INS_CHOCOLATE,
+      insumo({ id: 13, nombre: "Azúcar flor", presentacion: "", ingrediente_id: 2, ingrediente: { id: 2, nombre: "Chocolate" }, habitual: false }),
+    ]);
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    for (const nombre of ["Chocolate Ambrosoli 500 g", "Azúcar flor"]) {
+      const fila = filaDe(nombre);
+      const tarjeta = tarjetaDe(nombre);
+      expect(fila.querySelector("[data-presentacion]")).toBeNull();
+      expect(tarjeta.querySelector("[data-presentacion]")).toBeNull();
+      expect(fila).not.toHaveTextContent("—");
+      expect(tarjeta).not.toHaveTextContent("—");
+      expect(tarjeta.querySelector("h2")?.textContent).toBe(nombre);
+    }
+  });
+
+  it("la búsqueda también encuentra por presentación, sin distinguir mayúsculas", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    await user.type(screen.getByLabelText("Buscar insumos"), "CAJA de 1");
+
+    expect(screen.getAllByRole("link", { name: /Ver insumo Leche Colun/ }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("link", { name: /Ver insumo Chocolate/ })).toHaveLength(0);
+
+    await user.clear(screen.getByLabelText("Buscar insumos"));
+    await user.type(screen.getByLabelText("Buscar insumos"), "bolsa");
+    expect(await screen.findByRole("heading", { name: "No encontramos insumos" })).toBeInTheDocument();
+  });
+
+  it("un insumo sin presentación sigue encontrándose por nombre, marca y código", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    await user.type(screen.getByLabelText("Buscar insumos"), "ambrosoli");
+
+    expect(screen.getAllByRole("link", { name: /Ver insumo Chocolate/ }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("link", { name: /Ver insumo Leche Colun/ })).toHaveLength(0);
+  });
+
+  it("el cuadro de búsqueda anuncia que también busca por presentación", async () => {
+    openPage("/insumos");
+    await screen.findByRole("table");
+
+    expect(screen.getByLabelText("Buscar insumos")).toHaveAttribute(
+      "placeholder",
+      "Buscar por nombre, marca, presentación o código de barras...",
+    );
+  });
+});
+
 // --- formulario ---
 
 describe("Formulario de insumo", () => {

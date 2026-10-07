@@ -58,6 +58,7 @@ export function filterInsumos(insumos: Insumo[], filters: InsumoListFilters): In
     return (
       insumo.nombre.toLowerCase().includes(search) ||
       insumo.marca_origen.toLowerCase().includes(search) ||
+      (insumo.presentacion ?? "").toLowerCase().includes(search) ||
       (insumo.codigo_barras ?? "").includes(search)
     );
   });

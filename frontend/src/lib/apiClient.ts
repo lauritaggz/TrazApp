@@ -93,6 +93,16 @@ async function parseError(response: Response): Promise<ApiError> {
     return new ApiError(message, 409);
   }
   if (response.status === 422) {
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+      // Structured error of one line of a form, e.g. {mensaje, ingrediente_id}.
+      const mensaje = (detail as { mensaje?: unknown }).mensaje;
+      return new ApiError(
+        typeof mensaje === "string" ? mensaje : "Revisa los datos enviados.",
+        422,
+        {},
+        detail,
+      );
+    }
     const message =
       typeof detail === "string" ? detail : "Revisa los datos enviados.";
     return new ApiError(message, 422, extractFieldErrors(detail));

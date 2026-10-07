@@ -9,24 +9,13 @@ mimic production instead:
 - the result is read with a brand new session on a different connection, which only sees
   what was committed.
 
-SQLite uses a temporary file database (the in-memory test database shares a single
-connection); PostgreSQL uses the test database with regular, separate connections.
+The fixtures that build this setup (`motor`, `fabrica`, `api`) live in conftest.py so other
+modules (HU05) reuse them. SQLite uses a temporary file database; PostgreSQL the test database.
 """
 
-import os
-from collections.abc import Generator
-
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy import select
 
-import app.models  # noqa: F401
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app
 from app.models import Alergeno, InsumoAlergeno, InsumoComercial, Productor
 
 PRODUCTOR = {
@@ -37,42 +26,6 @@ PRODUCTOR = {
 }
 EAN_13 = "7802910000971"
 OTRO_EAN_13 = "4006381333931"
-
-
-@pytest.fixture
-def motor(request, tmp_path) -> Generator[Engine, None, None]:
-    if os.getenv("TEST_DATABASE_URL"):
-        yield request.getfixturevalue("db_engine")
-        return
-    engine = create_engine(
-        f"sqlite:///{tmp_path / 'persistencia.db'}",
-        connect_args={"check_same_thread": False},
-        poolclass=NullPool,
-    )
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
-
-
-@pytest.fixture
-def fabrica(motor) -> sessionmaker:
-    return sessionmaker(bind=motor, autocommit=False, autoflush=False)
-
-
-@pytest.fixture
-def api(fabrica) -> Generator[TestClient, None, None]:
-    def sesion_por_peticion() -> Generator[Session, None, None]:
-        db = fabrica()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = sesion_por_peticion
-    with TestClient(app) as client:
-        yield client
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture

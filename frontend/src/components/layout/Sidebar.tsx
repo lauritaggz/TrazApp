@@ -50,8 +50,8 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
           <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-text-secondary">
             Trazabilidad
           </p>
-          <NavItemSoon icon={<LotIcon />} label="Lotes" />
-          <NavItemSoon icon={<HistoryIcon />} label="Consulta histórica" />
+          <NavItemSoon icon={<LotIcon />} label="Elaboraciones" />
+          <NavItemSoon icon={<HistoryIcon />} label="Elaboraciones relacionadas" />
         </div>
       </nav>
     </aside>

@@ -207,7 +207,7 @@ function InsumoListControls({
       search={filters.search}
       onSearchChange={(search) => onChange({ ...filters, search })}
       searchLabel="Buscar insumos"
-      searchPlaceholder="Buscar por nombre, marca o código de barras..."
+      searchPlaceholder="Buscar por nombre, marca, presentación o código de barras..."
       disabled={disabled}
       chips={chips}
       onClearAll={() => onChange(DEFAULT_INSUMO_LIST_FILTERS)}
@@ -265,6 +265,11 @@ function InsumoNameCell({ insumo }: { insumo: Insumo }) {
         {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
         {!insumo.activo && <Badge>Inactivo</Badge>}
       </p>
+      {insumo.presentacion && (
+        <p data-presentacion className="text-[13px] text-text-secondary">
+          {insumo.presentacion}
+        </p>
+      )}
       {insumo.codigo_barras && (
         <p className="text-[13px] tabular-nums text-text-secondary">{insumo.codigo_barras}</p>
       )}
@@ -337,6 +342,11 @@ function InsumosCards({ insumos }: { insumos: Insumo[] }) {
             >
               {insumo.nombre}
             </Link>
+            {insumo.presentacion && (
+              <span data-presentacion className="text-[13px] font-normal text-text-secondary">
+                {insumo.presentacion}
+              </span>
+            )}
             {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
             {!insumo.activo && <Badge>Inactivo</Badge>}
           </h2>
