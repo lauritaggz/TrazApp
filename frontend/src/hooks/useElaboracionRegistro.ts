@@ -367,6 +367,24 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
     }
   }
 
+  /**
+   * A supply registered (or reactivated, or reused) from a line joins the options and is assigned
+   * to it in the local state. Nothing is saved: the unsaved changes of the screen stay as they are.
+   */
+  function asignarInsumoNuevo(insumo: Insumo) {
+    setInsumos((actuales) => [
+      ...actuales
+        .filter((item) => item.id !== insumo.id)
+        .map((item) =>
+          insumo.habitual && item.ingrediente_id === insumo.ingrediente_id
+            ? { ...item, habitual: false }
+            : item,
+        ),
+      insumo,
+    ]);
+    elegirInsumo(insumo.ingrediente_id, String(insumo.id));
+  }
+
   const insumosPorIngrediente = useMemo(() => {
     const mapa: Record<number, Insumo[]> = {};
     for (const insumo of insumos) {
@@ -399,6 +417,7 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
     reintentarLotes: (insumoId: number) => void cargarLotes(insumoId, true),
     cambiarEncabezado,
     elegirInsumo,
+    asignarInsumoNuevo,
     elegirModoLote,
     cambiarLinea,
     usarLoteExistente,

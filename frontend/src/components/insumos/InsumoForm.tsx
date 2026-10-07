@@ -39,6 +39,14 @@ interface InsumoFormProps {
   loadingLabel?: string;
   /** Inside another dialog (HU05): one column, no card and no floating action bar. */
   embedded?: boolean;
+  /** HU05: the supply is registered for this ingredient, which cannot be changed. */
+  ingredienteFijo?: IngredienteResumen | null;
+  /**
+   * HU05: with a repeated barcode of an ACTIVE supply, offer "Usar este insumo" instead of
+   * the link to its detail. Without it the form behaves as in HU04.
+   */
+  onUseExisting?: () => void;
+  usingExisting?: boolean;
   onChange: (values: InsumoFormValues) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -61,6 +69,9 @@ export default function InsumoForm({
   submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar insumo",
   loadingLabel = "Guardando…",
   embedded = false,
+  ingredienteFijo = null,
+  onUseExisting,
+  usingExisting = false,
   onChange,
   onSubmit,
   onCancel,
@@ -89,7 +100,11 @@ export default function InsumoForm({
   const faltaElActual =
     ingredienteActual != null && !options.some((item) => item.id === ingredienteActual.id);
   const sinIngredientes =
-    !ingredientesLoading && !ingredientesError && options.length === 0 && !ingredienteActual;
+    !ingredienteFijo &&
+    !ingredientesLoading &&
+    !ingredientesError &&
+    options.length === 0 &&
+    !ingredienteActual;
 
   const actions = (
     <>
@@ -160,25 +175,40 @@ export default function InsumoForm({
               value={values.ingrediente_id}
               onChange={(e) => update("ingrediente_id", e.target.value)}
               error={errors.ingrediente_id}
-              hint="El ingrediente genérico al que abastece este insumo."
-              disabled={loading || ingredientesLoading || Boolean(ingredientesError)}
+              hint={
+                ingredienteFijo
+                  ? "Este insumo se registra para el ingrediente de la línea."
+                  : "El ingrediente genérico al que abastece este insumo."
+              }
+              disabled={
+                Boolean(ingredienteFijo) ||
+                loading ||
+                ingredientesLoading ||
+                Boolean(ingredientesError)
+              }
               required
             >
-              <option value="">
-                {ingredientesLoading ? "Cargando ingredientes..." : "Selecciona un ingrediente"}
-              </option>
-              {faltaElActual && ingredienteActual && (
-                <option value={ingredienteActual.id}>
-                  {ingredienteActual.nombre} (desactivado)
-                </option>
+              {ingredienteFijo ? (
+                <option value={ingredienteFijo.id}>{ingredienteFijo.nombre}</option>
+              ) : (
+                <>
+                  <option value="">
+                    {ingredientesLoading ? "Cargando ingredientes..." : "Selecciona un ingrediente"}
+                  </option>
+                  {faltaElActual && ingredienteActual && (
+                    <option value={ingredienteActual.id}>
+                      {ingredienteActual.nombre} (desactivado)
+                    </option>
+                  )}
+                  {options.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nombre}
+                    </option>
+                  ))}
+                </>
               )}
-              {options.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nombre}
-                </option>
-              ))}
             </Select>
-            {ingredientesError && (
+            {ingredientesError && !ingredienteFijo && (
               <div className="flex flex-wrap items-center gap-3" role="alert">
                 <p className="text-[13px] text-error">{ingredientesError}</p>
                 {onIngredientesRetry && (
@@ -229,7 +259,16 @@ export default function InsumoForm({
             />
             {duplicate && (
               <div className="flex flex-wrap items-center gap-3" aria-live="polite">
-                {duplicate.activo ? (
+                {duplicate.activo && onUseExisting ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={onUseExisting}
+                    loading={usingExisting}
+                  >
+                    Usar este insumo
+                  </Button>
+                ) : duplicate.activo ? (
                   <Link
                     to={`/insumos/${duplicate.insumoId}`}
                     className="text-sm font-medium text-accent-strong underline-offset-2 hover:underline"

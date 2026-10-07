@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
+import InsumoForm from "@/components/insumos/InsumoForm";
 import { hoyChile, TEXTO_CONFIRMAR_FINALIZACION } from "@/lib/elaboracionUtils";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
@@ -18,7 +19,7 @@ import type {
   UsoInsumo,
   UsoPayload,
 } from "@/types/elaboracion";
-import type { Insumo } from "@/types/insumo";
+import { EMPTY_INSUMO_FORM_VALUES, type Insumo } from "@/types/insumo";
 import type { Product } from "@/types/product";
 
 vi.mock("@/services/authService", () => ({
@@ -1238,6 +1239,413 @@ describe("Registro: finalización", () => {
 
     expect(await screen.findByText("No pudimos finalizar la elaboración. Inténtalo nuevamente.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeInTheDocument();
+  });
+});
+
+// --- registrar un insumo desde la línea (T05-08) ---
+
+describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
+  const NUEVO_HARINA = insumo({
+    id: 20,
+    ingrediente_id: HARINA,
+    nombre: "Harina Selecta 1 kg",
+    marca_origen: "Selecta",
+  });
+
+  function duplicado(insumoId: number, activo: boolean): ApiError {
+    const mensaje = activo
+      ? "Ya existe un insumo con ese código de barras."
+      : "Ya existe un insumo desactivado con ese código de barras. Puedes reactivarlo.";
+    return new ApiError(mensaje, 409, {}, { mensaje, insumo_id: insumoId, activo });
+  }
+
+  async function abrirDialogoHarina(user: ReturnType<typeof userEvent.setup>) {
+    await openRegistro();
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
+    return screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+  }
+
+  async function llenar(dialogo: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
+    await user.type(within(dialogo).getByLabelText("Nombre"), "Harina Selecta 1 kg");
+    await user.type(within(dialogo).getByLabelText("Marca u origen"), "Selecta");
+  }
+
+  beforeEach(() => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(NUEVO_HARINA);
+  });
+
+  it("cada línea ofrece «Registrar insumo nuevo», destacada solo si no hay insumos activos", async () => {
+    await openRegistro();
+
+    const harina = within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ });
+    const leche = within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ });
+    expect(harina).toHaveAttribute("data-destacado", "true");
+    expect(leche).toHaveAttribute("data-destacado", "false");
+    expect(harina.className).not.toBe(leche.className);
+    expect(within(linea("Harina")).getByText(/Registra uno nuevo para poder asignarlo/)).toBeInTheDocument();
+  });
+
+  it("abre el formulario de insumos con el ingrediente de la línea preseleccionado y bloqueado", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+
+    const ingrediente = within(dialogo).getByLabelText("Ingrediente");
+    expect(ingrediente).toBeDisabled();
+    expect(ingrediente).toHaveValue(String(HARINA));
+    expect(within(ingrediente).getAllByRole("option").map((o) => o.textContent)).toEqual(["Harina"]);
+    expect(within(dialogo).getByText(/Para el ingrediente Harina/)).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText("Nombre")).toBeInTheDocument();
+    expect(within(dialogo).getByRole("button", { name: "Registrar insumo" })).toBeInTheDocument();
+  });
+
+  it("PT05-18: el insumo creado queda registrado, en las opciones y asignado a la línea, sin salir del registro", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await waitFor(() =>
+      expect(insumoService.createInsumo).toHaveBeenCalledWith(
+        expect.objectContaining({ ingrediente_id: HARINA, nombre: "Harina Selecta 1 kg", marca_origen: "Selecta" }),
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const selector = screen.getByLabelText("Insumo de Harina");
+    expect(selector).toHaveValue("20");
+    expect(within(selector).getByRole("option", { name: "Harina Selecta 1 kg · Selecta" })).toBeInTheDocument();
+    expect(selector).not.toBeDisabled();
+    // Seguimos en el registro, sin haber guardado nada todavía.
+    expect(screen.getByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
+    expect(elaboracionService.replaceUsos).not.toHaveBeenCalled();
+    expect(within(linea("Harina")).queryByText(/no tiene insumos activos/)).not.toBeInTheDocument();
+  });
+
+  it("el insumo asignado se persiste en la elaboración al guardar el borrador", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
+    await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+    await waitFor(() =>
+      expect(elaboracionService.replaceUsos).toHaveBeenCalledWith(30, [
+        { ingrediente_id: HARINA, insumo_id: 20, lote: { tipo: "sin_lote" } },
+        { ingrediente_id: LECHE, insumo_id: 10 },
+      ]),
+    );
+  });
+
+  it("el insumo nuevo solo aparece en las opciones de su línea", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    const leche = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
+    expect(leche.some((texto) => texto?.includes("Harina Selecta"))).toBe(false);
+  });
+
+  it("si el insumo nuevo es habitual, deja de serlo el anterior en las opciones", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(
+      insumo({ id: 40, ingrediente_id: LECHE, nombre: "Leche Nueva 1 L", marca_origen: "Nueva", habitual: true }),
+    );
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.type(within(dialogo).getByLabelText("Nombre"), "Leche Nueva 1 L");
+    await user.type(within(dialogo).getByLabelText("Marca u origen"), "Nueva");
+
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Insumo de Leche")).toHaveValue("40"));
+    const opciones = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
+    expect(opciones).toContain("Leche Colun Semidescremada 1 L · Colun");
+    expect(opciones).toContain("Leche Nueva 1 L · Nueva (habitual)");
+  });
+
+  // --- cambios sin guardar ---
+
+  it("abrir y cancelar conserva los cambios sin guardar de la elaboración", async () => {
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.clear(screen.getByLabelText("Código de la elaboración"));
+    await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("LOTE-9");
+    expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).toBeChecked();
+    expect(screen.getByText("Tienes cambios sin guardar.")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  it("crear el insumo conserva los cambios sin guardar de la elaboración", async () => {
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.clear(screen.getByLabelText("Código de la elaboración"));
+    await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("LOTE-9");
+    expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).toBeChecked();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("20");
+    expect(screen.getByText("Tienes cambios sin guardar.")).toBeInTheDocument();
+  });
+
+  it("asignar el insumo marca la elaboración como modificada aunque no hubiera otros cambios", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    expect(screen.queryByText("Tienes cambios sin guardar.")).not.toBeInTheDocument();
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    expect(await screen.findByText("Tienes cambios sin guardar.")).toBeInTheDocument();
+    const evento = new Event("beforeunload", { cancelable: true });
+    act(() => {
+      window.dispatchEvent(evento);
+    });
+    expect(evento.defaultPrevented).toBe(true);
+  });
+
+  // --- código de barras repetido ---
+
+  it("código repetido de un insumo activo: ofrece «Usar este insumo» en vez del enlace al detalle", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(20, true));
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    expect(await within(dialogo).findByRole("button", { name: "Usar este insumo" })).toBeInTheDocument();
+    expect(within(dialogo).queryByRole("link", { name: "Ver insumo existente" })).not.toBeInTheDocument();
+  });
+
+  it("«Usar este insumo» con el mismo ingrediente lo asigna a la línea y cierra el diálogo", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(20, true));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(NUEVO_HARINA);
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(insumoService.getInsumo).toHaveBeenCalledWith(20);
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("20");
+    expect(
+      within(screen.getByLabelText("Insumo de Harina")).getByRole("option", { name: "Harina Selecta 1 kg · Selecta" }),
+    ).toBeInTheDocument();
+    expect(insumoService.createInsumo).toHaveBeenCalledTimes(1);
+  });
+
+  it("«Usar este insumo» de otro ingrediente muestra «Ese insumo está asociado a «X»» y no lo asigna", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(10, true));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(INS_HABITUAL);
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
+
+    expect(await within(dialogo).findByText("Ese insumo está asociado a «Leche».")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  it("si no se puede comprobar el insumo existente, lo informa y no lo asigna", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(20, true));
+    vi.mocked(insumoService.getInsumo).mockRejectedValue(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
+
+    expect(await within(dialogo).findByText(/No pudimos comprobar el insumo existente/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  it("código repetido de un insumo desactivado: «Reactivar» lo reactiva y lo asigna a la línea", async () => {
+    const inactivo = insumo({ id: 21, ingrediente_id: HARINA, nombre: "Harina vieja", marca_origen: "Antigua", activo: false });
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(21, false));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(inactivo);
+    vi.mocked(insumoService.reactivateInsumo).mockResolvedValue({ ...inactivo, activo: true });
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(insumoService.reactivateInsumo).toHaveBeenCalledWith(21);
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("21");
+    expect(
+      within(screen.getByLabelText("Insumo de Harina")).getByRole("option", { name: "Harina vieja · Antigua" }),
+    ).toBeInTheDocument();
+  });
+
+  it("no reactiva un insumo desactivado que es de otro ingrediente", async () => {
+    const ajeno = insumo({ id: 22, ingrediente_id: LECHE, nombre: "Leche vieja", activo: false });
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(22, false));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(ajeno);
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
+
+    expect(await within(dialogo).findByText("Ese insumo está asociado a «Leche».")).toBeInTheDocument();
+    expect(insumoService.reactivateInsumo).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  // --- cancelación y errores ---
+
+  it("cancelar no crea nada ni cambia la línea; Escape también cierra", async () => {
+    const user = userEvent.setup();
+    let dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
+    dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    // Cada apertura empieza con el formulario vacío.
+    expect(within(dialogo).getByLabelText("Nombre")).toHaveValue("");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  it("valida los campos obligatorios dentro del diálogo sin crear nada", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    expect(await within(dialogo).findByText("El nombre es obligatorio.")).toBeInTheDocument();
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+  });
+
+  it("un error inesperado se muestra dentro del diálogo y no asigna nada", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+    await llenar(dialogo, user);
+
+    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+
+    expect(await within(dialogo).findByText("No pudimos guardar el insumo. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
+  });
+
+  it("es adaptable a móviles: panel inferior en celular, centrado desde sm, botones a ancho completo", async () => {
+    const user = userEvent.setup();
+    const dialogo = await abrirDialogoHarina(user);
+
+    expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
+    expect(dialogo).toHaveClass("w-full", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
+    for (const nombre of ["Cancelar", "Registrar insumo"]) {
+      expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
+    }
+    expect(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
+  });
+});
+
+// --- el formulario de insumos de HU04 no cambió ---
+
+describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-08)", () => {
+  function renderForm(extra: Partial<React.ComponentProps<typeof InsumoForm>> = {}) {
+    return renderWithProviders(
+      <InsumoForm
+        values={{ ...EMPTY_INSUMO_FORM_VALUES, nombre: "Algo", marca_origen: "Marca", ingrediente_id: "2" }}
+        errors={{}}
+        ingredientes={[
+          { id: 1, productor_id: 1, codigo_interno: "H", nombre: "Harina", descripcion: null, tipo: null, activo: true, created_at: "" },
+          { id: 2, productor_id: 1, codigo_interno: "L", nombre: "Leche", descripcion: null, tipo: null, activo: true, created_at: "" },
+        ]}
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+        {...extra}
+      />,
+    );
+  }
+
+  it("el ingrediente se puede elegir y no está bloqueado", () => {
+    renderForm();
+
+    const ingrediente = screen.getByLabelText("Ingrediente");
+    expect(ingrediente).not.toBeDisabled();
+    expect(within(ingrediente).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Selecciona un ingrediente",
+      "Harina",
+      "Leche",
+    ]);
+  });
+
+  it("con un código repetido de un insumo activo sigue ofreciendo el enlace «Ver insumo existente»", () => {
+    renderForm({ duplicate: { insumoId: 7, activo: true, mensaje: "Ya existe un insumo con ese código de barras." } });
+
+    expect(screen.getByRole("link", { name: "Ver insumo existente" })).toHaveAttribute("href", "/insumos/7");
+    expect(screen.queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
+  });
+
+  it("con un código repetido de un insumo desactivado sigue ofreciendo «Reactivar»", () => {
+    renderForm({ duplicate: { insumoId: 8, activo: false, mensaje: "Ya existe un insumo desactivado." } });
+
+    expect(screen.getByRole("button", { name: "Reactivar" })).toBeInTheDocument();
+  });
+
+  it("la pantalla «Nuevo insumo» mantiene el selector libre y el enlace al insumo existente", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(
+      new ApiError("Ya existe un insumo con ese código de barras.", 409, {}, {
+        mensaje: "Ya existe un insumo con ese código de barras.",
+        insumo_id: 7,
+        activo: true,
+      }),
+    );
+    const ingredientService = await import("@/services/ingredientService");
+    vi.mocked(ingredientService.listIngredients).mockResolvedValue([
+      { id: 1, productor_id: 1, codigo_interno: "H", nombre: "Harina", descripcion: null, tipo: null, activo: true, created_at: "" },
+    ]);
+    const user = userEvent.setup();
+    openPage("/insumos/nuevo");
+
+    await screen.findByRole("option", { name: "Harina" });
+    expect(screen.getByLabelText("Ingrediente")).not.toBeDisabled();
+    await user.type(screen.getByLabelText("Nombre"), "Harina Selecta");
+    await user.type(screen.getByLabelText("Marca u origen"), "Selecta");
+    await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+
+    expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
   });
 });
 

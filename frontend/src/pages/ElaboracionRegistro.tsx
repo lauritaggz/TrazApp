@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import ElaboracionLinea from "@/components/elaboraciones/ElaboracionLinea";
+import InsumoCreateDialog from "@/components/insumos/InsumoCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import Badge from "@/components/ui/Badge";
@@ -96,6 +97,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
   const [confirmarFinalizar, setConfirmarFinalizar] = useState(false);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [confirmarSalir, setConfirmarSalir] = useState(false);
+  const [insumoNuevoPara, setInsumoNuevoPara] = useState<{ id: number; nombre: string } | null>(null);
 
   const form = useElaboracionRegistro({
     elaboracion,
@@ -260,6 +262,9 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
                   onCambio={(cambios) => form.cambiarLinea(linea.ingrediente_id, cambios)}
                   onUsarLote={(loteId) => form.usarLoteExistente(linea.ingrediente_id, loteId)}
                   onReintentarLotes={form.reintentarLotes}
+                  onRegistrarInsumo={() =>
+                    setInsumoNuevoPara({ id: linea.ingrediente_id, nombre: linea.ingrediente_nombre })
+                  }
                 />
               );
             })}
@@ -308,6 +313,18 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
           </Button>
         </FormActions>
       </form>
+
+      {insumoNuevoPara && (
+        <InsumoCreateDialog
+          ingrediente={insumoNuevoPara}
+          onAssigned={(insumo) => {
+            form.asignarInsumoNuevo(insumo);
+            setInsumoNuevoPara(null);
+            notify("Insumo asignado a la línea. Guarda el borrador para conservarlo.");
+          }}
+          onCancel={() => setInsumoNuevoPara(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmarFinalizar}

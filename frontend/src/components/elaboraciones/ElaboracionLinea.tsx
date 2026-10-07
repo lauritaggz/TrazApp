@@ -31,6 +31,7 @@ interface ElaboracionLineaProps {
   onCambio: (cambios: Partial<LineaRegistro>) => void;
   onUsarLote: (loteId: number) => void;
   onReintentarLotes: (insumoId: number) => void;
+  onRegistrarInsumo: () => void;
 }
 
 function Aviso({ children }: { children: ReactNode }) {
@@ -65,6 +66,7 @@ export default function ElaboracionLinea({
   onCambio,
   onUsarLote,
   onReintentarLotes,
+  onRegistrarInsumo,
 }: ElaboracionLineaProps) {
   const id = linea.ingrediente_id;
   const titulo = `linea-${id}-titulo`;
@@ -109,7 +111,7 @@ export default function ElaboracionLinea({
 
       {sinInsumosActivos && (
         <Aviso>
-          Este ingrediente no tiene insumos activos. Registra uno en Insumos para poder asignarlo.
+          Este ingrediente no tiene insumos activos. Registra uno nuevo para poder asignarlo.
         </Aviso>
       )}
 
@@ -133,6 +135,18 @@ export default function ElaboracionLinea({
       </Select>
 
       {insumoDesactivado && <Aviso>El insumo asignado está desactivado. Elige otro insumo.</Aviso>}
+
+      <Button
+        type="button"
+        variant={sinInsumosActivos ? "primary" : "ghost"}
+        className="w-full min-h-11 sm:w-auto"
+        onClick={onRegistrarInsumo}
+        data-destacado={sinInsumosActivos}
+        disabled={disabled}
+        aria-label={`Registrar insumo nuevo para ${linea.ingrediente_nombre}`}
+      >
+        Registrar insumo nuevo
+      </Button>
 
       {linea.insumoId && (
         <fieldset className="space-y-3" disabled={disabled}>
