@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.exc import IntegrityError
@@ -74,6 +75,10 @@ def alembic_cfg(test_url: str) -> Config:
     cfg = Config()
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     return cfg
+
+
+def _cabeza(cfg: Config) -> str:
+    return ScriptDirectory.from_config(cfg).get_current_head()
 
 
 def _semilla(engine: Engine) -> None:
@@ -290,7 +295,8 @@ def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_
         motor_rol = create_engine(url_rol, poolclass=NullPool)
         with motor_rol.connect() as conn:
             assert conn.execute(text("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")).scalar_one() is False
-            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REV_016
+            # The head of the chain, whichever it is: 017 once it is activated, 016 while it is pending.
+            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _cabeza(alembic_cfg)
         assert _triggers(motor_rol) == {nombre: (tabla, "O") for nombre, tabla in TRIGGERS.items()}
         assert _funciones(motor_rol) == FUNCIONES
         _semilla(motor_rol)

@@ -71,6 +71,13 @@ class InsumoComercial(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # When the productor last reviewed the declared allergens (HT06). NULL = never reviewed,
+    # which is different from "reviewed, no allergens": that one has a date and no rows in
+    # insumos_alergenos. Same clock as updated_at: the database's now() (func.now()).
+    alergenos_revisados_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     habitual: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

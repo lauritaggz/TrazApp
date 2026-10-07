@@ -225,6 +225,10 @@ class InsumoRead(BaseModel):
     activo: bool
     created_at: datetime
     updated_at: datetime
+    # HT06: None/False = allergens never reviewed ("sin revisar"); a date with an empty
+    # alergenos_declarados = "revisado, sin alérgenos".
+    alergenos_revisados: bool
+    alergenos_revisados_at: datetime | None
     alergenos_declarados: list[AlergenoDeclaradoRead]
 
     @classmethod
@@ -247,6 +251,8 @@ class InsumoRead(BaseModel):
             activo=insumo.activo,
             created_at=insumo.created_at,
             updated_at=insumo.updated_at,
+            alergenos_revisados=insumo.alergenos_revisados_at is not None,
+            alergenos_revisados_at=insumo.alergenos_revisados_at,
             alergenos_declarados=[
                 AlergenoDeclaradoRead.from_declarado(d)
                 for d in ordenar_declarados(insumo.alergenos_declarados)
