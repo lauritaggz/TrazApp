@@ -700,6 +700,25 @@ describe("Registro: encabezado y líneas", () => {
     ]);
   });
 
+  it("el selector muestra la presentación junto al nombre, para distinguir formatos", async () => {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([
+      { ...INS_HABITUAL, presentacion: "Caja 1 L" },
+      { ...INS_OTRO, presentacion: "Bolsa 500 g" },
+      insumo({ id: 12, ingrediente_id: LECHE, nombre: "Leche en polvo", marca_origen: "Nido", presentacion: null }),
+    ]);
+    await openRegistro();
+
+    const opciones = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
+
+    expect(opciones).toEqual([
+      "Sin asignar",
+      "Leche Colun Semidescremada 1 L · Caja 1 L · Colun (habitual)",
+      "Leche Soprole Entera 1 L · Bolsa 500 g · Soprole",
+      // Sin presentación no se agrega nada: ni separador de más ni guion.
+      "Leche en polvo · Nido",
+    ]);
+  });
+
   it("muestra la cantidad de la formulación y marca las líneas pendientes", async () => {
     await openRegistro();
 

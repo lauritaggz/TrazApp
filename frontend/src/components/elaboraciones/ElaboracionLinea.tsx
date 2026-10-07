@@ -128,7 +128,8 @@ export default function ElaboracionLinea({
         )}
         {insumos.map((insumo) => (
           <option key={insumo.id} value={insumo.id}>
-            {insumo.nombre} · {insumo.marca_origen}
+            {insumo.nombre}
+            {insumo.presentacion ? ` · ${insumo.presentacion}` : ""} · {insumo.marca_origen}
             {insumo.habitual ? " (habitual)" : ""}
           </option>
         ))}
