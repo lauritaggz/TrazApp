@@ -48,11 +48,21 @@ def _normalize_codigo_barras(value: str | None) -> str | None:
     return validar_codigo_barras(codigo)
 
 
+class InsumoAlergenoCreate(BaseModel):
+    """Declare an allergen from the global catalog on a supply (HU04 / T04-04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    alergeno_id: int = Field(gt=0)
+    tipo: TipoDeclaracion
+
+
 class InsumoCreate(BaseModel):
     """Create payload for commercial supplies (HU04).
 
-    Ownership (productor_id) comes from the authenticated session. The declared
-    allergens are managed with their own endpoints (T04-04), not here.
+    Ownership (productor_id) comes from the authenticated session. `alergenos` is optional
+    (HT06): when it is sent, even empty, the supply is created with exactly those allergens
+    and counts as reviewed; when it is absent (or null) it is created never reviewed.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -68,6 +78,7 @@ class InsumoCreate(BaseModel):
     fuente: FuenteInsumo = "manual"
     fecha_recuperacion: AwareDatetime | None = None
     habitual: bool = False
+    alergenos: list[InsumoAlergenoCreate] | None = None
 
     @field_validator("nombre")
     @classmethod
@@ -151,13 +162,13 @@ class IngredienteResumenRead(BaseModel):
     nombre: str
 
 
-class InsumoAlergenoCreate(BaseModel):
-    """Declare an allergen from the global catalog on a supply (HU04 / T04-04)."""
+class InsumoAlergenosReplace(BaseModel):
+    """Replace the whole list of declared allergens of a supply (HT06). An empty list means
+    "reviewed, no allergens"."""
 
     model_config = ConfigDict(extra="forbid")
 
-    alergeno_id: int = Field(gt=0)
-    tipo: TipoDeclaracion
+    alergenos: list[InsumoAlergenoCreate]
 
 
 class InsumoAlergenoUpdate(BaseModel):

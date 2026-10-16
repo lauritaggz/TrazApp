@@ -127,6 +127,41 @@ class InsumoRepository:
         """Renew updated_at: declared allergens are part of the supply but live in another table."""
         insumo.updated_at = func.now()
 
+    def marcar_alergenos_revisados(self, insumo: InsumoComercial) -> None:
+        """Record that the productor reviewed the allergens now (HT06), and renew updated_at.
+
+        Same clock as updated_at: the database's now() (func.now()), never the application's.
+        """
+        insumo.alergenos_revisados_at = func.now()
+        self.touch(insumo)
+
+    def alergeno_ids_existentes(self, alergeno_ids: list[int]) -> set[int]:
+        """Which of the ids exist in the allergen catalog (one query)."""
+        if not alergeno_ids:
+            return set()
+        return set(self.db.scalars(select(Alergeno.id).where(Alergeno.id.in_(alergeno_ids))).all())
+
+    def lock_insumo(self, insumo_id: int, productor_id: int) -> InsumoComercial | None:
+        """Lock the supply row FOR UPDATE (no-op on SQLite) and return a fresh copy of it.
+
+        The finalization of an elaboración locks the supplies FOR SHARE, so a replacement of the
+        allergens waits for it and the copy it makes is never taken from a half-replaced list.
+        The copy is re-read after the lock so the caller works on the state it just locked.
+        """
+        self.db.execute(
+            select(InsumoComercial.id).where(InsumoComercial.id == insumo_id).with_for_update()
+        )
+        stmt = (
+            select(InsumoComercial)
+            .options(*self._with_relations())
+            .where(
+                InsumoComercial.id == insumo_id,
+                InsumoComercial.productor_id == productor_id,
+            )
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(stmt)
+
     def add_declarado(self, insumo_id: int, alergeno_id: int, tipo: str) -> None:
         self.db.add(InsumoAlergeno(insumo_id=insumo_id, alergeno_id=alergeno_id, tipo=tipo))
 
