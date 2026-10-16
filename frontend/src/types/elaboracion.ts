@@ -11,7 +11,8 @@ export type MotivoProblema =
   | "insumo"
   | "lote"
   | "insumo_desactivado"
-  | "ingrediente_desactivado";
+  | "ingrediente_desactivado"
+  | "alergenos_sin_revisar";
 
 export interface InsumoUsado {
   id: number;

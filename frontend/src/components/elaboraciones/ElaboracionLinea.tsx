@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import type { ErrorLinea } from "@/hooks/useElaboracionRegistro";
-import { describirLote, lineaPendiente, MOTIVOS_PROBLEMA } from "@/lib/elaboracionUtils";
+import { describirLote, describirMotivo, lineaPendiente } from "@/lib/elaboracionUtils";
 import { formatFormulacionCantidad } from "@/lib/formulationUtils";
 import type {
   LineaRegistro,
@@ -247,8 +247,8 @@ export default function ElaboracionLinea({
 
       {problemas && problemas.length > 0 && (
         <ul role="alert" className="list-disc space-y-1 pl-5 text-sm font-medium text-error">
-          {problemas.map((motivo) => (
-            <li key={motivo}>{MOTIVOS_PROBLEMA[motivo]}</li>
+          {problemas.map((motivo, indice) => (
+            <li key={`${motivo}-${indice}`}>{describirMotivo(motivo)}</li>
           ))}
         </ul>
       )}

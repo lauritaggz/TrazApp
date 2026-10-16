@@ -6,7 +6,7 @@ formulation afterwards alters what was conserved) and PT05-15 (the detail shows 
 Persistence from an independent session and concurrency: test_persistencia_finalizacion_hu05.py.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import select, text, update
@@ -25,6 +25,19 @@ from tests.escenario_hu05 import (
     preparar,
     registrar,
 )
+
+
+def _fecha_utc(texto: str) -> datetime:
+    """A date as text (the API on SQLite has no zone, the copy ends in Z) as an aware UTC datetime."""
+    fecha = datetime.fromisoformat(texto.replace("Z", "+00:00"))
+    return fecha.replace(tzinfo=timezone.utc) if fecha.tzinfo is None else fecha.astimezone(timezone.utc)
+
+
+def _fecha_revision_de(client, ctx, clave: str) -> datetime:
+    """The allergen review date the supply has right now."""
+    insumo = client.get(f"/gestion/insumos/{ctx[clave]['id']}", headers=ctx["headers"]).json()
+    assert insumo["alergenos_revisados_at"] is not None
+    return _fecha_utc(insumo["alergenos_revisados_at"])
 
 
 @pytest.fixture
@@ -127,6 +140,7 @@ def test_pt05_10_finaliza_una_elaboracion_completa_y_cambia_el_estado(client, ct
 
 def test_la_informacion_conservada_tiene_la_estructura_aprobada(client, ctx, db_session) -> None:
     _asignar(client, ctx)
+    revision_insumo = _fecha_revision_de(client, ctx, "insumo_habitual")
     cuerpo = _finalizar(client, ctx).json()
     copias = _conservadas(db_session)
     leche = copias[ctx["leche"]["id"]]
@@ -137,6 +151,11 @@ def test_la_informacion_conservada_tiene_la_estructura_aprobada(client, ctx, db_
     assert datetime.fromisoformat(conservada_en.replace("Z", "+00:00")).replace(tzinfo=None) == datetime.fromisoformat(
         cuerpo["finalizada_at"].replace("Z", "+00:00")
     ).replace(tzinfo=None)
+    # HT06: the copy keeps when the allergens were reviewed, in the same format as `conservada_en`
+    # and equal to the date the supply had when it was finalized (KeyError if the key is missing).
+    revisados_at = leche.pop("alergenos_revisados_at")
+    assert revisados_at.endswith("Z")
+    assert _fecha_utc(revisados_at) == revision_insumo
     assert leche == {
         "esquema": 1,
         "ingrediente": {"id": ctx["leche"]["id"], "nombre": "Leche"},
@@ -378,12 +397,15 @@ def test_el_detalle_de_un_borrador_muestra_los_alergenos_vigentes_del_insumo(cli
 
 def test_pt05_15_el_detalle_de_una_finalizada_muestra_la_informacion_conservada(client, ctx) -> None:
     _asignar(client, ctx)
+    revision_insumo = _fecha_revision_de(client, ctx, "insumo_habitual")
     _finalizar(client, ctx)
 
     detalle = _detalle(client, ctx)
 
     leche = _por_ingrediente(detalle)[ctx["leche"]["id"]]
     assert leche["ingrediente_nombre"] == "Leche"
+    # HT06: each line exposes the review date of its copy (KeyError if the field is missing).
+    assert _fecha_utc(leche["insumo"].pop("alergenos_revisados_at")) == revision_insumo
     assert leche["insumo"] == {
         "id": ctx["insumo_habitual"]["id"],
         "nombre": "Leche Colun Semidescremada 1 L",

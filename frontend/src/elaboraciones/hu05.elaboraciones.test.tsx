@@ -1248,6 +1248,56 @@ describe("Registro: finalización", () => {
     ]);
   });
 
+  it("el motivo «alergenos_sin_revisar» (HT06-03) se muestra en la línea del insumo afectado", async () => {
+    vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(
+      new ApiError("No se puede finalizar", 409, {}, {
+        mensaje: "No se puede finalizar",
+        problemas: [
+          { ingrediente_id: LECHE, ingrediente_nombre: "Leche", falta: "lote" },
+          { ingrediente_id: LECHE, ingrediente_nombre: "Leche", falta: "alergenos_sin_revisar" },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Finalizar" }));
+
+    const leche = (await within(linea("Leche")).findAllByRole("alert")).find((el) => el.tagName === "UL")!;
+    expect(within(leche).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Falta indicar el lote o marcar «Sin lote».",
+      "Alérgenos del insumo sin revisar.",
+    ]);
+    expect(within(linea("Harina")).queryByText("Alérgenos del insumo sin revisar.")).not.toBeInTheDocument();
+  });
+
+  it("un motivo que esta versión no conoce no rompe la pantalla y se muestra con un texto genérico", async () => {
+    vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(
+      new ApiError("No se puede finalizar", 409, {}, {
+        mensaje: "No se puede finalizar",
+        problemas: [
+          { ingrediente_id: HARINA, ingrediente_nombre: "Harina", falta: "motivo_del_futuro" },
+          { ingrediente_id: LECHE, ingrediente_nombre: "Leche", falta: "alergenos_sin_revisar" },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Finalizar" }));
+
+    const harina = (await within(linea("Harina")).findAllByRole("alert")).find((el) => el.tagName === "UL")!;
+    expect(within(harina).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Esta línea no se puede finalizar. Revísala e inténtalo nuevamente.",
+    ]);
+    // The rest of the screen keeps working: the known reason is still there and nothing was lost.
+    const leche = (await within(linea("Leche")).findAllByRole("alert")).find((el) => el.tagName === "UL")!;
+    expect(within(leche).getByText("Alérgenos del insumo sin revisar.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeInTheDocument();
+  });
+
   it("si la finalización falla de forma inesperada, lo informa y no navega", async () => {
     vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(new ApiError("falla", 500));
     const user = userEvent.setup();

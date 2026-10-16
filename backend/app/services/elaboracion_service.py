@@ -92,8 +92,9 @@ class ElaboracionFinalizadaError(ElaboracionConflictError):
 class FinalizacionBloqueadaError(ElaboracionConflictError):
     """The elaboración cannot be finalized: some lines are incomplete or unavailable.
 
-    Each problem names the ingredient and what is missing: `insumo`, `lote`, `insumo_desactivado`
-    or `ingrediente_desactivado`.
+    Each problem names the ingredient and what is missing: `insumo`, `lote`, `insumo_desactivado`,
+    `ingrediente_desactivado` or `alergenos_sin_revisar` (the assigned supply's allergens were
+    never reviewed, HT06).
     """
 
     def __init__(self, problemas: list[dict[str, Any]]) -> None:
@@ -146,6 +147,18 @@ def ahora_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def fecha_conservada(fecha: datetime | None) -> str | None:
+    """A date as the conserved copy writes it: UTC, ISO 8601 with a trailing Z.
+
+    SQLite returns naive datetimes (stored as UTC), PostgreSQL aware ones: both give the same text.
+    """
+    if fecha is None:
+        return None
+    if fecha.tzinfo is None:
+        fecha = fecha.replace(tzinfo=timezone.utc)
+    return fecha.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def construir_informacion_conservada(
     linea: Any,
     uso: Any,
@@ -161,7 +174,7 @@ def construir_informacion_conservada(
     """
     return {
         "esquema": ESQUEMA_INFORMACION_CONSERVADA,
-        "conservada_en": conservada_en.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "conservada_en": fecha_conservada(conservada_en),
         "ingrediente": {"id": linea.ingrediente_id, "nombre": linea.ingrediente_nombre},
         "insumo": {
             "id": insumo.id,
@@ -176,6 +189,8 @@ def construir_informacion_conservada(
             AlergenoDeclaradoRead.from_declarado(declarado).model_dump()
             for declarado in ordenar_declarados(insumo.alergenos_declarados)
         ],
+        # When the productor last reviewed those allergens (HT06). Copies made before HT06 lack it.
+        "alergenos_revisados_at": fecha_conservada(insumo.alergenos_revisados_at),
         "lote": (
             {
                 "id": lote.id,
@@ -454,8 +469,12 @@ class ElaboracionService:
                 problema(linea, "insumo")
             elif not insumo.activo:
                 problema(linea, "insumo_desactivado")
-            elif uso.lote_id is None and not uso.sin_lote:
-                problema(linea, "lote")
+            else:
+                if uso.lote_id is None and not uso.sin_lote:
+                    problema(linea, "lote")
+                # Only for a supply that will be used: a missing or deactivated one is replaced anyway.
+                if insumo.alergenos_revisados_at is None:
+                    problema(linea, "alergenos_sin_revisar")
         return problemas
 
     def update_borrador_mine(

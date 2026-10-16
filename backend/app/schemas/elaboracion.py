@@ -171,6 +171,9 @@ class InsumoUsadoRead(BaseModel):
     ingredientes_declarados: str | None
     advertencias: str | None
     alergenos: list[AlergenoDeclaradoRead]
+    # When the allergens were last reviewed (HT06). A borrador shows the live supply's date; a
+    # finalizada shows the date copied when it was finalized, or null if it predates HT06 (no key).
+    alergenos_revisados_at: datetime | None
     activo: bool | None
     habitual: bool | None
 
@@ -277,6 +280,7 @@ def _uso_conservado_read(uso: Any, linea: Any) -> UsoInsumoRead:
             ingredientes_declarados=insumo["ingredientes_declarados"],
             advertencias=insumo["advertencias"],
             alergenos=[AlergenoDeclaradoRead(**alergeno) for alergeno in copia["alergenos"]],
+            alergenos_revisados_at=copia.get("alergenos_revisados_at"),
             activo=None,
             habitual=None,
         ),
@@ -316,6 +320,7 @@ def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
                     AlergenoDeclaradoRead.from_declarado(declarado)
                     for declarado in ordenar_declarados(insumo.alergenos_declarados)
                 ],
+                alergenos_revisados_at=insumo.alergenos_revisados_at,
                 activo=insumo.activo,
                 habitual=insumo.habitual,
             )

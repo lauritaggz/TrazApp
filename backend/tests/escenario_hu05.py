@@ -54,7 +54,17 @@ def crear_ingrediente(client, headers, nombre: str, codigo: str | None = None) -
     return response.json()
 
 
-def crear_insumo(client, headers, ingrediente_id: int, nombre: str, **extra: Any) -> dict:
+def crear_insumo(
+    client, headers, ingrediente_id: int, nombre: str, *, revisado: bool = True, **extra: Any
+) -> dict:
+    """Create a supply through the API.
+
+    Since HT06 an elaboración cannot be finalized with a supply whose allergens were never reviewed,
+    so by default the supply is created as "reviewed, no allergens" (`alergenos=[]`) unless the test
+    passes its own `alergenos`. Pass `revisado=False` for a supply nobody reviewed.
+    """
+    if revisado:
+        extra.setdefault("alergenos", [])
     response = client.post(
         "/gestion/insumos",
         headers=headers,
