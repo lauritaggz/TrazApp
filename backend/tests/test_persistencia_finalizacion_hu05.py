@@ -90,7 +90,7 @@ def _utc(valor: datetime) -> datetime:
 def _esperado_leche(ctx, lote_id: int, conservada_en: str, revisados_at: str) -> dict:
     a = ctx["alergenos"]
     return {
-        "esquema": 1,
+        "esquema": 2,
         "conservada_en": conservada_en,
         "ingrediente": {"id": ctx["leche"]["id"], "nombre": "Leche"},
         "insumo": {

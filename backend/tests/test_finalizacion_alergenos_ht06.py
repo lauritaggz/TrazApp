@@ -252,6 +252,16 @@ def test_la_copia_conserva_la_fecha_de_revision_del_insumo_de_cada_linea(client,
     assert harina["alergenos"] == []  # "reviewed, no allergens" keeps its date too
 
 
+def test_las_copias_nuevas_se_escriben_con_el_esquema_2(client, ctx, db_session) -> None:
+    _asignar(client, ctx)
+    assert _finalizar(client, ctx).status_code == 200
+
+    copias = _copias(db_session)
+
+    assert len(copias) == 2
+    assert all(copia["esquema"] == 2 for copia in copias.values())
+
+
 def test_el_detalle_de_una_finalizada_expone_la_fecha_por_linea(client, ctx, db_session) -> None:
     _asignar(client, ctx)
     assert _finalizar(client, ctx).status_code == 200
@@ -272,7 +282,8 @@ def test_una_finalizada_sin_la_clave_se_lee_con_null_y_no_es_un_error(client, ct
     assert _finalizar(client, ctx).status_code == 200
     copias = _copias(db_session)
     antiguas = {
-        ingrediente: {clave: valor for clave, valor in copia.items() if clave != "alergenos_revisados_at"}
+        # An old copy: schema 1, without the review date.
+        ingrediente: {**{c: v for c, v in copia.items() if c != "alergenos_revisados_at"}, "esquema": 1}
         for ingrediente, copia in copias.items()
     }
     postgresql = db_session.get_bind().dialect.name == "postgresql"
@@ -290,7 +301,9 @@ def test_una_finalizada_sin_la_clave_se_lee_con_null_y_no_es_un_error(client, ct
         if postgresql:
             db_session.execute(text("ALTER TABLE usos_insumo ENABLE TRIGGER trg_usos_insumo_elaboracion_abierta"))
             db_session.commit()
-    assert all("alergenos_revisados_at" not in copia for copia in _copias(db_session).values())
+    assert all(
+        "alergenos_revisados_at" not in copia and copia["esquema"] == 1 for copia in _copias(db_session).values()
+    )
 
     respuesta = client.get(_url(ctx), headers=ctx["headers"])
 
@@ -298,6 +311,8 @@ def test_una_finalizada_sin_la_clave_se_lee_con_null_y_no_es_un_error(client, ct
     usos = respuesta.json()["usos"]
     assert len(usos) == 2
     assert all(uso["insumo"]["alergenos_revisados_at"] is None for uso in usos)
+    assert all(uso["alergenos_revisados"] is False for uso in usos)  # derived from the copy: no date, no review
+    assert all(uso["lote_sugerido"] is None for uso in usos)
     assert all(uso["insumo"]["nombre"] for uso in usos)  # the rest of the copy reads as before
 
 

@@ -194,7 +194,13 @@ class UsoInsumoRead(BaseModel):
     unidad: str | None
     insumo: InsumoUsadoRead | None
     lote: LoteUsadoRead | None
+    # A suggestion for a borrador (HT06-04): the lot the last finalized elaboración used, when it is
+    # still valid for the supply of the line. Never assigned by itself; always null in a finalizada.
+    lote_sugerido: LoteUsadoRead | None
     sin_lote: bool
+    # Whether the allergens of the assigned supply were reviewed: the live supply in a borrador (false
+    # without a supply), the conserved copy in a finalizada (false for copies that predate HT06).
+    alergenos_revisados: bool
     pendiente: bool
     falta: list[FaltanteUso]
     # Warnings for a borrador, so the interface can show them before the productor saves or
@@ -220,13 +226,21 @@ class ElaboracionRead(BaseModel):
         cls,
         elaboracion: Any,
         lineas: dict[int, Any],
+        sugerencias: dict[int, Any] | None = None,
     ) -> "ElaboracionRead":
         """`lineas` maps ingrediente_id to the formulation line of the elaboración's version.
 
         A finalizada is built ONLY from the information conserved in each use: it never reads the
         current supply, its allergens or its lot. A borrador shows the live assignment.
         """
-        construir = _uso_conservado_read if elaboracion.estado == "finalizada" else _uso_read
+        sugerencias = sugerencias or {}
+        if elaboracion.estado == "finalizada":
+            construir = _uso_conservado_read
+        else:
+
+            def construir(uso: Any, linea: Any) -> "UsoInsumoRead":
+                return _uso_read(uso, linea, sugerencias.get(uso.ingrediente_id))
+
         usos = [
             construir(uso, lineas[uso.ingrediente_id])
             for uso in sorted(
@@ -285,7 +299,9 @@ def _uso_conservado_read(uso: Any, linea: Any) -> UsoInsumoRead:
             habitual=None,
         ),
         lote=LoteUsadoRead(**lote) if lote is not None else None,
+        lote_sugerido=None,
         sin_lote=copia["sin_lote"],
+        alergenos_revisados=copia.get("alergenos_revisados_at") is not None,
         pendiente=False,
         falta=[],
         insumo_desactivado=False,
@@ -293,7 +309,7 @@ def _uso_conservado_read(uso: Any, linea: Any) -> UsoInsumoRead:
     )
 
 
-def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
+def _uso_read(uso: Any, linea: Any, sugerido: Any = None) -> UsoInsumoRead:
     insumo = uso.insumo
     lote = uso.lote
     falta: list[FaltanteUso] = []
@@ -336,7 +352,13 @@ def _uso_read(uso: Any, linea: Any) -> UsoInsumoRead:
             if lote is not None
             else None
         ),
+        lote_sugerido=(
+            LoteUsadoRead(id=sugerido.id, codigo=sugerido.codigo, fecha_vencimiento=sugerido.fecha_vencimiento)
+            if sugerido is not None
+            else None
+        ),
         sin_lote=uso.sin_lote,
+        alergenos_revisados=insumo is not None and insumo.alergenos_revisados_at is not None,
         pendiente=bool(falta),
         falta=falta,
         insumo_desactivado=insumo is not None and not insumo.activo,

@@ -48,7 +48,9 @@ MENSAJE_YA_FINALIZADA = "La elaboración ya está finalizada."
 MENSAJE_FINALIZACION_BLOQUEADA = (
     "No se puede finalizar la elaboración: hay ingredientes con información pendiente o no disponible."
 )
-ESQUEMA_INFORMACION_CONSERVADA = 1
+# Version of the conserved copy. 1: until HT06-03. 2: adds `alergenos_revisados_at`. Copies of
+# schema 1 are still read (the review date reads as null).
+ESQUEMA_INFORMACION_CONSERVADA = 2
 MENSAJE_INSUMO_NO_VALIDO = "Insumo no válido"
 MENSAJE_LOTE_NO_VALIDO = "Lote no válido"
 
@@ -166,7 +168,7 @@ def construir_informacion_conservada(
     lote: Any,
     conservada_en: datetime,
 ) -> dict[str, Any]:
-    """Immutable copy of what was used for one ingredient (schema 1).
+    """Immutable copy of what was used for one ingredient (schema 2).
 
     Includes the supply as the productor sees it (not the raw `ficha` of an external source),
     its declared allergens with their type, and the lot. Built from plain values: nothing in
@@ -275,6 +277,11 @@ class ElaboracionService:
             habituales = repo.habituales_activos(
                 productor_id, [linea.ingrediente_id for linea in lineas]
             )
+            # What the last finalized elaboración of the product used (FK columns), to start from it.
+            anteriores = repo.usos_de_la_ultima_finalizada(productor_id, producto_id)
+            vigentes = repo.insumos_activos(
+                productor_id, [uso.insumo_id for uso in anteriores.values() if uso.insumo_id is not None]
+            )
             elaboracion = Elaboracion(
                 productor_id=productor_id,
                 producto_id=producto_id,
@@ -290,7 +297,7 @@ class ElaboracionService:
                     UsoInsumo(
                         elaboracion_id=elaboracion_id,
                         ingrediente_id=linea.ingrediente_id,
-                        insumo_id=habituales.get(linea.ingrediente_id),
+                        insumo_id=self._insumo_inicial(linea.ingrediente_id, anteriores, vigentes, habituales),
                     )
                 )
             self.formulacion_service.marcar_version_usada(version_id)
@@ -308,6 +315,24 @@ class ElaboracionService:
             raise
         assert elaboracion_id is not None
         return self._read(repo.reload(elaboracion_id, productor_id))
+
+    @staticmethod
+    def _insumo_inicial(
+        ingrediente_id: int,
+        anteriores: dict[int, Any],
+        vigentes: dict[int, int],
+        habituales: dict[int, int],
+    ) -> int | None:
+        """Supply a new borrador starts a line with. Never a lot.
+
+        The one the last finalized elaboración used for the ingredient, if it is still active and
+        still belongs to that ingredient; otherwise the active habitual one; otherwise none.
+        """
+        anterior = anteriores.get(ingrediente_id)
+        if anterior is not None and anterior.insumo_id is not None:
+            if vigentes.get(anterior.insumo_id) == ingrediente_id:
+                return anterior.insumo_id
+        return habituales.get(ingrediente_id)
 
     def get_mine(self, productor: Productor, elaboracion_id: int) -> ElaboracionRead:
         elaboracion = self.repository.get_by_id_and_productor(elaboracion_id, productor.id)
@@ -628,7 +653,39 @@ class ElaboracionService:
 
     def _read(self, elaboracion: Elaboracion) -> ElaboracionRead:
         lineas = self.repository.lineas_por_ingrediente(elaboracion.version_producto_id)
+        sugerencias: dict[int, Any] = {}
         if elaboracion.estado != ESTADO_FINALIZADA:
             # Only a borrador shows the live assignment; a finalizada is read from its copy.
             self.repository.cargar_asignacion_vigente(elaboracion.id)
-        return ElaboracionRead.from_elaboracion(elaboracion, lineas)
+            sugerencias = self._lotes_sugeridos(elaboracion)
+        return ElaboracionRead.from_elaboracion(elaboracion, lineas, sugerencias)
+
+    def _lotes_sugeridos(self, elaboracion: Elaboracion) -> dict[int, Any]:
+        """Lot the last finalized elaboración of the product used, per line of a borrador (HT06-04).
+
+        A suggestion, never an assignment. It exists only when the line has a supply and neither a
+        lot nor "sin lote"; the previous use of the ingredient had a lot; that lot belongs to the
+        supply the line has now; and it has not expired on the borrador's date (no expiry date, or
+        expiring on that very day, is fine).
+        """
+        usos = {uso.ingrediente_id: uso for uso in elaboracion.usos}
+        anteriores = self.repository.usos_de_la_ultima_finalizada(elaboracion.productor_id, elaboracion.producto_id)
+        candidatos: dict[int, int] = {}
+        for ingrediente_id, uso in usos.items():
+            if uso.insumo_id is None or uso.lote_id is not None or uso.sin_lote:
+                continue
+            anterior = anteriores.get(ingrediente_id)
+            if anterior is not None and anterior.lote_id is not None:
+                candidatos[ingrediente_id] = anterior.lote_id
+        if not candidatos:
+            return {}
+        lotes = self.repository.lotes_por_id(sorted(set(candidatos.values())))
+        sugerencias: dict[int, Any] = {}
+        for ingrediente_id, lote_id in candidatos.items():
+            lote = lotes.get(lote_id)
+            if lote is None or lote.insumo_id != usos[ingrediente_id].insumo_id:
+                continue
+            if lote.fecha_vencimiento is not None and lote.fecha_vencimiento < elaboracion.fecha_elaboracion:
+                continue
+            sugerencias[ingrediente_id] = lote
+        return sugerencias

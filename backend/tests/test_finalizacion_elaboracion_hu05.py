@@ -157,7 +157,7 @@ def test_la_informacion_conservada_tiene_la_estructura_aprobada(client, ctx, db_
     assert revisados_at.endswith("Z")
     assert _fecha_utc(revisados_at) == revision_insumo
     assert leche == {
-        "esquema": 1,
+        "esquema": 2,
         "ingrediente": {"id": ctx["leche"]["id"], "nombre": "Leche"},
         "insumo": {
             "id": ctx["insumo_habitual"]["id"],
