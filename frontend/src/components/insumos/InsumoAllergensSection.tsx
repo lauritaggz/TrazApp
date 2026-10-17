@@ -27,6 +27,14 @@ import {
 const AYUDA =
   "Estos son los alérgenos declarados en el envase del insumo. Se conservan en cada elaboración que lo utilice y son los que verá el consumidor.";
 
+/*
+ * TECHNICAL DEBT (HT06-05, decision 1): the list of declared allergens grouped by type
+ * ("Contiene" / "Puede contener", with the mandatory-labelling tag and the change-type and remove
+ * buttons) is written twice: here and in AlergenosSelector. They differ on purpose in where they persist
+ * (this one is controlled and makes no request; the other calls the API on each action), so they
+ * were not unified. If the presentation of that list changes, change both, or extract a shared
+ * presentational component.
+ */
 const GROUPS: { tipo: TipoDeclaracion; titulo: string; vacio: string }[] = [
   { tipo: TIPO_CONTIENE, titulo: "Contiene", vacio: "No hay alérgenos declarados como «Contiene»." },
   {

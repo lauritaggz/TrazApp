@@ -25,6 +25,21 @@ export function formatFecha(iso: string | null | undefined): string {
   return match ? `${match[3]}-${match[2]}-${match[1]}` : iso;
 }
 
+/** The date of an ISO timestamp as DD-MM-YYYY, in America/Santiago ("—" when it is missing or invalid). */
+export function formatFechaDeMomento(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const partes = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(date);
+  const valor = (tipo: string) => partes.find((parte) => parte.type === tipo)?.value ?? "";
+  return `${valor("day")}-${valor("month")}-${valor("year")}`;
+}
+
 /** 24-hour date and time in America/Santiago. */
 export function formatFechaHora(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -201,4 +216,26 @@ export function describirMotivo(motivo: string): string {
 
 export function describirLote(codigo: string, vencimiento: string | null): string {
   return vencimiento ? `${codigo} · vence ${formatFecha(vencimiento)}` : codigo;
+}
+
+/** Text of the button that takes the lot suggested from the last finalized elaboración (HT06-04). */
+export function textoUsarLote(codigo: string, vencimiento: string | null): string {
+  return vencimiento
+    ? `Usar lote ${codigo} (vence ${formatFecha(vencimiento)})`
+    : `Usar lote ${codigo}`;
+}
+
+function plural(cantidad: number, singular: string, pluralTexto: string): string {
+  return `${cantidad} ${cantidad === 1 ? singular : pluralTexto}`;
+}
+
+/** Result of «Usar los mismos lotes», for a live region. */
+export function anuncioLotesAsignados(asignados: number, sinSugerencia: number): string {
+  const primera = `${asignados === 1 ? "Se asignó" : "Se asignaron"} ${plural(asignados, "lote", "lotes")}.`;
+  if (sinSugerencia === 0) return primera;
+  const segunda =
+    sinSugerencia === 1
+      ? "1 línea no tiene lote sugerido."
+      : `${sinSugerencia} líneas no tienen lote sugerido.`;
+  return `${primera} ${segunda}`;
 }

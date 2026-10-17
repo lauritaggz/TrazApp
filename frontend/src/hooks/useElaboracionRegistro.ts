@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  anuncioLotesAsignados,
   encabezadoCambio,
   encabezadoDesdeElaboracion,
   lineasCambiaron,
@@ -25,6 +26,7 @@ import type {
   LineaRegistro,
   LoteInsumo,
   LoteModo,
+  LoteUsado,
   MotivoProblema,
   ProblemaFinalizacion,
   RegistroEncabezado,
@@ -82,6 +84,9 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [insumosLoading, setInsumosLoading] = useState(true);
   const [insumosError, setInsumosError] = useState(false);
+
+  // Result of «Usar los mismos lotes», announced to assistive technology.
+  const [anuncioLotes, setAnuncioLotes] = useState("");
 
   const [lotes, setLotes] = useState<Record<number, LoteInsumo[]>>({});
   const [lotesError, setLotesError] = useState<Record<number, boolean>>({});
@@ -147,6 +152,7 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
     setErroresEncabezado({});
     setErroresLinea({});
     setProblemas({});
+    setAnuncioLotes("");
     setSaved(false);
   }
 
@@ -210,6 +216,92 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
       loteVence: "",
     });
     if (linea?.insumoId) void cargarLotes(Number(linea.insumoId), true);
+  }
+
+  /** The supply selected in a line, from the list the registro already loaded (null if not an active one). */
+  function insumoSeleccionado(linea: LineaRegistro): Insumo | null {
+    if (!linea.insumoId) return null;
+    const id = Number(linea.insumoId);
+    return insumos.find((insumo) => insumo.id === id) ?? null;
+  }
+
+  /**
+   * The lot suggested for a line (HT06-04), or null. Only while the line has a supply, no complete lot
+   * choice yet, and that supply is still the one the server brought (a suggestion belongs to it).
+   */
+  function loteSugeridoDe(linea: LineaRegistro): LoteUsado | null {
+    if (!linea.insumoId || !lineaPendiente(linea)) return null;
+    const uso = servidor.usos.find((item) => item.ingrediente_id === linea.ingrediente_id);
+    if (!uso?.lote_sugerido || !uso.insumo) return null;
+    return uso.insumo.id === Number(linea.insumoId) ? uso.lote_sugerido : null;
+  }
+
+  /** Takes the suggested lot of a line: the same "existing lot" choice, saved by the same PUT /usos. */
+  function usarLoteSugerido(ingredienteId: number) {
+    const linea = lineas.find((item) => item.ingrediente_id === ingredienteId);
+    const sugerido = linea ? loteSugeridoDe(linea) : null;
+    if (!linea || !sugerido) return;
+    cambiarLinea(ingredienteId, {
+      loteModo: "existente",
+      loteId: String(sugerido.id),
+      loteCodigo: "",
+      loteVence: "",
+    });
+    setAnuncioLotes("");
+    void cargarLotes(Number(linea.insumoId));
+  }
+
+  /**
+   * «Usar los mismos lotes»: takes the suggestion on every line that can use one. A line with a lot
+   * already chosen, or without a suggestion, is left as it is.
+   */
+  function usarLotesSugeridos() {
+    const elegidos = new Map<number, LoteUsado>();
+    let sinSugerencia = 0;
+    for (const linea of lineas) {
+      const sugerido = loteSugeridoDe(linea);
+      if (sugerido) elegidos.set(linea.ingrediente_id, sugerido);
+      else if (linea.insumoId && lineaPendiente(linea)) sinSugerencia += 1;
+    }
+    if (elegidos.size === 0) return;
+    setLineas((actuales) =>
+      actuales.map((linea) => {
+        const sugerido = elegidos.get(linea.ingrediente_id);
+        return sugerido
+          ? {
+              ...linea,
+              loteModo: "existente",
+              loteId: String(sugerido.id),
+              loteCodigo: "",
+              loteVence: "",
+            }
+          : linea;
+      }),
+    );
+    for (const ingredienteId of elegidos.keys()) limpiarLinea(ingredienteId);
+    setAnuncioLotes(anuncioLotesAsignados(elegidos.size, sinSugerencia));
+  }
+
+  /**
+   * The allergens of a supply were reviewed from a line: the supply is replaced in the list, so every
+   * line that uses it updates its mark. Nothing of the unsaved assignment is touched; the line stops
+   * being flagged for it.
+   */
+  function actualizarInsumo(insumo: Insumo) {
+    setInsumos((actuales) => actuales.map((item) => (item.id === insumo.id ? insumo : item)));
+    const restantes: Record<number, MotivoProblema[]> = {};
+    for (const [clave, motivos] of Object.entries(problemas)) {
+      const linea = lineas.find((item) => item.ingrediente_id === Number(clave));
+      const usaElInsumo = linea?.insumoId === String(insumo.id);
+      const quedan = usaElInsumo
+        ? motivos.filter((motivo) => motivo !== "alergenos_sin_revisar")
+        : motivos;
+      if (quedan.length > 0) restantes[Number(clave)] = quedan;
+    }
+    setProblemas(restantes);
+    if (Object.keys(restantes).length === 0 && globalError === MENSAJE_LINEAS_CON_PROBLEMAS) {
+      setGlobalError("");
+    }
   }
 
   function marcarProblemas(lista: ProblemaFinalizacion[]) {
@@ -415,6 +507,12 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
     lotes,
     lotesError,
     reintentarLotes: (insumoId: number) => void cargarLotes(insumoId, true),
+    insumoSeleccionado,
+    actualizarInsumo,
+    loteSugeridoDe,
+    usarLoteSugerido,
+    usarLotesSugeridos,
+    anuncioLotes,
     cambiarEncabezado,
     elegirInsumo,
     asignarInsumoNuevo,

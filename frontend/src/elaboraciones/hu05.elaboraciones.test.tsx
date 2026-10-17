@@ -1,8 +1,9 @@
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import InsumoForm from "@/components/insumos/InsumoForm";
+import { useElaboracionRegistro } from "@/hooks/useElaboracionRegistro";
 import { hoyChile, TEXTO_CONFIRMAR_FINALIZACION } from "@/lib/elaboracionUtils";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
@@ -1942,7 +1943,7 @@ describe("Detalle de la elaboración (T05-07)", () => {
     expect(within(sesamo).queryByText("Rotulación obligatoria")).not.toBeInTheDocument();
   });
 
-  it("sin alérgenos declarados, lo indica en el resumen y en cada insumo", async () => {
+  it("revisados y sin alérgenos declarados, lo indica en el resumen y en cada insumo, con la fecha de revisión", async () => {
     vi.mocked(elaboracionService.getElaboracion).mockResolvedValue(FINALIZADA);
     openPage("/elaboraciones/31");
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
@@ -1951,7 +1952,9 @@ describe("Detalle de la elaboración (T05-07)", () => {
     expect(
       within(resumen).getByText("No hay alérgenos declarados en los insumos de esta elaboración."),
     ).toBeInTheDocument();
-    expect(within(tarjeta("Leche")).getByText("Sin alérgenos declarados.")).toBeInTheDocument();
+    // HT06-06: "reviewed, no allergens" says so with the date, instead of the old blank wording.
+    expect(within(tarjeta("Leche")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos declarados.")).not.toBeInTheDocument();
   });
 
   it("no consulta el insumo vigente: todo viene de lo que entrega la elaboración", async () => {
@@ -2022,5 +2025,619 @@ describe("Detalle de la elaboración (T05-07)", () => {
     expect(tarjeta("Harina").querySelector("dl")).toHaveClass("grid", "sm:grid-cols-2");
     expect(screen.getByRole("button", { name: "Volver al producto" })).toHaveClass("w-full", "sm:w-auto");
     expect(document.querySelector("main .max-w-3xl, .max-w-3xl")).not.toBeNull();
+  });
+});
+
+// --- HT06-06: revisión de alérgenos y lotes sugeridos en el registro ---
+
+const INS_SIN_REVISAR = insumo({
+  id: 12,
+  ingrediente_id: LECHE,
+  nombre: "Leche Sin Revisar 1 L",
+  marca_origen: "SinRev",
+  alergenos_revisados: false,
+  alergenos_revisados_at: null,
+});
+
+const LOTE_HARINA: LoteInsumo = {
+  id: 60,
+  insumo_id: 20,
+  codigo: "H-77",
+  fecha_vencimiento: null,
+  created_at: "2026-10-01T12:00:00Z",
+};
+
+const SUGERIDO_LECHE = { id: 50, codigo: "X123", fecha_vencimiento: "2026-10-15" };
+const SUGERIDO_HARINA = { id: 60, codigo: "H-77", fecha_vencimiento: null };
+
+/** The server answers that a supply was reviewed: what PUT /gestion/insumos/{id}/alergenos returns. */
+function revisado(base: Insumo): Insumo {
+  return { ...base, alergenos_revisados: true, alergenos_revisados_at: "2026-10-07T15:00:00Z", alergenos_declarados: [] };
+}
+
+describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
+  /** Leche brought by the server with a supply whose allergens nobody reviewed. */
+  const BORRADOR_SIN_REVISAR = elaboracion({
+    usos: [
+      uso({ ingrediente_id: HARINA, cantidad: "500", unidad: "g" }),
+      uso({ ingrediente_id: LECHE, insumo: insumoUsado(INS_SIN_REVISAR), falta: ["lote"], alergenos_revisados: false }),
+    ],
+  });
+
+  beforeEach(() => {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([INS_HABITUAL, INS_OTRO, INS_SIN_REVISAR]);
+    vi.mocked(insumoService.replaceInsumoAlergenos).mockImplementation(async (id) =>
+      revisado(id === 12 ? INS_SIN_REVISAR : INS_HABITUAL),
+    );
+  });
+
+  function conServidor(borrador: Elaboracion) {
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) => {
+      if (id === 30) return borrador;
+      throw new ApiError("Elaboración no encontrada", 404);
+    });
+  }
+
+  it("un insumo sin revisar muestra la marca y el botón «Revisar alérgenos» solo en su línea", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    await openRegistro();
+
+    const leche = linea("Leche");
+    expect(within(leche).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+    expect(within(linea("Harina")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
+    expect(within(linea("Harina")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+  });
+
+  it("un insumo revisado no muestra la marca ni el botón", async () => {
+    await openRegistro();
+
+    expect(within(linea("Leche")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+  });
+
+  it("la marca sigue al insumo seleccionado: al cambiarlo se actualiza, en los dos sentidos", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    const leche = linea("Leche");
+    expect(within(leche).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "10"); // reviewed
+    expect(within(leche).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
+    expect(within(leche).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "12"); // unreviewed
+    expect(within(leche).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+  });
+
+  it("usa el insumo seleccionado y no lo que trajo el servidor: el servidor decía «revisado»", async () => {
+    // The server brought a reviewed supply (alergenos_revisados true) but the productor picks another one.
+    await openRegistro();
+    expect(within(linea("Leche")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("Insumo de Leche"), "12");
+
+    expect(within(linea("Leche")).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+  });
+
+  it("«Revisar alérgenos» abre un diálogo con el selector, sin alérgenos al comienzo", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    expect(within(dialogo).getByText(/Leche Sin Revisar 1 L/)).toBeInTheDocument();
+    expect(within(dialogo).getByRole("group", { name: "Alérgenos del insumo" })).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText("Este insumo no contiene alérgenos")).not.toBeChecked();
+  });
+
+  it("empieza con los alérgenos que el insumo ya tiene", async () => {
+    const conAlergenos = insumo({
+      id: 12,
+      ingrediente_id: LECHE,
+      nombre: "Leche Sin Revisar 1 L",
+      alergenos_revisados: false,
+      alergenos_revisados_at: null,
+      alergenos_declarados: [{ alergeno_id: 2, codigo: "lacteos", nombre: "Leche", obligatorio_chile: true, tipo: "trazas" }],
+    });
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([INS_HABITUAL, conAlergenos]);
+    conServidor(elaboracion({ usos: [uso({ ingrediente_id: HARINA }), uso({ ingrediente_id: LECHE, insumo: insumoUsado(conAlergenos), alergenos_revisados: false })] }));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    expect(within(within(dialogo).getByRole("region", { name: "Puede contener" })).getByText("Leche")).toBeInTheDocument();
+  });
+
+  it("guardar llama al PUT, quita la marca, cierra el diálogo y no navega", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
+
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledTimes(1);
+    expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledWith(12, []);
+    expect(within(linea("Leche")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
+    // The assignment is saved only by «Guardar borrador».
+    expect(elaboracionService.replaceUsos).not.toHaveBeenCalled();
+  });
+
+  it("guardar con alérgenos declarados los envía en el PUT", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    await user.click(await within(dialogo).findByRole("button", { name: "+ Agregar alérgeno" }));
+    await user.selectOptions(within(dialogo).getByLabelText("Alérgeno del catálogo"), "2");
+    await user.selectOptions(within(dialogo).getByLabelText("Tipo de declaración"), "trazas");
+    await user.click(within(dialogo).getByRole("button", { name: "Agregar" }));
+
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+
+    await waitFor(() =>
+      expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledWith(12, [{ alergeno_id: 2, tipo: "trazas" }]),
+    );
+  });
+
+  it("conserva las asignaciones y los cambios que aún no se guardaron", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.clear(screen.getByLabelText("Código de la elaboración"));
+    await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("LOTE-9");
+    expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).toBeChecked();
+    expect(screen.getByLabelText("Insumo de Leche")).toHaveValue("12");
+    expect(screen.getByText("Tienes cambios sin guardar.")).toBeInTheDocument();
+    expect(elaboracionService.updateElaboracion).not.toHaveBeenCalled();
+    expect(elaboracionService.replaceUsos).not.toHaveBeenCalled();
+  });
+
+  it("cancelar no llama al PUT y la marca sigue", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(insumoService.replaceInsumoAlergenos).not.toHaveBeenCalled();
+    expect(within(linea("Leche")).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+  });
+
+  it("no guarda sin declarar los alérgenos ni confirmar que no contiene", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+
+    expect(within(dialogo).getByText("Declara los alérgenos del insumo o confirma que no contiene.")).toBeInTheDocument();
+    expect(insumoService.replaceInsumoAlergenos).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Revisar alérgenos" })).toBeInTheDocument();
+  });
+
+  it("si el PUT falla lo informa dentro del diálogo y la marca sigue", async () => {
+    conServidor(BORRADOR_SIN_REVISAR);
+    vi.mocked(insumoService.replaceInsumoAlergenos).mockRejectedValue(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
+
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+
+    expect(await within(dialogo).findByText("No pudimos guardar los alérgenos. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Alérgenos sin revisar")).toBeInTheDocument();
+  });
+
+  it("revisar un insumo actualiza todas las líneas que lo usan", async () => {
+    vi.mocked(elaboracionService.listLotesInsumo).mockResolvedValue([]);
+    const { result } = renderHook(() =>
+      useElaboracionRegistro({ elaboracion: elaboracion(), onFinalizada: vi.fn(), onEliminada: vi.fn() }),
+    );
+    await waitFor(() => expect(result.current.insumosLoading).toBe(false));
+    act(() => {
+      result.current.elegirInsumo(HARINA, "12");
+      result.current.elegirInsumo(LECHE, "12");
+    });
+    const [lineaHarina, lineaLeche] = result.current.lineas;
+    expect(result.current.insumoSeleccionado(lineaHarina)?.alergenos_revisados).toBe(false);
+    expect(result.current.insumoSeleccionado(lineaLeche)?.alergenos_revisados).toBe(false);
+
+    act(() => result.current.actualizarInsumo(revisado(INS_SIN_REVISAR)));
+
+    expect(result.current.insumoSeleccionado(result.current.lineas[0])?.alergenos_revisados).toBe(true);
+    expect(result.current.insumoSeleccionado(result.current.lineas[1])?.alergenos_revisados).toBe(true);
+    // Nothing of the unsaved assignment is lost.
+    expect(result.current.lineas.map((l) => l.insumoId)).toEqual(["12", "12"]);
+  });
+});
+
+describe("Registro: el 409 «alergenos_sin_revisar» (HT06-06)", () => {
+  function conProblema() {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, INS_HARINA]);
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () => BORRADOR_COMPLETO);
+    vi.mocked(insumoService.replaceInsumoAlergenos).mockResolvedValue(revisado(INS_HABITUAL));
+    vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(
+      new ApiError("No se puede finalizar", 409, {}, {
+        mensaje: "No se puede finalizar",
+        problemas: [{ ingrediente_id: LECHE, ingrediente_nombre: "Leche", falta: "alergenos_sin_revisar" }],
+      }),
+    );
+  }
+
+  /** The registro is already open: finalize and wait for the 409 to be shown. */
+  async function finalizarYRecibirElProblema(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Finalizar" }));
+    await screen.findByText("No se puede finalizar todavía: revisa las líneas marcadas.");
+  }
+
+  it("resalta la línea y ofrece el botón «Revisar alérgenos» aunque la pantalla creyera que estaba revisado", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+
+    await finalizarYRecibirElProblema(user);
+
+    const leche = linea("Leche");
+    expect(leche).toHaveClass("border-error-border");
+    expect(within(leche).getByText("Alérgenos del insumo sin revisar.")).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+    expect(linea("Harina")).not.toHaveClass("border-error-border");
+  });
+
+  it("al revisar el insumo desde esa línea desaparece el problema y el aviso general", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+    await finalizarYRecibirElProblema(user);
+
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(within(linea("Leche")).queryByText("Alérgenos del insumo sin revisar.")).not.toBeInTheDocument();
+    expect(linea("Leche")).not.toHaveClass("border-error-border");
+    expect(screen.queryByText("No se puede finalizar todavía: revisa las líneas marcadas.")).not.toBeInTheDocument();
+  });
+});
+
+describe("Registro: lote sugerido por línea (HT06-06)", () => {
+  function borradorConSugerencias(
+    sugerenciaLeche: typeof SUGERIDO_LECHE | null = SUGERIDO_LECHE,
+    sugerenciaHarina: typeof SUGERIDO_HARINA | null = SUGERIDO_HARINA,
+  ) {
+    return elaboracion({
+      usos: [
+        uso({ ingrediente_id: HARINA, cantidad: "500", unidad: "g", insumo: insumoUsado(INS_HARINA), falta: ["lote"], lote_sugerido: sugerenciaHarina }),
+        uso({ ingrediente_id: LECHE, insumo: insumoUsado(INS_HABITUAL), falta: ["lote"], lote_sugerido: sugerenciaLeche }),
+      ],
+    });
+  }
+
+  function servidorCon(borrador: Elaboracion) {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, INS_HARINA]);
+    vi.mocked(elaboracionService.listLotesInsumo).mockImplementation(async (insumoId) =>
+      insumoId === 10 ? [LOTE_X] : insumoId === 20 ? [LOTE_HARINA] : [],
+    );
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () => borrador);
+  }
+
+  const botonLeche = () => within(linea("Leche")).queryByRole("button", { name: /^Usar lote/ });
+
+  it("ofrece «Usar lote {código} (vence …)» con la fecha, y sin «vence» si el lote no vence", async () => {
+    servidorCon(borradorConSugerencias());
+    await openRegistro();
+
+    expect(within(linea("Leche")).getByRole("button", { name: "Usar lote X123 (vence 15-10-2026)" })).toBeInTheDocument();
+    expect(within(linea("Harina")).getByRole("button", { name: "Usar lote H-77" })).toBeInTheDocument();
+    expect(within(linea("Harina")).queryByText(/vence/)).not.toBeInTheDocument();
+  });
+
+  it("al usarlo elige «Lote existente» con ese lote y se guarda por el mismo PUT de siempre", async () => {
+    servidorCon(borradorConSugerencias(SUGERIDO_LECHE, null));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(botonLeche()!);
+
+    expect(within(linea("Leche")).getByRole("radio", { name: "Lote existente" })).toBeChecked();
+    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(botonLeche()).not.toBeInTheDocument(); // it has a lot now
+    await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
+    await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+    await waitFor(() =>
+      expect(elaboracionService.replaceUsos).toHaveBeenCalledWith(30, [
+        { ingrediente_id: HARINA, insumo_id: 20, lote: { tipo: "sin_lote" } },
+        { ingrediente_id: LECHE, insumo_id: 10, lote: { tipo: "existente", lote_id: 50 } },
+      ]),
+    );
+  });
+
+  it("no se ofrece si no hay lote sugerido", async () => {
+    servidorCon(borradorConSugerencias(null, null));
+    await openRegistro();
+
+    expect(botonLeche()).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Usar los mismos lotes" })).not.toBeInTheDocument();
+  });
+
+  it("se oculta si la línea ya tiene «Sin lote»", async () => {
+    servidorCon(borradorConSugerencias());
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+    expect(botonLeche()).not.toBeInTheDocument();
+  });
+
+  it("se oculta si la línea ya tiene un lote, nuevo o existente", async () => {
+    servidorCon(borradorConSugerencias());
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Lote nuevo" }));
+    await user.type(within(linea("Leche")).getByLabelText("Código del lote"), "Z-1");
+    expect(botonLeche()).not.toBeInTheDocument();
+  });
+
+  it("se oculta si el servidor ya trae un lote asignado a la línea", async () => {
+    servidorCon(
+      elaboracion({
+        usos: [
+          uso({ ingrediente_id: HARINA }),
+          uso({ ingrediente_id: LECHE, insumo: insumoUsado(INS_HABITUAL), lote: { id: 50, codigo: "X123", fecha_vencimiento: null }, lote_sugerido: SUGERIDO_LECHE, falta: [] }),
+        ],
+      }),
+    );
+    await openRegistro();
+
+    expect(botonLeche()).not.toBeInTheDocument();
+  });
+
+  it("se oculta al cambiar el insumo, y vuelve si se elige otra vez el que trajo el servidor", async () => {
+    servidorCon(borradorConSugerencias());
+    const user = userEvent.setup();
+    await openRegistro();
+    expect(botonLeche()).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "11");
+    expect(botonLeche()).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "10");
+    expect(botonLeche()).toBeInTheDocument();
+  });
+});
+
+describe("Registro: «Usar los mismos lotes» (HT06-06)", () => {
+  function servidorCon(borrador: Elaboracion) {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, INS_HARINA]);
+    vi.mocked(elaboracionService.listLotesInsumo).mockImplementation(async (insumoId) =>
+      insumoId === 10 ? [LOTE_X] : insumoId === 20 ? [LOTE_HARINA] : [],
+    );
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () => borrador);
+  }
+
+  function usos(sugLeche: typeof SUGERIDO_LECHE | null, sugHarina: typeof SUGERIDO_HARINA | null) {
+    return elaboracion({
+      usos: [
+        uso({ ingrediente_id: HARINA, cantidad: "500", unidad: "g", insumo: insumoUsado(INS_HARINA), falta: ["lote"], lote_sugerido: sugHarina }),
+        uso({ ingrediente_id: LECHE, insumo: insumoUsado(INS_HABITUAL), falta: ["lote"], lote_sugerido: sugLeche }),
+      ],
+    });
+  }
+
+  const botonTodos = () => screen.queryByRole("button", { name: "Usar los mismos lotes" });
+
+  it("asigna la sugerencia a todas las líneas elegibles y lo anuncia", async () => {
+    servidorCon(usos(SUGERIDO_LECHE, SUGERIDO_HARINA));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(botonTodos()!);
+
+    expect(await within(linea("Harina")).findByLabelText("Lote registrado")).toHaveValue("60");
+    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    const anuncio = screen.getByText("Se asignaron 2 lotes.");
+    expect(anuncio).toHaveAttribute("aria-live", "polite");
+    expect(anuncio).toHaveAttribute("role", "status");
+    expect(botonTodos()).not.toBeInTheDocument(); // no eligible line is left
+  });
+
+  it("solo toca las elegibles: una línea sin sugerencia queda igual y se cuenta en el anuncio", async () => {
+    servidorCon(usos(SUGERIDO_LECHE, null));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(botonTodos()!);
+
+    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(within(linea("Harina")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+    expect(within(linea("Harina")).queryByRole("radio", { checked: true })).not.toBeInTheDocument();
+    expect(screen.getByText("Se asignó 1 lote. 1 línea no tiene lote sugerido.")).toBeInTheDocument();
+  });
+
+  it("no pisa «Sin lote»: la línea que ya lo eligió queda como está", async () => {
+    servidorCon(usos(SUGERIDO_LECHE, SUGERIDO_HARINA));
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(botonTodos()!);
+
+    expect(await within(linea("Harina")).findByLabelText("Lote registrado")).toHaveValue("60");
+    expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).toBeChecked();
+    expect(within(linea("Leche")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+    expect(screen.getByText("Se asignó 1 lote.")).toBeInTheDocument();
+  });
+
+  it("no pisa un lote nuevo ya escrito: la línea que lo eligió queda como está", async () => {
+    servidorCon(usos(SUGERIDO_LECHE, SUGERIDO_HARINA));
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(within(linea("Harina")).getByRole("radio", { name: "Lote nuevo" }));
+    await user.type(within(linea("Harina")).getByLabelText("Código del lote"), "MIO-1");
+
+    await user.click(botonTodos()!);
+
+    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(within(linea("Harina")).getByRole("radio", { name: "Lote nuevo" })).toBeChecked();
+    expect(within(linea("Harina")).getByLabelText("Código del lote")).toHaveValue("MIO-1");
+    expect(within(linea("Harina")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+  });
+
+  it("se guarda por el camino existente: PUT /usos con «lote existente»", async () => {
+    servidorCon(usos(SUGERIDO_LECHE, SUGERIDO_HARINA));
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.click(botonTodos()!);
+
+    await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+    await waitFor(() =>
+      expect(elaboracionService.replaceUsos).toHaveBeenCalledWith(30, [
+        { ingrediente_id: HARINA, insumo_id: 20, lote: { tipo: "existente", lote_id: 60 } },
+        { ingrediente_id: LECHE, insumo_id: 10, lote: { tipo: "existente", lote_id: 50 } },
+      ]),
+    );
+    expect(elaboracionService.replaceUsos).toHaveBeenCalledTimes(1);
+  });
+
+  it("no aparece si ninguna línea puede usar una sugerencia", async () => {
+    servidorCon(usos(null, null));
+    await openRegistro();
+
+    expect(botonTodos()).not.toBeInTheDocument();
+  });
+});
+
+describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => {
+  function conUsos(...usos: UsoInsumo[]) {
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () =>
+      elaboracion({ id: 31, estado: "finalizada", finalizada_at: "2026-10-06T18:30:00Z", usos }),
+    );
+  }
+
+  async function abrir() {
+    openPage("/elaboraciones/31");
+    await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
+  }
+
+  const tarjeta = (ingrediente: string) => screen.getByRole("region", { name: ingrediente });
+
+  function usoFinalizado(
+    ingredienteId: number,
+    alergenosRevisados: boolean | null,
+    revisadoAt: string | null,
+    alergenos: ReturnType<typeof ALERGENO>[] = [],
+  ): UsoInsumo {
+    const base = ingredienteId === HARINA ? INS_HARINA : INS_HABITUAL;
+    return uso({
+      ingrediente_id: ingredienteId,
+      insumo: { ...insumoUsado(base), alergenos, alergenos_revisados_at: revisadoAt, activo: null, habitual: null },
+      alergenos_revisados: alergenosRevisados,
+      sin_lote: true,
+      pendiente: false,
+      falta: [],
+    });
+  }
+
+  it("revisado y sin alérgenos: «No contiene alérgenos (revisado el …)», con la fecha en hora de Santiago", async () => {
+    // 01:30 UTC of the 2nd is the evening of the 1st in Chile (UTC-3 in October).
+    conUsos(usoFinalizado(HARINA, true, "2026-10-02T01:30:00Z"), usoFinalizado(LECHE, true, "2026-10-02T01:30:00Z"));
+    await abrir();
+
+    expect(within(tarjeta("Harina")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos declarados.")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Alérgenos de la elaboración" })).getByText(
+        "No hay alérgenos declarados en los insumos de esta elaboración.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("copia antigua (sin información de revisión): lo dice y nunca «Sin alérgenos declarados»", async () => {
+    conUsos(usoFinalizado(HARINA, null, null), usoFinalizado(LECHE, true, "2026-10-02T01:30:00Z"));
+    await abrir();
+
+    expect(within(tarjeta("Harina")).getByText("Sin información de revisión de alérgenos")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText(/Sin alérgenos declarados/)).not.toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText(/No contiene alérgenos/)).not.toBeInTheDocument();
+    expect(within(tarjeta("Leche")).queryByText("Sin información de revisión de alérgenos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos declarados.")).not.toBeInTheDocument();
+  });
+
+  it("el resumen no afirma que no hay alérgenos si algún insumo no tiene información de revisión", async () => {
+    conUsos(usoFinalizado(HARINA, null, null), usoFinalizado(LECHE, true, "2026-10-02T01:30:00Z"));
+    await abrir();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    expect(
+      within(resumen).queryByText("No hay alérgenos declarados en los insumos de esta elaboración."),
+    ).not.toBeInTheDocument();
+    expect(
+      within(resumen).getByText("No hay alérgenos declarados, pero hay insumos sin información de revisión de alérgenos."),
+    ).toBeInTheDocument();
+  });
+
+  it("con alérgenos en otro insumo, el resumen los muestra y avisa que puede estar incompleto", async () => {
+    conUsos(
+      usoFinalizado(HARINA, null, null),
+      usoFinalizado(LECHE, true, "2026-10-02T01:30:00Z", [ALERGENO(2, "Leche", "contiene", true)]),
+    );
+    await abrir();
+
+    const resumen = screen.getByRole("region", { name: "Alérgenos de la elaboración" });
+    expect(within(within(resumen).getByRole("group", { name: "Contiene · resumen" })).getByText("Leche")).toBeInTheDocument();
+    expect(within(resumen).getByText(/este resumen podría estar incompleto/)).toBeInTheDocument();
+  });
+
+  it("un insumo con alérgenos muestra su lista y no el texto de revisión", async () => {
+    conUsos(
+      usoFinalizado(HARINA, true, "2026-10-02T01:30:00Z", [ALERGENO(1, "Gluten", "contiene", true)]),
+      usoFinalizado(LECHE, null, null, [ALERGENO(2, "Leche", "contiene", true)]),
+    );
+    await abrir();
+
+    expect(within(tarjeta("Harina")).getByText("Gluten")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText(/No contiene alérgenos/)).not.toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("Leche", { selector: "span" })).toBeInTheDocument();
+    expect(within(tarjeta("Leche")).queryByText("Sin información de revisión de alérgenos")).not.toBeInTheDocument();
+    // A copy without the review date but WITH allergens does not make the summary incomplete.
+    expect(screen.queryByText(/podría estar incompleto/)).not.toBeInTheDocument();
   });
 });

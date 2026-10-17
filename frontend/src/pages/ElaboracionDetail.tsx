@@ -11,6 +11,7 @@ import { consolidarAlergenos } from "@/lib/alergenosResumen";
 import {
   describirLote,
   formatFecha,
+  formatFechaDeMomento,
   textoInformacionConservada,
 } from "@/lib/elaboracionUtils";
 import { formatFormulacionCantidad } from "@/lib/formulationUtils";
@@ -79,6 +80,12 @@ export default function ElaboracionDetail() {
         (elaboracion?.usos ?? []).flatMap((uso) => uso.insumo?.alergenos ?? []),
       ),
     [elaboracion],
+  );
+
+  // Supplies whose copy has no allergens AND no information about their review (copies made before
+  // HT06): their silence cannot be read as "no allergens".
+  const sinInformacion = (elaboracion?.usos ?? []).some(
+    (uso) => uso.insumo && uso.insumo.alergenos.length === 0 && uso.alergenos_revisados === null,
   );
 
   // A borrador is edited, not read.
@@ -193,10 +200,20 @@ export default function ElaboracionDetail() {
               <AlergenosAgrupados
                 contiene={resumen.contiene}
                 puedeContener={resumen.puedeContener}
-                vacio="No hay alérgenos declarados en los insumos de esta elaboración."
+                vacio={
+                  sinInformacion
+                    ? "No hay alérgenos declarados, pero hay insumos sin información de revisión de alérgenos."
+                    : "No hay alérgenos declarados en los insumos de esta elaboración."
+                }
                 mostrarGruposVacios
                 etiqueta="resumen"
               />
+              {sinInformacion && (resumen.contiene.length > 0 || resumen.puedeContener.length > 0) && (
+                <p className="text-sm text-text-secondary">
+                  Hay insumos sin información de revisión de alérgenos: este resumen podría estar
+                  incompleto.
+                </p>
+              )}
             </section>
 
             <section aria-labelledby="elaboracion-usos" className="space-y-3">
@@ -228,6 +245,19 @@ function Dato({ titulo, children }: { titulo: string; children: ReactNode }) {
       <dd className="text-sm text-text-primary">{children}</dd>
     </div>
   );
+}
+
+/** What to say when a supply declares no allergens: reviewed as none, or no information at all. */
+function textoSinAlergenos(uso: UsoInsumo): string {
+  if (uso.alergenos_revisados === true) {
+    const fecha = uso.insumo?.alergenos_revisados_at;
+    return fecha
+      ? `No contiene alérgenos (revisado el ${formatFechaDeMomento(fecha)})`
+      : "No contiene alérgenos (revisado)";
+  }
+  // Null: a copy made before HT06. Never "no allergens": nobody reviewed them.
+  if (uso.alergenos_revisados === null) return "Sin información de revisión de alérgenos";
+  return "Alérgenos sin revisar";
 }
 
 function UsoDetalle({ uso }: { uso: UsoInsumo }) {
@@ -284,7 +314,7 @@ function UsoDetalle({ uso }: { uso: UsoInsumo }) {
         <AlergenosAgrupados
           contiene={alergenos.contiene}
           puedeContener={alergenos.puedeContener}
-          vacio="Sin alérgenos declarados."
+          vacio={textoSinAlergenos(uso)}
           etiqueta={uso.ingrediente_nombre}
         />
       )}
