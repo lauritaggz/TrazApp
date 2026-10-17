@@ -225,6 +225,7 @@ describe("HU03 — vista de la formulación", () => {
     setAccessToken("valid-token");
     vi.mocked(authService.getCurrentProductor).mockResolvedValue(mockProductor);
     vi.mocked(productService.getProduct).mockResolvedValue({
+      tiene_formulacion: false,
       id: PRODUCTO_ID,
       productor_id: 1,
       codigo_interno: "PAN-001",

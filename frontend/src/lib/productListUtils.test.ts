@@ -9,6 +9,7 @@ import type { Product } from "@/types/product";
 import { EMPTY_PRODUCT_COMMERCIAL_FIELDS } from "@/test/testUtils";
 
 const baseProduct: Product = {
+  tiene_formulacion: false,
   id: 1,
   productor_id: 1,
   codigo_interno: "GAL-001",

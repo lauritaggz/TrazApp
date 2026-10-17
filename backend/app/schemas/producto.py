@@ -230,6 +230,9 @@ class ProductoGestionRead(BaseModel):
     categorias: list[CategoriaRead] = Field(default_factory=list)
     activo: bool
     created_at: datetime | None
+    # HT06-07: the current (vigente) version has at least one ingredient, so an elaboración can be
+    # registered for the product. Filled by the service; every response of the product carries it.
+    tiene_formulacion: bool = False
 
 
 # --- VersionProducto (RT-01 / formulación; sin cambios de contrato) ---

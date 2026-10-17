@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
+import * as elaboracionService from "@/services/elaboracionService";
 import * as ingredientService from "@/services/ingredientService";
 import * as productService from "@/services/productService";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
@@ -28,6 +29,11 @@ vi.mock("@/services/productService", () => ({
   uploadProductImage: vi.fn(),
 }));
 
+// HT06-07: the Dashboard also asks for the drafts in progress; no real request in these tests.
+vi.mock("@/services/elaboracionService", () => ({
+  listElaboraciones: vi.fn(),
+}));
+
 vi.mock("@/services/ingredientService", () => ({
   listIngredients: vi.fn(),
   getIngredient: vi.fn(),
@@ -46,6 +52,7 @@ vi.mock("@/services/ingredientService", () => ({
 
 const mockProducts: Product[] = [
   {
+    tiene_formulacion: false,
     id: 1,
     productor_id: 1,
     codigo_interno: "GAL-001",
@@ -92,6 +99,7 @@ function setupDashboardMocks() {
   vi.mocked(productService.listProducts).mockResolvedValue(mockProducts);
   vi.mocked(productService.listCategories).mockResolvedValue([]);
   vi.mocked(ingredientService.listIngredients).mockResolvedValue(mockIngredients);
+  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
 }
 
 describe("Dashboard HT02", () => {

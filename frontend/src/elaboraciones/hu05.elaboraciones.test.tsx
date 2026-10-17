@@ -97,6 +97,7 @@ const HARINA = 1;
 const LECHE = 2;
 
 const PRODUCTO: Product = {
+  tiene_formulacion: false,
   id: 5,
   productor_id: 1,
   codigo_interno: "QUE-001",
@@ -2084,16 +2085,16 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
 
     const leche = linea("Leche");
     expect(within(leche).getByText("Alérgenos sin revisar")).toBeInTheDocument();
-    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos de Leche" })).toBeInTheDocument();
     expect(within(linea("Harina")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
-    expect(within(linea("Harina")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(within(linea("Harina")).queryByRole("button", { name: "Revisar alérgenos de Harina" })).not.toBeInTheDocument();
   });
 
   it("un insumo revisado no muestra la marca ni el botón", async () => {
     await openRegistro();
 
     expect(within(linea("Leche")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
-    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos de Leche" })).not.toBeInTheDocument();
   });
 
   it("la marca sigue al insumo seleccionado: al cambiarlo se actualiza, en los dos sentidos", async () => {
@@ -2105,11 +2106,11 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
 
     await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "10"); // reviewed
     expect(within(leche).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
-    expect(within(leche).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(within(leche).queryByRole("button", { name: "Revisar alérgenos de Leche" })).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "12"); // unreviewed
     expect(within(leche).getByText("Alérgenos sin revisar")).toBeInTheDocument();
-    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos de Leche" })).toBeInTheDocument();
   });
 
   it("usa el insumo seleccionado y no lo que trajo el servidor: el servidor decía «revisado»", async () => {
@@ -2127,7 +2128,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     const user = userEvent.setup();
     await openRegistro();
 
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
 
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     expect(within(dialogo).getByText(/Leche Sin Revisar 1 L/)).toBeInTheDocument();
@@ -2149,7 +2150,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     const user = userEvent.setup();
     await openRegistro();
 
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
 
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     expect(within(within(dialogo).getByRole("region", { name: "Puede contener" })).getByText("Leche")).toBeInTheDocument();
@@ -2159,7 +2160,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     conServidor(BORRADOR_SIN_REVISAR);
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
@@ -2169,7 +2170,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledTimes(1);
     expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledWith(12, []);
     expect(within(linea("Leche")).queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
-    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos de Leche" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
     // The assignment is saved only by «Guardar borrador».
     expect(elaboracionService.replaceUsos).not.toHaveBeenCalled();
@@ -2179,7 +2180,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     conServidor(BORRADOR_SIN_REVISAR);
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     await user.click(await within(dialogo).findByRole("button", { name: "+ Agregar alérgeno" }));
     await user.selectOptions(within(dialogo).getByLabelText("Alérgeno del catálogo"), "2");
@@ -2201,7 +2202,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
 
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
     await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
@@ -2219,7 +2220,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     conServidor(BORRADOR_SIN_REVISAR);
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
 
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
@@ -2233,7 +2234,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     conServidor(BORRADOR_SIN_REVISAR);
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
 
     await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
@@ -2248,7 +2249,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
     vi.mocked(insumoService.replaceInsumoAlergenos).mockRejectedValue(new ApiError("falla", 500));
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
@@ -2305,14 +2306,14 @@ describe("Registro: el 409 «alergenos_sin_revisar» (HT06-06)", () => {
     conProblema();
     const user = userEvent.setup();
     await openRegistro();
-    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos" })).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByRole("button", { name: "Revisar alérgenos de Leche" })).not.toBeInTheDocument();
 
     await finalizarYRecibirElProblema(user);
 
     const leche = linea("Leche");
     expect(leche).toHaveClass("border-error-border");
     expect(within(leche).getByText("Alérgenos del insumo sin revisar.")).toBeInTheDocument();
-    expect(within(leche).getByRole("button", { name: "Revisar alérgenos" })).toBeInTheDocument();
+    expect(within(leche).getByRole("button", { name: "Revisar alérgenos de Leche" })).toBeInTheDocument();
     expect(linea("Harina")).not.toHaveClass("border-error-border");
   });
 
@@ -2322,7 +2323,7 @@ describe("Registro: el 409 «alergenos_sin_revisar» (HT06-06)", () => {
     await openRegistro();
     await finalizarYRecibirElProblema(user);
 
-    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos" }));
+    await user.click(within(linea("Leche")).getByRole("button", { name: "Revisar alérgenos de Leche" }));
     const dialogo = await screen.findByRole("dialog", { name: "Revisar alérgenos" });
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
     await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
@@ -2361,8 +2362,8 @@ describe("Registro: lote sugerido por línea (HT06-06)", () => {
     servidorCon(borradorConSugerencias());
     await openRegistro();
 
-    expect(within(linea("Leche")).getByRole("button", { name: "Usar lote X123 (vence 15-10-2026)" })).toBeInTheDocument();
-    expect(within(linea("Harina")).getByRole("button", { name: "Usar lote H-77" })).toBeInTheDocument();
+    expect(within(linea("Leche")).getByRole("button", { name: "Usar lote X123 (vence 15-10-2026) para Leche" })).toBeInTheDocument();
+    expect(within(linea("Harina")).getByRole("button", { name: "Usar lote H-77 para Harina" })).toBeInTheDocument();
     expect(within(linea("Harina")).queryByText(/vence/)).not.toBeInTheDocument();
   });
 

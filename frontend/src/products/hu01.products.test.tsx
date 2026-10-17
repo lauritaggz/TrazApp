@@ -35,6 +35,7 @@ vi.mock("@/services/formulationService", () => ({
 
 const mockProducts: Product[] = [
   {
+    tiene_formulacion: false,
     id: 3,
     productor_id: 1,
     codigo_interno: "PAN-001",
@@ -48,6 +49,7 @@ const mockProducts: Product[] = [
     created_at: "2026-08-25T12:00:00Z",
   },
   {
+    tiene_formulacion: false,
     id: 2,
     productor_id: 1,
     codigo_interno: "GAL-002",
@@ -61,6 +63,7 @@ const mockProducts: Product[] = [
     created_at: "2026-08-24T12:00:00Z",
   },
   {
+    tiene_formulacion: false,
     id: 1,
     productor_id: 1,
     codigo_interno: "GAL-001",
@@ -475,6 +478,7 @@ describe("Productos HU01 — creación", () => {
   it("permite presentación opcional y envía payload limpio", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 10,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -488,6 +492,7 @@ describe("Productos HU01 — creación", () => {
       created_at: "2026-08-26T12:00:00Z",
     };
     vi.mocked(productService.createProduct).mockResolvedValue(created);
+    vi.mocked(productService.getProduct).mockResolvedValue(created);
     vi.mocked(productService.listProducts).mockResolvedValue([created]);
 
     await openNewProductPage();
@@ -511,14 +516,15 @@ describe("Productos HU01 — creación", () => {
     expect(payload).not.toHaveProperty("id");
     expect(payload).not.toHaveProperty("productor_id");
 
+    // HT06-07: a created product opens its own detail (not the list), with the creation notice.
     expect(
-      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
     expect(
       await screen.findByText("Producto creado correctamente."),
     ).toBeInTheDocument();
-    expect(await screen.findByText("1 producto registrado")).toBeInTheDocument();
     expect(screen.getAllByText("GAL-001").length).toBeGreaterThan(0);
+    expect(screen.queryByText("1 producto registrado")).not.toBeInTheDocument();
   });
 
   it("muestra error 409 en código interno y conserva valores ante error general", async () => {
@@ -568,7 +574,22 @@ describe("Productos HU01 — creación", () => {
     expect(screen.getByRole("button", { name: "Guardando…" })).toBeDisabled();
     expect(productService.createProduct).toHaveBeenCalledTimes(1);
 
+    vi.mocked(productService.getProduct).mockResolvedValue({
+      tiene_formulacion: false,
+      id: 11,
+      productor_id: 1,
+      codigo_interno: "GAL-001",
+      nombre: "Galleta de chocolate",
+      descripcion: "Galleta horneada con chips de chocolate",
+      contenido_neto: "250.000",
+      unidad_medida: "g",
+      presentacion: "Bolsa de 10 unidades",
+      ...EMPTY_PRODUCT_COMMERCIAL_FIELDS,
+      activo: true,
+      created_at: "2026-08-26T12:00:00Z",
+    });
     resolveCreate({
+      tiene_formulacion: false,
       id: 11,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -583,7 +604,7 @@ describe("Productos HU01 — creación", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
   });
 
@@ -601,6 +622,7 @@ describe("Productos HU01 — creación", () => {
   it("carga categorías disponibles y permite seleccionar varias al crear", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 12,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -645,6 +667,7 @@ describe("Productos HU01 — creación", () => {
   it("envía costo y precio al crear cuando se informan", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 13,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -703,6 +726,7 @@ describe("Productos HU01 — creación", () => {
   it("crea el producto y sube la imagen cuando se selecciona un archivo válido", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 14,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -745,6 +769,7 @@ describe("Productos HU01 — creación", () => {
   it("no sube imagen al crear si no se seleccionó archivo", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 15,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -792,6 +817,7 @@ describe("Productos HU01 — creación", () => {
   it("permite reintentar o continuar si falla la subida de imagen tras crear", async () => {
     const user = userEvent.setup();
     const created: Product = {
+      tiene_formulacion: false,
       id: 20,
       productor_id: 1,
       codigo_interno: "GAL-001",
@@ -809,6 +835,7 @@ describe("Productos HU01 — creación", () => {
     vi.mocked(productService.uploadProductImage)
       .mockRejectedValueOnce(new ApiError("fallo imagen", 422))
       .mockResolvedValueOnce({ ...created, imagen_url: "/uploads/products/p20.png" });
+    vi.mocked(productService.getProduct).mockResolvedValue(created);
     vi.mocked(productService.listProducts).mockResolvedValue([created]);
 
     await openNewProductPage();
@@ -832,9 +859,79 @@ describe("Productos HU01 — creación", () => {
     await waitFor(() => {
       expect(productService.uploadProductImage).toHaveBeenCalledTimes(2);
     });
+    // Same destination as a creation without trouble: the detail of the new product.
     expect(
-      await screen.findByRole("heading", { name: "Productos", level: 1 }),
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
+    expect(await screen.findByText("Producto creado correctamente.")).toBeInTheDocument();
+  });
+
+  it("HT06-07: «Continuar al producto» sin imagen abre el detalle con el aviso de creación, por el mismo camino", async () => {
+    const user = userEvent.setup();
+    const created: Product = {
+      tiene_formulacion: false,
+      id: 21,
+      productor_id: 1,
+      codigo_interno: "GAL-001",
+      nombre: "Galleta de chocolate",
+      descripcion: "Galleta horneada con chips de chocolate",
+      contenido_neto: "250.000",
+      unidad_medida: "g",
+      presentacion: "Bolsa de 10 unidades",
+      ...EMPTY_PRODUCT_COMMERCIAL_FIELDS,
+      activo: true,
+      created_at: "2026-08-26T12:00:00Z",
+    };
+    vi.mocked(productService.createProduct).mockResolvedValue(created);
+    vi.mocked(productService.uploadProductImage).mockRejectedValue(new ApiError("fallo imagen", 422));
+    vi.mocked(productService.getProduct).mockResolvedValue(created);
+
+    await openNewProductPage();
+    await fillValidProductForm(user);
+    await user.upload(
+      document.getElementById("imagen_producto") as HTMLInputElement,
+      new File(["png"], "galleta.png", { type: "image/png" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(await screen.findByRole("button", { name: "Continuar al producto" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Producto creado correctamente.")).toBeInTheDocument();
+    expect(productService.getProduct).toHaveBeenCalledWith(21);
+  });
+
+  it("HT06-07: crear un producto lleva a su detalle /productos/:id y no al listado", async () => {
+    const user = userEvent.setup();
+    const created: Product = {
+      tiene_formulacion: false,
+      id: 33,
+      productor_id: 1,
+      codigo_interno: "GAL-001",
+      nombre: "Galleta de chocolate",
+      descripcion: "Galleta horneada con chips de chocolate",
+      contenido_neto: "250.000",
+      unidad_medida: "g",
+      presentacion: "Bolsa de 10 unidades",
+      ...EMPTY_PRODUCT_COMMERCIAL_FIELDS,
+      activo: true,
+      created_at: "2026-08-26T12:00:00Z",
+    };
+    vi.mocked(productService.createProduct).mockResolvedValue(created);
+    vi.mocked(productService.getProduct).mockResolvedValue(created);
+
+    await openNewProductPage();
+    await fillValidProductForm(user);
+    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
+    ).toBeInTheDocument();
+    expect(productService.getProduct).toHaveBeenCalledWith(33);
+    expect(screen.queryByRole("heading", { name: "Productos", level: 1 })).not.toBeInTheDocument();
+    // The notice is shown once: the state that carried it is cleared.
+    expect(await screen.findAllByText("Producto creado correctamente.")).toHaveLength(1);
   });
 });
 

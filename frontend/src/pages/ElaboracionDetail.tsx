@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AlergenosAgrupados from "@/components/elaboraciones/AlergenosAgrupados";
+import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -42,6 +43,7 @@ export default function ElaboracionDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [otraDialogOpen, setOtraDialogOpen] = useState(false);
 
   const load = useCallback(async (id: number) => {
     setLoading(true);
@@ -147,14 +149,23 @@ export default function ElaboracionDetail() {
                 { label: `Elaboración ${elaboracion.codigo}` },
               ]}
               actions={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                  onClick={() => navigate(`/productos/${elaboracion.producto.id}`)}
-                >
-                  Volver al producto
-                </Button>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => setOtraDialogOpen(true)}
+                  >
+                    Registrar otra elaboración
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/productos/${elaboracion.producto.id}`)}
+                  >
+                    Volver al producto
+                  </Button>
+                </div>
               }
             />
 
@@ -234,6 +245,15 @@ export default function ElaboracionDetail() {
           </>
         )}
       </div>
+
+      {otraDialogOpen && elaboracion && (
+        <ElaboracionCreateDialog
+          productoId={elaboracion.producto.id}
+          productoNombre={elaboracion.producto.nombre}
+          onCreated={(creada) => navigate(`/elaboraciones/${creada.id}/registro`)}
+          onCancel={() => setOtraDialogOpen(false)}
+        />
+      )}
     </AppShell>
   );
 }

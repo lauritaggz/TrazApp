@@ -170,6 +170,7 @@ export default function ElaboracionLinea({
             className="w-full sm:w-auto"
             onClick={onRevisarAlergenos}
             disabled={disabled}
+            aria-label={`Revisar alérgenos de ${linea.ingrediente_nombre}`}
           >
             Revisar alérgenos
           </Button>
@@ -215,6 +216,7 @@ export default function ElaboracionLinea({
               variant="secondary"
               className="w-full sm:w-auto"
               onClick={onUsarLoteSugerido}
+              aria-label={`${textoUsarLote(loteSugerido.codigo, loteSugerido.fecha_vencimiento)} para ${linea.ingrediente_nombre}`}
             >
               {textoUsarLote(loteSugerido.codigo, loteSugerido.fecha_vencimiento)}
             </Button>
