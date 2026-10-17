@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
@@ -445,6 +445,35 @@ describe("Perfil HU12", () => {
     });
     expect(screen.getByText("Ana Maria Perez")).toBeInTheDocument();
     expect(screen.getByText("Espiga Artesanal")).toBeInTheDocument();
+  });
+
+  it("lo que el usuario escribe en el instante en que se monta el perfil no se pisa después", async () => {
+    // Regression of an intermittent failure. The page re-copied the productor into the form on
+    // mount, although the form already started with those values. That copy runs as a pending effect
+    // right after the first paint, so an edit made in that very instant was undone by it (under load
+    // the test typed "Ana Perez" + "Ana Maria Perez"). The edit is fired from a MutationObserver:
+    // right when the field enters the DOM, before the pending effects run.
+    setAccessToken("valid-token");
+    vi.mocked(authService.getCurrentProductor).mockResolvedValue(mockProductor);
+    let editado = false;
+    const observer = new MutationObserver(() => {
+      const campo = screen.queryByLabelText("Nombre");
+      if (campo && !editado) {
+        editado = true;
+        fireEvent.change(campo, { target: { value: "Ana Maria" } });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    renderWithProviders(<App />, { initialEntries: ["/perfil"] });
+    await waitFor(() => expect(editado).toBe(true));
+    observer.disconnect();
+    // Let every pending effect of the mount run before looking at the field.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByLabelText("Nombre")).toHaveValue("Ana Maria");
   });
 
   it("muestra error de API al guardar el perfil", async () => {
