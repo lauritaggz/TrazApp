@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
@@ -22,8 +22,13 @@ export default function Profile() {
   const { notify } = useToast();
   const [loading, setLoading] = useState(false);
 
+  // The form already starts with the productor's values (see useState above). It is copied again only
+  // when the productor CHANGES afterwards (for example after saving). Copying on mount as well gave a
+  // late, pending effect that could undo the first thing the user typed.
+  const productorCopiado = useRef(productor);
   useEffect(() => {
-    if (!productor) return;
+    if (!productor || productor === productorCopiado.current) return;
+    productorCopiado.current = productor;
     setForm({
       name: productor.nombre,
       businessName: productor.nombre_negocio ?? "",
