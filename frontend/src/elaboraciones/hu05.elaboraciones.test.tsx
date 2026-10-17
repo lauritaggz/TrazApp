@@ -8,6 +8,7 @@ import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as elaboracionService from "@/services/elaboracionService";
 import * as formulationService from "@/services/formulationService";
+import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
@@ -20,6 +21,7 @@ import type {
   UsoPayload,
 } from "@/types/elaboracion";
 import { EMPTY_INSUMO_FORM_VALUES, type Insumo } from "@/types/insumo";
+import type { AlergenoCatalogo } from "@/types/ingredient";
 import type { Product } from "@/types/product";
 
 vi.mock("@/services/authService", () => ({
@@ -57,6 +59,7 @@ vi.mock("@/services/insumoService", () => ({
   addInsumoAlergeno: vi.fn(),
   updateInsumoAlergenoTipo: vi.fn(),
   deleteInsumoAlergeno: vi.fn(),
+  replaceInsumoAlergenos: vi.fn(),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -126,6 +129,9 @@ function insumo(overrides: Partial<Insumo> & { id: number; ingrediente_id: numbe
     activo: true,
     created_at: "2026-10-01T12:00:00Z",
     updated_at: "2026-10-01T12:00:00Z",
+    // HT06: the supplies of these tests were created reviewed ("reviewed, no allergens").
+    alergenos_revisados: true,
+    alergenos_revisados_at: "2026-10-01T12:00:00Z",
     alergenos_declarados: [],
     ...overrides,
   };
@@ -147,6 +153,7 @@ function insumoUsado(i: Insumo) {
     ingredientes_declarados: i.ingredientes_declarados,
     advertencias: i.advertencias,
     alergenos: [],
+    alergenos_revisados_at: i.alergenos_revisados_at,
     activo: i.activo,
     habitual: i.habitual,
   };
@@ -160,7 +167,10 @@ function uso(overrides: Partial<UsoInsumo> & { ingrediente_id: number }): UsoIns
     unidad: null,
     insumo: null,
     lote: null,
+    lote_sugerido: null,
     sin_lote: false,
+    // HT06: true when the line has a supply (the fixtures' supplies are reviewed).
+    alergenos_revisados: Boolean(overrides.insumo),
     pendiente: true,
     falta: ["insumo", "lote"],
     insumo_desactivado: false,
@@ -277,9 +287,17 @@ function respuestaDe(usos: UsoPayload[]): Elaboracion {
   });
 }
 
+// HT06: the form that registers a supply from a line declares its allergens, so it loads the catalog.
+const CATALOGO_ALERGENOS: AlergenoCatalogo[] = [
+  { id: 1, codigo: "gluten", nombre: "Gluten", obligatorio_chile: true },
+  { id: 2, codigo: "lacteos", nombre: "Leche", obligatorio_chile: true },
+  { id: 4, codigo: "sesamo", nombre: "Sésamo", obligatorio_chile: false },
+];
+
 beforeEach(() => {
   vi.clearAllMocks();
   setAccessToken("valid-token");
+  vi.mocked(ingredientService.listAlergenosCatalog).mockResolvedValue(CATALOGO_ALERGENOS);
   vi.mocked(authService.getCurrentProductor).mockResolvedValue(mockProductor);
   vi.mocked(productService.getProduct).mockResolvedValue(PRODUCTO);
   vi.mocked(productService.listProducts).mockResolvedValue([PRODUCTO]);
@@ -1337,6 +1355,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
   async function llenar(dialogo: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
     await user.type(within(dialogo).getByLabelText("Nombre"), "Harina Selecta 1 kg");
     await user.type(within(dialogo).getByLabelText("Marca u origen"), "Selecta");
+    // HT06: the allergens must be declared; this supply contains none.
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
   }
 
   beforeEach(() => {
@@ -1429,6 +1449,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
     await user.type(within(dialogo).getByLabelText("Nombre"), "Leche Nueva 1 L");
     await user.type(within(dialogo).getByLabelText("Marca u origen"), "Nueva");
+    await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
     await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
 
@@ -1711,6 +1732,7 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
     await user.type(screen.getByLabelText("Nombre"), "Harina Selecta");
     await user.type(screen.getByLabelText("Marca u origen"), "Selecta");
     await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
     await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toBeInTheDocument();

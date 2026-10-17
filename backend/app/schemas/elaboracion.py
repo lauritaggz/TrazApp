@@ -199,8 +199,9 @@ class UsoInsumoRead(BaseModel):
     lote_sugerido: LoteUsadoRead | None
     sin_lote: bool
     # Whether the allergens of the assigned supply were reviewed: the live supply in a borrador (false
-    # without a supply), the conserved copy in a finalizada (false for copies that predate HT06).
-    alergenos_revisados: bool
+    # without a supply); the conserved copy in a finalizada: true if it has the review date, null if it
+    # has no information (copies of schema 1, made before HT06) so that it is not read as "unreviewed".
+    alergenos_revisados: bool | None
     pendiente: bool
     falta: list[FaltanteUso]
     # Warnings for a borrador, so the interface can show them before the productor saves or
@@ -301,7 +302,7 @@ def _uso_conservado_read(uso: Any, linea: Any) -> UsoInsumoRead:
         lote=LoteUsadoRead(**lote) if lote is not None else None,
         lote_sugerido=None,
         sin_lote=copia["sin_lote"],
-        alergenos_revisados=copia.get("alergenos_revisados_at") is not None,
+        alergenos_revisados=True if copia.get("alergenos_revisados_at") is not None else None,
         pendiente=False,
         falta=[],
         insumo_desactivado=False,

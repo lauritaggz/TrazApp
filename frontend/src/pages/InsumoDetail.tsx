@@ -219,7 +219,7 @@ export default function InsumoDetail() {
             </ProductDetailSection>
 
             <ProductDetailSection id="insumo-detail-alergenos" title="Alérgenos declarados">
-              <InsumoAllergensSection insumoId={insumo.id} />
+              <InsumoAllergensSection insumoId={insumo.id} revisado={insumo.alergenos_revisados} />
             </ProductDetailSection>
 
             {insumo.activo && (

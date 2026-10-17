@@ -1,5 +1,6 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import AlergenosSelector from "@/components/insumos/AlergenosSelector";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import Button from "@/components/ui/Button";
 import FormActions from "@/components/ui/FormActions";
@@ -16,6 +17,7 @@ import type {
   InsumoDuplicateInfo,
   InsumoFormMode,
   InsumoFormValues,
+  AlergenosValue,
 } from "@/types/insumo";
 
 interface InsumoFormProps {
@@ -47,6 +49,14 @@ interface InsumoFormProps {
    */
   onUseExisting?: () => void;
   usingExisting?: boolean;
+  /**
+   * HT06, create mode: the allergens declared in this same form. Without them (edit mode) the
+   * selector is not shown: the allergens of an existing supply are managed in its detail.
+   */
+  alergenos?: AlergenosValue;
+  onAlergenosChange?: (value: AlergenosValue) => void;
+  /** Show the "declare or confirm" message (the form turns it on after a failed save). */
+  mostrarErrorAlergenos?: boolean;
   onChange: (values: InsumoFormValues) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -72,6 +82,9 @@ export default function InsumoForm({
   ingredienteFijo = null,
   onUseExisting,
   usingExisting = false,
+  alergenos,
+  onAlergenosChange,
+  mostrarErrorAlergenos = false,
   onChange,
   onSubmit,
   onCancel,
@@ -81,11 +94,17 @@ export default function InsumoForm({
   useEffect(() => {
     if (!errorFocusToken || !formRef.current) return;
     const firstErrorField = INSUMO_FORM_FIELD_ORDER.find((field) => errors[field]);
-    if (!firstErrorField) return;
+    if (!firstErrorField) {
+      // Only the allergen declaration is missing: its confirmation checkbox is the way out.
+      if (mostrarErrorAlergenos) {
+        formRef.current.querySelector<HTMLElement>('[name="sin_alergenos"]')?.focus();
+      }
+      return;
+    }
     formRef.current
       .querySelector<HTMLElement>(`[name="${firstErrorField}"]`)
       ?.focus();
-  }, [errorFocusToken, errors]);
+  }, [errorFocusToken, errors, mostrarErrorAlergenos]);
 
   function update<K extends keyof InsumoFormValues>(key: K, value: InsumoFormValues[K]) {
     onChange({ ...values, [key]: value });
@@ -318,6 +337,21 @@ export default function InsumoForm({
             disabled={loading}
           />
         </ProductFormSection>
+
+        {mode === "create" && alergenos && onAlergenosChange && (
+          <ProductFormSection
+            id="insumo-form-alergenos"
+            title="Alérgenos"
+            description="Obligatorio: declara los alérgenos del envase o confirma que no contiene ninguno."
+          >
+            <AlergenosSelector
+              value={alergenos}
+              onChange={onAlergenosChange}
+              disabled={loading}
+              mostrarError={mostrarErrorAlergenos}
+            />
+          </ProductFormSection>
+        )}
 
         <ProductFormSection
           id="insumo-form-uso"

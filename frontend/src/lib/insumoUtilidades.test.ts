@@ -63,6 +63,8 @@ function insumo(overrides: Partial<Insumo> = {}): Insumo {
     activo: true,
     created_at: "2026-10-04T12:00:00Z",
     updated_at: "2026-10-04T12:00:00Z",
+    alergenos_revisados: true,
+    alergenos_revisados_at: "2026-10-01T12:00:00Z",
     alergenos_declarados: [],
     ...overrides,
   };

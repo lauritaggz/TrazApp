@@ -11,6 +11,7 @@ import {
   addInsumoAlergeno,
   deleteInsumoAlergeno,
   listInsumoAlergenos,
+  replaceInsumoAlergenos,
   updateInsumoAlergenoTipo,
 } from "@/services/insumoService";
 import { ApiError } from "@/types/auth";
@@ -37,10 +38,15 @@ const GROUPS: { tipo: TipoDeclaracion; titulo: string; vacio: string }[] = [
 
 interface InsumoAllergensSectionProps {
   insumoId: number;
+  /** HT06: whether the allergens of the supply were reviewed (insumo.alergenos_revisados). */
+  revisado: boolean;
 }
 
-export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSectionProps) {
+export default function InsumoAllergensSection({ insumoId, revisado: revisadoInicial }: InsumoAllergensSectionProps) {
   const [declarados, setDeclarados] = useState<AlergenoDeclarado[]>([]);
+  // Any declaration made here is a review too (the API records it), so the state follows the actions.
+  const [revisado, setRevisado] = useState(revisadoInicial);
+  const [confirming, setConfirming] = useState(false);
   const [catalog, setCatalog] = useState<AlergenoCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,6 +87,10 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
   }, []);
 
   useEffect(() => {
+    setRevisado(revisadoInicial);
+  }, [revisadoInicial]);
+
+  useEffect(() => {
     void loadData();
   }, [loadData]);
 
@@ -111,6 +121,7 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
     setSubmitting(true);
     try {
       await addInsumoAlergeno(insumoId, alergenoId, selectedTipo);
+      setRevisado(true);
       closeAddForm();
       await loadData();
     } catch (err) {
@@ -128,6 +139,7 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
     const nuevo: TipoDeclaracion = item.tipo === TIPO_CONTIENE ? TIPO_TRAZAS : TIPO_CONTIENE;
     try {
       await updateInsumoAlergenoTipo(insumoId, item.alergeno_id, nuevo);
+      setRevisado(true);
       await loadData();
     } catch (err) {
       setActionError(
@@ -144,6 +156,7 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
     setActionError("");
     try {
       await deleteInsumoAlergeno(insumoId, deleteTarget.alergeno_id);
+      setRevisado(true);
       setDeleteTarget(null);
       await loadData();
     } catch (err) {
@@ -152,6 +165,25 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
       );
     } finally {
       setDeleting(false);
+    }
+  }
+
+  /** The productor confirms that the supply contains no allergens: PUT with an empty list. */
+  async function handleConfirmSinAlergenos() {
+    setActionError("");
+    setConfirming(true);
+    try {
+      const actualizado = await replaceInsumoAlergenos(insumoId, []);
+      setRevisado(actualizado.alergenos_revisados);
+      setDeclarados(actualizado.alergenos_declarados);
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "No pudimos confirmar que el insumo no contiene alérgenos.",
+      );
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -173,6 +205,35 @@ export default function InsumoAllergensSection({ insumoId }: InsumoAllergensSect
       {!loading && !error && (
         <>
           {actionError && <Alert type="error">{actionError}</Alert>}
+
+          {declarados.length === 0 &&
+            (revisado ? (
+              <p
+                data-estado-revision="revisado-sin-alergenos"
+                className="rounded-lg border border-success-border bg-success-bg px-4 py-3 text-sm font-medium text-success"
+              >
+                Revisado: no contiene alérgenos
+              </p>
+            ) : (
+              <div
+                data-estado-revision="sin-revisar"
+                className="space-y-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3"
+              >
+                <p className="text-sm font-medium text-warning">Alérgenos sin revisar</p>
+                <p className="text-[13px] text-text-secondary">
+                  Declara los alérgenos del envase o confirma que el insumo no contiene ninguno. Sin
+                  revisar, no se puede finalizar una elaboración que lo use.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleConfirmSinAlergenos()}
+                  loading={confirming}
+                >
+                  Confirmar que no contiene alérgenos
+                </Button>
+              </div>
+            ))}
 
           <div className="grid gap-4 sm:grid-cols-2">
             {GROUPS.map((group) => (

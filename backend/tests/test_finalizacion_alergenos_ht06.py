@@ -311,7 +311,8 @@ def test_una_finalizada_sin_la_clave_se_lee_con_null_y_no_es_un_error(client, ct
     usos = respuesta.json()["usos"]
     assert len(usos) == 2
     assert all(uso["insumo"]["alergenos_revisados_at"] is None for uso in usos)
-    assert all(uso["alergenos_revisados"] is False for uso in usos)  # derived from the copy: no date, no review
+    # A schema 1 copy has no information about the review: null, never false ("unreviewed").
+    assert all(uso["alergenos_revisados"] is None for uso in usos)
     assert all(uso["lote_sugerido"] is None for uso in usos)
     assert all(uso["insumo"]["nombre"] for uso in usos)  # the rest of the copy reads as before
 

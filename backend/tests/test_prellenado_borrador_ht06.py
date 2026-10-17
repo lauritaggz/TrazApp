@@ -457,3 +457,4 @@ def test_en_una_finalizada_alergenos_revisados_sale_de_la_copia(client, ctx, db_
     detalle = _detalle(client, ctx, finalizada)
 
     assert all(uso["alergenos_revisados"] is True for uso in detalle["usos"])
+    assert all(uso["insumo"]["alergenos_revisados_at"] is not None for uso in detalle["usos"])
