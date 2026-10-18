@@ -1,10 +1,11 @@
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Ingrediente, InsumoComercial, Productor
+from app.models import Ingrediente, InsumoAlergeno, InsumoComercial, Productor
 from app.repositories.insumo_repository import InsumoRepository
 from app.schemas.insumo import (
     AlergenoDeclaradoRead,
     InsumoAlergenoCreate,
+    InsumoAlergenosReplace,
     InsumoAlergenoUpdate,
     InsumoCreate,
     InsumoRead,
@@ -13,6 +14,8 @@ from app.schemas.insumo import (
 )
 
 MENSAJE_ALERGENO_REPETIDO = "El alérgeno ya está asociado al insumo."
+MENSAJE_ALERGENO_NO_VALIDO = "Alérgeno no válido"
+MENSAJE_ALERGENO_EN_LISTA_REPETIDO = "El alérgeno está repetido en la lista."
 MENSAJE_CAMBIO_SIMULTANEO = (
     "No se pudo guardar el insumo por un cambio simultáneo. Inténtalo nuevamente."
 )
@@ -36,6 +39,18 @@ class InsumoAlergenoNotFoundError(Exception):
 
 class InvalidInsumoAlergenoError(Exception):
     """Raised when an allergen operation is not valid: unknown allergen or repeated (422)."""
+
+
+class InvalidAlergenosError(Exception):
+    """Raised when a list of allergens sent in bulk is not valid: unknown or repeated (422).
+
+    Carries the offending allergen so the client can point at it (detail: mensaje + alergeno_id).
+    """
+
+    def __init__(self, mensaje: str, alergeno_id: int) -> None:
+        self.mensaje = mensaje
+        self.alergeno_id = alergeno_id
+        super().__init__(mensaje)
 
 
 class InsumoConflictError(Exception):
@@ -62,10 +77,19 @@ class InsumoService:
         # Read the id up front: after a failed flush the session cannot refresh ORM objects.
         productor_id = productor.id
         ingrediente = self._get_valid_ingrediente(productor_id, payload.ingrediente_id)
-        data = payload.model_dump()
+        alergenos = payload.alergenos
+        if alergenos is not None:
+            self._validar_alergenos(alergenos)
+        data = payload.model_dump(exclude={"alergenos"})
         self._ensure_codigo_disponible(productor_id, data["codigo_barras"])
 
         insumo = InsumoComercial(productor_id=productor_id, **data)
+        if alergenos is not None:
+            # Same transaction as the supply: all or nothing. Sent (even empty) = reviewed.
+            insumo.alergenos_declarados = [
+                InsumoAlergeno(alergeno_id=a.alergeno_id, tipo=a.tipo) for a in alergenos
+            ]
+            self.repository.marcar_alergenos_revisados(insumo)
         try:
             if insumo.habitual:
                 self._claim_habitual(ingrediente.id)
@@ -152,6 +176,41 @@ class InsumoService:
             for d in ordenar_declarados(insumo.alergenos_declarados)
         ]
 
+    def replace_alergenos_mine(
+        self,
+        productor: Productor,
+        insumo_id: int,
+        payload: InsumoAlergenosReplace,
+    ) -> InsumoRead:
+        """Replace the whole list of declared allergens and mark the supply as reviewed (HT06).
+
+        An empty list means "reviewed, no allergens". Like PATCH, it works on a deactivated
+        supply. The list is validated before anything is locked or changed, so a rejected
+        request leaves the previous list (and review date) as they were.
+        """
+        productor_id = productor.id
+        self._get_owned_or_raise(productor_id, insumo_id)
+        self._validar_alergenos(payload.alergenos)
+
+        insumo = self.repository.lock_insumo(insumo_id, productor_id)
+        if insumo is None:
+            raise InsumoNotFoundError("Insumo no encontrado")
+        deseados = {a.alergeno_id: a.tipo for a in payload.alergenos}
+        for declarado in list(insumo.alergenos_declarados):
+            if declarado.alergeno_id in deseados:
+                declarado.tipo = deseados.pop(declarado.alergeno_id)
+            else:
+                insumo.alergenos_declarados.remove(declarado)
+        for alergeno_id, tipo in deseados.items():
+            insumo.alergenos_declarados.append(InsumoAlergeno(alergeno_id=alergeno_id, tipo=tipo))
+        self.repository.marcar_alergenos_revisados(insumo)
+        try:
+            self.repository.commit()
+        except IntegrityError as exc:
+            self.repository.rollback()
+            raise InsumoConflictError(MENSAJE_CAMBIO_SIMULTANEO) from exc
+        return InsumoRead.from_insumo(self.repository.reload(insumo_id, productor_id))
+
     def add_alergeno_mine(
         self,
         productor: Productor,
@@ -166,7 +225,7 @@ class InsumoService:
             raise InvalidInsumoAlergenoError(MENSAJE_ALERGENO_REPETIDO)
 
         self.repository.add_declarado(insumo_pk, payload.alergeno_id, payload.tipo)
-        self.repository.touch(insumo)
+        self.repository.marcar_alergenos_revisados(insumo)
         try:
             self.repository.commit()
         except IntegrityError as exc:
@@ -190,7 +249,13 @@ class InsumoService:
         declarado = self._get_declarado_or_raise(insumo_pk, alergeno_id)
         if declarado.tipo != payload.tipo:
             declarado.tipo = payload.tipo
-            self.repository.touch(insumo)
+            self.repository.marcar_alergenos_revisados(insumo)
+            self.repository.commit()
+            declarado = self._get_declarado_or_raise(insumo_pk, alergeno_id)
+        elif insumo.alergenos_revisados_at is None:
+            # Same type: nothing changes, except that a supply with declared allergens is never
+            # left unreviewed. An already reviewed supply is not touched (no new date).
+            self.repository.marcar_alergenos_revisados(insumo)
             self.repository.commit()
             declarado = self._get_declarado_or_raise(insumo_pk, alergeno_id)
         return AlergenoDeclaradoRead.from_declarado(declarado)
@@ -204,10 +269,23 @@ class InsumoService:
         insumo = self._get_owned_or_raise(productor.id, insumo_id)
         declarado = self._get_declarado_or_raise(insumo.id, alergeno_id)
         self.repository.delete_declarado(declarado)
-        self.repository.touch(insumo)
+        # Removing the last one leaves "reviewed, no allergens": a decision, not a blank.
+        self.repository.marcar_alergenos_revisados(insumo)
         self.repository.commit()
 
     # --- helpers ---
+
+    def _validar_alergenos(self, alergenos: list) -> None:
+        """422 for a repeated or unknown allergen in a bulk list (the type is checked by the schema)."""
+        vistos: set[int] = set()
+        for item in alergenos:
+            if item.alergeno_id in vistos:
+                raise InvalidAlergenosError(MENSAJE_ALERGENO_EN_LISTA_REPETIDO, item.alergeno_id)
+            vistos.add(item.alergeno_id)
+        existentes = self.repository.alergeno_ids_existentes([a.alergeno_id for a in alergenos])
+        for item in alergenos:
+            if item.alergeno_id not in existentes:
+                raise InvalidAlergenosError(MENSAJE_ALERGENO_NO_VALIDO, item.alergeno_id)
 
     def _get_declarado_or_raise(self, insumo_id: int, alergeno_id: int):
         declarado = self.repository.get_declarado(insumo_id, alergeno_id)

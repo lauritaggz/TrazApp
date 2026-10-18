@@ -20,6 +20,8 @@ export interface Product {
   categorias: Categoria[];
   activo: boolean;
   created_at: string | null;
+  /** HT06-07: the current version has at least one ingredient, so an elaboración can be registered. */
+  tiene_formulacion: boolean;
 }
 
 /** Payload for POST /gestion/productos. Ownership comes from JWT. */

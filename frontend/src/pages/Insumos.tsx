@@ -55,15 +55,10 @@ export default function Insumos() {
   }, [loadInsumos]);
 
   useEffect(() => {
-    const state = location.state as { insumoCreated?: boolean; insumoId?: number } | null;
+    // The allergens are declared in the creation form itself (HT06): nothing is left to do afterwards.
+    const state = location.state as { insumoCreated?: boolean } | null;
     if (!state?.insumoCreated) return;
-    notify(
-      "Insumo creado correctamente.",
-      "success",
-      typeof state.insumoId === "number"
-        ? { label: "Declarar alérgenos", to: `/insumos/${state.insumoId}` }
-        : undefined,
-    );
+    notify("Insumo creado correctamente.", "success");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -251,6 +246,11 @@ function InsumoListControls({
   );
 }
 
+/** A supply whose allergens nobody reviewed. "Reviewed, no allergens" is not a problem: no mark. */
+function SinRevisarBadge() {
+  return <Badge variant="warning">Alérgenos sin revisar</Badge>;
+}
+
 function InsumoNameCell({ insumo }: { insumo: Insumo }) {
   return (
     <div className="min-w-0 space-y-1">
@@ -264,6 +264,7 @@ function InsumoNameCell({ insumo }: { insumo: Insumo }) {
         </Link>
         {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
         {!insumo.activo && <Badge>Inactivo</Badge>}
+        {!insumo.alergenos_revisados && <SinRevisarBadge />}
       </p>
       {insumo.presentacion && (
         <p data-presentacion className="text-[13px] text-text-secondary">
@@ -349,6 +350,7 @@ function InsumosCards({ insumos }: { insumos: Insumo[] }) {
             )}
             {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
             {!insumo.activo && <Badge>Inactivo</Badge>}
+            {!insumo.alergenos_revisados && <SinRevisarBadge />}
           </h2>
           <p className="mt-1 text-[13px] text-text-secondary">
             {insumo.marca_origen} · {insumo.ingrediente.nombre}
@@ -372,7 +374,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       steps={[
         "Escribe su nombre y marca u origen, y elige el ingrediente que abastece.",
         "Agrega su código de barras si lo tiene.",
-        "Declara sus alérgenos desde el detalle.",
+        "Declara sus alérgenos o confirma que no contiene ninguno.",
       ]}
       action={
         <Button type="button" onClick={onCreate}>

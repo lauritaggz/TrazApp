@@ -37,6 +37,7 @@ vi.mock("@/services/insumoService", () => ({
   addInsumoAlergeno: vi.fn(),
   updateInsumoAlergenoTipo: vi.fn(),
   deleteInsumoAlergeno: vi.fn(),
+  replaceInsumoAlergenos: vi.fn(),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -105,6 +106,9 @@ function insumo(overrides: Partial<Insumo> = {}): Insumo {
     activo: true,
     created_at: "2026-10-04T12:00:00Z",
     updated_at: "2026-10-04T12:00:00Z",
+    // HT06: reviewed by default; the tests of the unreviewed state say so explicitly.
+    alergenos_revisados: true,
+    alergenos_revisados_at: "2026-10-01T12:00:00Z",
     alergenos_declarados: DECLARADOS,
     ...overrides,
   };
@@ -167,6 +171,8 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("Nombre"), "Leche Colun Entera 1 L");
   await user.type(screen.getByLabelText("Marca u origen"), "Colun");
   await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+  // HT06: the allergens must be declared; the supplies of these tests contain none.
+  await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 }
 
 // --- menú ---
@@ -273,7 +279,7 @@ describe("Listado de insumos", () => {
     openPage("/insumos");
 
     expect(await screen.findByRole("heading", { name: "Aún no tienes insumos" })).toBeInTheDocument();
-    expect(screen.getByText("Declara sus alérgenos desde el detalle.")).toBeInTheDocument();
+    expect(screen.getByText("Declara sus alérgenos o confirma que no contiene ninguno.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Registrar primer insumo" }));
 
@@ -526,7 +532,7 @@ describe("Formulario de insumo", () => {
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 
-  it("crea el insumo con la carga normalizada y avisa con un enlace para declarar alérgenos", async () => {
+  it("crea el insumo con la carga normalizada, con sus alérgenos, y avisa sin pedir declararlos después", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
     openPage("/insumos/nuevo");
@@ -547,11 +553,13 @@ describe("Formulario de insumo", () => {
         ingredientes_declarados: null,
         advertencias: "Contiene leche",
         habitual: true,
+        alergenos: [],
       }),
     );
     expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
     expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Declarar alérgenos" })).toHaveAttribute("href", "/insumos/20");
+    // HT06: the allergens were declared in the form itself, so there is nothing left to declare.
+    expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
 
   it("muestra el error del backend en el campo que corresponde", async () => {
@@ -1161,6 +1169,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     await user.type(screen.getByLabelText("Nombre"), "Huevos de campo");
     await user.type(screen.getByLabelText("Marca u origen"), "Feria local");
     await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
     await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
 
     await waitFor(() =>
@@ -1169,6 +1178,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
           nombre: "Huevos de campo",
           marca_origen: "Feria local",
           codigo_barras: null,
+          alergenos: [],
         }),
       ),
     );
@@ -1379,6 +1389,8 @@ describe("Formulario reutilizable", () => {
           codigo_barras: EAN_13,
           ingredientes_declarados: "Leche, lactasa",
         },
+        // Suggested by the source: shown as the starting value, not reviewed until the form is saved.
+        initialAlergenos: { items: [{ alergeno_id: 1, tipo: "contiene" }], sinAlergenos: false },
         extraPayload: {
           fuente: "open_food_facts",
           ficha: { product_name: "Leche sin lactosa" },
@@ -1407,6 +1419,7 @@ describe("Formulario reutilizable", () => {
       fuente: "open_food_facts",
       ficha: { product_name: "Leche sin lactosa" },
       fecha_recuperacion: "2026-10-04T15:30:00Z",
+      alergenos: [{ alergeno_id: 1, tipo: "contiene" }],
     });
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 30 }));
   });

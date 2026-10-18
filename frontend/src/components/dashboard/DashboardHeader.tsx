@@ -3,11 +3,21 @@ import { Link } from "react-router-dom";
 interface DashboardHeaderProps {
   firstName: string;
   businessName?: string | null;
+  /**
+   * HT06-07, «Nueva elaboración»: true = enabled; false = there is no product with a formulation
+   * (disabled, with the reason and a link to Productos); null = still unknown (disabled, silent).
+   */
+  puedeRegistrarElaboracion?: boolean | null;
+  onNuevaElaboracion?: () => void;
 }
+
+const SIN_FORMULACION = "Define la formulación de un producto para registrar elaboraciones";
 
 export default function DashboardHeader({
   firstName,
   businessName,
+  puedeRegistrarElaboracion = null,
+  onNuevaElaboracion,
 }: DashboardHeaderProps) {
   const today = new Date().toLocaleDateString("es-CL", {
     weekday: "long",
@@ -54,7 +64,29 @@ export default function DashboardHeader({
         >
           + Nuevo ingrediente
         </Link>
+        {onNuevaElaboracion && (
+          <button
+            type="button"
+            onClick={onNuevaElaboracion}
+            disabled={puedeRegistrarElaboracion !== true}
+            aria-describedby={puedeRegistrarElaboracion === false ? "dashboard-sin-formulacion" : undefined}
+            className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+          >
+            Nueva elaboración
+          </button>
+        )}
       </div>
+      {onNuevaElaboracion && puedeRegistrarElaboracion === false && (
+        <p id="dashboard-sin-formulacion" className="mt-3 max-w-2xl text-sm text-panel-soft">
+          {SIN_FORMULACION}.{" "}
+          <Link
+            to="/productos"
+            className="font-medium text-white underline underline-offset-2 hover:text-white/90"
+          >
+            Ir a Productos
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

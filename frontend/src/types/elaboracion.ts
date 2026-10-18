@@ -11,7 +11,8 @@ export type MotivoProblema =
   | "insumo"
   | "lote"
   | "insumo_desactivado"
-  | "ingrediente_desactivado";
+  | "ingrediente_desactivado"
+  | "alergenos_sin_revisar";
 
 export interface InsumoUsado {
   id: number;
@@ -22,6 +23,11 @@ export interface InsumoUsado {
   ingredientes_declarados: string | null;
   advertencias: string | null;
   alergenos: AlergenoDeclarado[];
+  /**
+   * When the allergens were last reviewed: the live supply in a borrador, the copy in a finalizada.
+   * Null = never reviewed, or a copy made before HT06 (no information).
+   */
+  alergenos_revisados_at: string | null;
   /** Live flags: null in a finalizada, which shows the copy conserved when it was finalized. */
   activo: boolean | null;
   habitual: boolean | null;
@@ -41,7 +47,14 @@ export interface UsoInsumo {
   unidad: UnidadMedida | null;
   insumo: InsumoUsado | null;
   lote: LoteUsado | null;
+  /** A borrador only: the lot the last finalized elaboración used, if still valid. Never assigned. */
+  lote_sugerido: LoteUsado | null;
   sin_lote: boolean;
+  /**
+   * Allergens of the assigned supply reviewed? In a borrador: the live supply. In a finalizada: true
+   * if the copy has the review date, null when it has no information (copies made before HT06).
+   */
+  alergenos_revisados: boolean | null;
   pendiente: boolean;
   falta: FaltanteUso[];
   insumo_desactivado: boolean;

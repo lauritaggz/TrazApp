@@ -4,12 +4,18 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import type { ErrorLinea } from "@/hooks/useElaboracionRegistro";
-import { describirLote, lineaPendiente, MOTIVOS_PROBLEMA } from "@/lib/elaboracionUtils";
+import {
+  describirLote,
+  describirMotivo,
+  lineaPendiente,
+  textoUsarLote,
+} from "@/lib/elaboracionUtils";
 import { formatFormulacionCantidad } from "@/lib/formulationUtils";
 import type {
   LineaRegistro,
   LoteInsumo,
   LoteModo,
+  LoteUsado,
   MotivoProblema,
   UsoInsumo,
 } from "@/types/elaboracion";
@@ -25,6 +31,10 @@ interface ElaboracionLineaProps {
   lotesError: boolean;
   error: ErrorLinea | undefined;
   problemas: MotivoProblema[] | undefined;
+  /** The supply selected in the line (an active one from the loaded list), to know its review state. */
+  insumoSeleccionado: Insumo | null;
+  /** The lot suggested from the last finalized elaboración; already null when it does not apply. */
+  loteSugerido: LoteUsado | null;
   disabled: boolean;
   onInsumo: (insumoId: string) => void;
   onModoLote: (modo: LoteModo) => void;
@@ -32,6 +42,8 @@ interface ElaboracionLineaProps {
   onUsarLote: (loteId: number) => void;
   onReintentarLotes: (insumoId: number) => void;
   onRegistrarInsumo: () => void;
+  onRevisarAlergenos: () => void;
+  onUsarLoteSugerido: () => void;
 }
 
 function Aviso({ children }: { children: ReactNode }) {
@@ -60,6 +72,8 @@ export default function ElaboracionLinea({
   lotesError,
   error,
   problemas,
+  insumoSeleccionado,
+  loteSugerido,
   disabled,
   onInsumo,
   onModoLote,
@@ -67,6 +81,8 @@ export default function ElaboracionLinea({
   onUsarLote,
   onReintentarLotes,
   onRegistrarInsumo,
+  onRevisarAlergenos,
+  onUsarLoteSugerido,
 }: ElaboracionLineaProps) {
   const id = linea.ingrediente_id;
   const titulo = `linea-${id}-titulo`;
@@ -79,6 +95,11 @@ export default function ElaboracionLinea({
   const insumoDesactivado =
     seleccionado !== null && !activos.has(seleccionado) && uso?.insumo?.id === seleccionado;
   const sinInsumosActivos = insumos.length === 0 && !insumoDesactivado;
+  // The mark follows the supply selected NOW (not what the server brought), or the server's 409.
+  const alergenosSinRevisar =
+    insumoSeleccionado !== null &&
+    (!insumoSeleccionado.alergenos_revisados ||
+      Boolean(problemas?.includes("alergenos_sin_revisar")));
 
   return (
     <section
@@ -137,6 +158,25 @@ export default function ElaboracionLinea({
 
       {insumoDesactivado && <Aviso>El insumo asignado está desactivado. Elige otro insumo.</Aviso>}
 
+      {alergenosSinRevisar && (
+        <div
+          data-alergenos-sin-revisar
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-warning-border bg-warning-bg px-3 py-2"
+        >
+          <Badge variant="warning">Alérgenos sin revisar</Badge>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={onRevisarAlergenos}
+            disabled={disabled}
+            aria-label={`Revisar alérgenos de ${linea.ingrediente_nombre}`}
+          >
+            Revisar alérgenos
+          </Button>
+        </div>
+      )}
+
       <Button
         type="button"
         variant={sinInsumosActivos ? "primary" : "ghost"}
@@ -169,6 +209,18 @@ export default function ElaboracionLinea({
               </label>
             ))}
           </div>
+
+          {loteSugerido && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={onUsarLoteSugerido}
+              aria-label={`${textoUsarLote(loteSugerido.codigo, loteSugerido.fecha_vencimiento)} para ${linea.ingrediente_nombre}`}
+            >
+              {textoUsarLote(loteSugerido.codigo, loteSugerido.fecha_vencimiento)}
+            </Button>
+          )}
 
           {linea.loteModo === "nuevo" && (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -247,8 +299,8 @@ export default function ElaboracionLinea({
 
       {problemas && problemas.length > 0 && (
         <ul role="alert" className="list-disc space-y-1 pl-5 text-sm font-medium text-error">
-          {problemas.map((motivo) => (
-            <li key={motivo}>{MOTIVOS_PROBLEMA[motivo]}</li>
+          {problemas.map((motivo, indice) => (
+            <li key={`${motivo}-${indice}`}>{describirMotivo(motivo)}</li>
           ))}
         </ul>
       )}

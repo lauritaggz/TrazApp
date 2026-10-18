@@ -2,16 +2,29 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import { hoyChile, validarEncabezado, type EncabezadoErrors } from "@/lib/elaboracionUtils";
 import { createElaboracion, getCodigoSugerido } from "@/services/elaboracionService";
 import { ApiError } from "@/types/auth";
 import type { Elaboracion } from "@/types/elaboracion";
 
+export interface ProductoOpcion {
+  id: number;
+  nombre: string;
+}
+
 interface ElaboracionCreateDialogProps {
-  productoId: number;
+  /** The product is already known (its page, or the elaboración just finished): it is fixed. */
+  productoId?: number;
+  /** Shown when the product is fixed. */
+  productoNombre?: string;
+  /** Without a fixed product: the products the productor can choose from (only those with a formulation). */
+  productos?: ProductoOpcion[];
   onCreated: (elaboracion: Elaboracion) => void;
   onCancel: () => void;
 }
+
+const PRODUCTO_REQUERIDO = "Elige el producto.";
 
 const CREATE_ERROR = "No pudimos crear la elaboración. Inténtalo nuevamente.";
 
@@ -29,6 +42,8 @@ function detalleObjeto(error: ApiError): Record<string, unknown> | null {
  */
 export default function ElaboracionCreateDialog({
   productoId,
+  productoNombre,
+  productos = [],
   onCreated,
   onCancel,
 }: ElaboracionCreateDialogProps) {
@@ -36,6 +51,13 @@ export default function ElaboracionCreateDialog({
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const codigoTocado = useRef(false);
+
+  // Fixed product, or the one chosen in the selector (preselected when there is only one option).
+  const [productoElegido, setProductoElegido] = useState(() =>
+    productoId !== undefined ? String(productoId) : productos.length === 1 ? String(productos[0].id) : "",
+  );
+  const [errorProducto, setErrorProducto] = useState("");
+  const idActual = productoElegido ? Number(productoElegido) : null;
 
   const [codigo, setCodigo] = useState("");
   const [fecha, setFecha] = useState(() => hoyChile());
@@ -47,10 +69,14 @@ export default function ElaboracionCreateDialog({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (idActual === null) {
+      setSugerenciaCargando(false);
+      return;
+    }
     let cancelado = false;
     setSugerenciaCargando(true);
     setSugerenciaError(false);
-    getCodigoSugerido(productoId)
+    getCodigoSugerido(idActual)
       .then(({ codigo: sugerido }) => {
         // A code typed meanwhile is never overwritten.
         if (!cancelado && !codigoTocado.current) setCodigo(sugerido);
@@ -64,11 +90,13 @@ export default function ElaboracionCreateDialog({
     return () => {
       cancelado = true;
     };
-  }, [productoId]);
+  }, [idActual]);
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
-    panelRef.current?.querySelector<HTMLElement>('[name="codigo"]')?.focus();
+    // With a selector, the first thing to answer is the product (unless it came preselected).
+    const primero = productoId === undefined && productos.length !== 1 ? "producto_id" : "codigo";
+    panelRef.current?.querySelector<HTMLElement>(`[name="${primero}"]`)?.focus();
     return () => previousFocus?.focus();
   }, []);
 
@@ -125,11 +153,12 @@ export default function ElaboracionCreateDialog({
     setIngredientesDesactivados([]);
     const encontrados = validarEncabezado({ codigo, fecha });
     setErrors(encontrados);
-    if (Object.keys(encontrados).length > 0) return;
+    if (idActual === null) setErrorProducto(PRODUCTO_REQUERIDO);
+    if (idActual === null || Object.keys(encontrados).length > 0) return;
 
     setLoading(true);
     try {
-      onCreated(await createElaboracion(productoId, { codigo: codigo.trim(), fecha }));
+      onCreated(await createElaboracion(idActual, { codigo: codigo.trim(), fecha }));
     } catch (err) {
       mostrarError(err);
       setLoading(false);
@@ -158,6 +187,9 @@ export default function ElaboracionCreateDialog({
             Se creará un borrador con los ingredientes de la formulación vigente. Después podrás
             indicar el insumo y el lote de cada uno.
           </p>
+          {productoId !== undefined && productoNombre && (
+            <p className="text-sm font-medium text-text-primary">Producto: {productoNombre}</p>
+          )}
         </div>
 
         {globalError && (
@@ -174,6 +206,28 @@ export default function ElaboracionCreateDialog({
         )}
 
         <form noValidate className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+          {productoId === undefined && (
+            <Select
+              id="elaboracion-nueva-producto"
+              name="producto_id"
+              label="Producto"
+              value={productoElegido}
+              onChange={(event) => {
+                setProductoElegido(event.target.value);
+                setErrorProducto("");
+              }}
+              error={errorProducto || undefined}
+              hint="Solo aparecen los productos que tienen formulación."
+              disabled={loading}
+            >
+              <option value="">Elige un producto</option>
+              {productos.map((producto) => (
+                <option key={producto.id} value={producto.id}>
+                  {producto.nombre}
+                </option>
+              ))}
+            </Select>
+          )}
           <Input
             id="elaboracion-nueva-codigo"
             name="codigo"

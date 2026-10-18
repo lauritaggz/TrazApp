@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import ElaboracionLinea from "@/components/elaboraciones/ElaboracionLinea";
+import RevisarAlergenosDialog from "@/components/elaboraciones/RevisarAlergenosDialog";
 import InsumoCreateDialog from "@/components/insumos/InsumoCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
@@ -17,6 +18,7 @@ import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { hoyChile, TEXTO_CONFIRMAR_FINALIZACION } from "@/lib/elaboracionUtils";
 import { getElaboracion } from "@/services/elaboracionService";
 import type { Elaboracion } from "@/types/elaboracion";
+import type { Insumo } from "@/types/insumo";
 
 function parseId(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -98,6 +100,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [confirmarSalir, setConfirmarSalir] = useState(false);
   const [insumoNuevoPara, setInsumoNuevoPara] = useState<{ id: number; nombre: string } | null>(null);
+  const [insumoARevisar, setInsumoARevisar] = useState<Insumo | null>(null);
 
   const form = useElaboracionRegistro({
     elaboracion,
@@ -110,6 +113,8 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
   const { pendingHref, clearPending } = useUnsavedChangesGuard(form.dirty && !form.busy);
   const hoy = hoyChile();
   const producto = form.servidor.producto;
+  // Lines that can take the lot suggested from the last finalized elaboración.
+  const lotesElegibles = form.lineas.filter((linea) => form.loteSugeridoDe(linea) !== null).length;
 
   // After a rejected save, send the focus to the first field that needs attention.
   const { errorFocusToken } = form;
@@ -217,14 +222,34 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
         </section>
 
         <section aria-labelledby="elaboracion-ingredientes" className="space-y-4">
-          <div className="space-y-1">
-            <h2 id="elaboracion-ingredientes" className="text-sm font-semibold text-text-primary">
-              Ingredientes
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Una línea por cada ingrediente de la formulación.
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <h2 id="elaboracion-ingredientes" className="text-sm font-semibold text-text-primary">
+                Ingredientes
+              </h2>
+              <p className="text-sm text-text-secondary">
+                Una línea por cada ingrediente de la formulación.
+              </p>
+            </div>
+            {lotesElegibles > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full sm:w-auto"
+                onClick={form.usarLotesSugeridos}
+                disabled={form.busy}
+              >
+                Usar los mismos lotes
+              </Button>
+            )}
           </div>
+          <p
+            role="status"
+            aria-live="polite"
+            className={form.anuncioLotes ? "text-sm font-medium text-text-primary" : "sr-only"}
+          >
+            {form.anuncioLotes}
+          </p>
 
           {form.insumosError && (
             <div role="alert" className="space-y-2 rounded-lg border border-error-border bg-error-bg p-3">
@@ -256,12 +281,16 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
                   lotesError={insumoId !== null && Boolean(form.lotesError[insumoId])}
                   error={form.erroresLinea[linea.ingrediente_id]}
                   problemas={form.problemas[linea.ingrediente_id]}
+                  insumoSeleccionado={form.insumoSeleccionado(linea)}
+                  loteSugerido={form.loteSugeridoDe(linea)}
                   disabled={form.busy}
                   onInsumo={(valor) => form.elegirInsumo(linea.ingrediente_id, valor)}
                   onModoLote={(modo) => form.elegirModoLote(linea.ingrediente_id, modo)}
                   onCambio={(cambios) => form.cambiarLinea(linea.ingrediente_id, cambios)}
                   onUsarLote={(loteId) => form.usarLoteExistente(linea.ingrediente_id, loteId)}
                   onReintentarLotes={form.reintentarLotes}
+                  onUsarLoteSugerido={() => form.usarLoteSugerido(linea.ingrediente_id)}
+                  onRevisarAlergenos={() => setInsumoARevisar(form.insumoSeleccionado(linea))}
                   onRegistrarInsumo={() =>
                     setInsumoNuevoPara({ id: linea.ingrediente_id, nombre: linea.ingrediente_nombre })
                   }
@@ -323,6 +352,18 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
             notify("Insumo asignado a la línea. Guarda el borrador para conservarlo.");
           }}
           onCancel={() => setInsumoNuevoPara(null)}
+        />
+      )}
+
+      {insumoARevisar && (
+        <RevisarAlergenosDialog
+          insumo={insumoARevisar}
+          onGuardado={(insumo) => {
+            form.actualizarInsumo(insumo);
+            setInsumoARevisar(null);
+            notify("Alérgenos del insumo guardados.");
+          }}
+          onCancel={() => setInsumoARevisar(null)}
         />
       )}
 

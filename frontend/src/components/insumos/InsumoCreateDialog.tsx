@@ -142,6 +142,9 @@ export default function InsumoCreateDialog({
           onReactivate={() => void handleReactivate()}
           onUseExisting={() => void handleUseExisting()}
           usingExisting={comprobando}
+          alergenos={form.alergenos}
+          onAlergenosChange={form.handleAlergenosChange}
+          mostrarErrorAlergenos={form.mostrarErrorAlergenos}
           submitLabel="Registrar insumo"
           loadingLabel="Registrando…"
           onChange={(values) => {

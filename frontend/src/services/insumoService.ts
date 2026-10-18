@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/apiClient";
 import type {
   AlergenoDeclarado,
+  AlergenoDeclaradoInput,
   Insumo,
   InsumoCreatePayload,
   InsumoUpdatePayload,
@@ -94,6 +95,21 @@ export async function deleteInsumoAlergeno(
   return apiRequest<void>(
     `/gestion/insumos/${insumoId}/alergenos/${alergenoId}`,
     { method: "DELETE" },
+    true,
+  );
+}
+
+/**
+ * Replaces the whole list of declared allergens and records the review (HT06). An empty list means
+ * "reviewed, no allergens".
+ */
+export async function replaceInsumoAlergenos(
+  insumoId: number,
+  alergenos: AlergenoDeclaradoInput[],
+): Promise<Insumo> {
+  return apiRequest<Insumo>(
+    `/gestion/insumos/${insumoId}/alergenos`,
+    { method: "PUT", body: JSON.stringify({ alergenos }) },
     true,
   );
 }

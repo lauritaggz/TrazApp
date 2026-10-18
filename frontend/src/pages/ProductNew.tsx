@@ -98,18 +98,13 @@ export default function ProductNew() {
     if (pendingImageUpload) setPendingImageUpload(null);
   }
 
-  function goToProducts(options?: { created?: boolean }) {
-    navigate("/productos", {
-      state: options?.created
-        ? { productCreated: true }
-        : undefined,
-    });
+  function goToProducts() {
+    navigate("/productos");
   }
 
-  function goToCreatedProduct(productId: number, options?: { created?: boolean }) {
-    navigate(`/productos/${productId}`, {
-      state: options?.created ? { productUpdated: true } : undefined,
-    });
+  /** A created product opens its own detail (HT06-07), where the next step (formulation) is. */
+  function goToCreatedProduct(productId: number) {
+    navigate(`/productos/${productId}`, { state: { productCreated: true } });
   }
 
   function handleCancel() {
@@ -146,13 +141,13 @@ export default function ProductNew() {
     );
     setRetryingImageUpload(false);
     if (uploaded) {
-      goToProducts({ created: true });
+      goToCreatedProduct(pendingImageUpload.productId);
     }
   }
 
   function handleContinueWithoutImage() {
     if (!pendingImageUpload) return;
-    goToCreatedProduct(pendingImageUpload.productId, { created: true });
+    goToCreatedProduct(pendingImageUpload.productId);
   }
 
   async function handleSubmit() {
@@ -173,7 +168,7 @@ export default function ProductNew() {
         const uploaded = await uploadImageForProduct(created.id, imageFile);
         if (!uploaded) return;
       }
-      goToProducts({ created: true });
+      goToCreatedProduct(created.id);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {

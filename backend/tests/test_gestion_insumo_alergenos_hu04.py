@@ -494,9 +494,14 @@ def test_las_operaciones_de_alergenos_no_alteran_el_resto_del_insumo(client, ana
     client.delete(_ruta(insumo, catalogo["lacteos"]), headers=ana)
 
     despues = _detalle(client, ana, insumo)
+    # HT06-02: declaring allergens also records the review, so the supply goes from "sin revisar"
+    # to "revisado" (and back with no allergens: "revisado, sin alérgenos"). Asserted explicitly.
+    assert (antes["alergenos_revisados"], antes["alergenos_revisados_at"]) == (False, None)
+    assert despues["alergenos_revisados"] is True and despues["alergenos_revisados_at"] is not None
     # updated_at is renewed by design (covered by its own tests); everything else is untouched.
-    antes.pop("updated_at")
-    despues.pop("updated_at")
+    for campo in ("updated_at", "alergenos_revisados", "alergenos_revisados_at"):
+        antes.pop(campo)
+        despues.pop(campo)
     assert despues == antes
 
 

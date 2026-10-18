@@ -325,9 +325,12 @@ def test_pt05_04_el_insumo_habitual_activo_queda_preseleccionado(client, ctx) ->
         "ingredientes_declarados": None,
         "advertencias": None,
         "alergenos": [],
+        # HT06: a borrador shows the live supply's review date (created as "reviewed, no allergens").
+        "alergenos_revisados_at": ctx["insumo_habitual"]["alergenos_revisados_at"],
         "activo": True,
         "habitual": True,
     }
+    assert ctx["insumo_habitual"]["alergenos_revisados_at"] is not None
     assert leche["lote"] is None
     assert leche["sin_lote"] is False
 

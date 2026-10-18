@@ -1,5 +1,10 @@
 import { useState } from "react";
 import {
+  alergenosCambiaron,
+  alergenosParaEnviar,
+  alergenosValidos,
+} from "@/lib/alergenosDeclaracion";
+import {
   buildUpdatePayload,
   insumoToFormValues,
   isInsumoFormDirtyComparedTo,
@@ -14,7 +19,9 @@ import {
 } from "@/services/insumoService";
 import { ApiError } from "@/types/auth";
 import {
+  ALERGENOS_VACIOS,
   EMPTY_INSUMO_FORM_VALUES,
+  type AlergenosValue,
   type Insumo,
   type InsumoCreatePayload,
   type InsumoDuplicateInfo,
@@ -31,6 +38,11 @@ interface UseInsumoFormOptions {
   mode: InsumoFormMode;
   /** Edit: the saved supply as form values. Create: an optional prefill (HU13). */
   initialValues?: Partial<InsumoFormValues>;
+  /**
+   * Create mode: allergens the selector starts with (HU13 passes the suggested ones). They are NOT a
+   * review: the supply counts as reviewed only when the form is saved with them.
+   */
+  initialAlergenos?: AlergenosValue;
   /** Edit mode: id of the supply being modified. */
   insumoId?: number;
   /**
@@ -59,6 +71,7 @@ function duplicateFrom(error: ApiError): InsumoDuplicateInfo | null {
 export function useInsumoForm({
   mode,
   initialValues,
+  initialAlergenos,
   insumoId,
   extraPayload,
   onSaved,
@@ -70,6 +83,10 @@ export function useInsumoForm({
     ...initialValues,
   });
   const [values, setValues] = useState<InsumoFormValues>(baseline);
+  // Allergens are declared only when creating (in edit mode they are managed in the detail).
+  const [alergenosBase] = useState<AlergenosValue>(initialAlergenos ?? ALERGENOS_VACIOS);
+  const [alergenos, setAlergenos] = useState<AlergenosValue>(alergenosBase);
+  const [mostrarErrorAlergenos, setMostrarErrorAlergenos] = useState(false);
   const [errors, setErrors] = useState<InsumoFormFieldErrors>({});
   const [errorFocusToken, setErrorFocusToken] = useState(0);
   const [globalError, setGlobalError] = useState("");
@@ -88,6 +105,11 @@ export function useInsumoForm({
       setErrors((current) => ({ ...current, codigo_barras: undefined }));
     }
     setValues(next);
+    if (globalError) setGlobalError("");
+  }
+
+  function handleAlergenosChange(next: AlergenosValue) {
+    setAlergenos(next);
     if (globalError) setGlobalError("");
   }
 
@@ -124,7 +146,9 @@ export function useInsumoForm({
     setGlobalError("");
     setDuplicate(null);
     const validationErrors = validateInsumoForm(values);
-    if (Object.keys(validationErrors).length > 0) {
+    const alergenosInvalidos = mode === "create" && !alergenosValidos(alergenos);
+    if (Object.keys(validationErrors).length > 0 || alergenosInvalidos) {
+      if (alergenosInvalidos) setMostrarErrorAlergenos(true);
       setFieldErrors(validationErrors);
       return;
     }
@@ -150,7 +174,10 @@ export function useInsumoForm({
     } else {
       setLoading(true);
       try {
-        saved = await createInsumo(toCreatePayload(values, extraPayload));
+        saved = await createInsumo({
+          ...toCreatePayload(values, extraPayload),
+          alergenos: alergenosParaEnviar(alergenos),
+        });
       } catch (err) {
         handleSaveError(err);
         return;
@@ -185,8 +212,13 @@ export function useInsumoForm({
     loading,
     duplicate,
     reactivating,
-    dirty: isInsumoFormDirtyComparedTo(values, baseline),
+    alergenos,
+    mostrarErrorAlergenos,
+    dirty:
+      isInsumoFormDirtyComparedTo(values, baseline) ||
+      (mode === "create" && alergenosCambiaron(alergenos, alergenosBase)),
     handleChange,
+    handleAlergenosChange,
     handleSubmit,
     handleReactivate,
   };

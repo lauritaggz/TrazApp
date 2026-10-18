@@ -5,6 +5,7 @@ from app.models import Productor
 from app.schemas.insumo import (
     AlergenoDeclaradoRead,
     InsumoAlergenoCreate,
+    InsumoAlergenosReplace,
     InsumoAlergenoUpdate,
     InsumoCreate,
     InsumoRead,
@@ -16,6 +17,7 @@ from app.services.insumo_service import (
     InsumoConflictError,
     InsumoNotFoundError,
     InsumoService,
+    InvalidAlergenosError,
     InvalidInsumoAlergenoError,
     InvalidInsumoError,
 )
@@ -35,6 +37,14 @@ def _duplicate_codigo_error(exc: DuplicateCodigoBarrasError) -> HTTPException:
     )
 
 
+def _alergenos_error(exc: InvalidAlergenosError) -> HTTPException:
+    """422 naming the allergen of the list that was rejected."""
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail={"mensaje": exc.mensaje, "alergeno_id": exc.alergeno_id},
+    )
+
+
 @router.post(
     "",
     response_model=InsumoRead,
@@ -51,6 +61,8 @@ def crear_insumo(
         raise _duplicate_codigo_error(exc) from exc
     except InsumoConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except InvalidAlergenosError as exc:
+        raise _alergenos_error(exc) from exc
     except InvalidInsumoError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -131,6 +143,24 @@ def listar_alergenos_insumo(
         return service.list_alergenos_mine(current_productor, insumo_id)
     except InsumoNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.put("/{insumo_id}/alergenos", response_model=InsumoRead)
+def reemplazar_alergenos_insumo(
+    insumo_id: int,
+    payload: InsumoAlergenosReplace,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> InsumoRead:
+    """Replace the complete list of declared allergens and mark it as reviewed (HT06)."""
+    try:
+        return service.replace_alergenos_mine(current_productor, insumo_id, payload)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except InvalidAlergenosError as exc:
+        raise _alergenos_error(exc) from exc
+    except InsumoConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post(

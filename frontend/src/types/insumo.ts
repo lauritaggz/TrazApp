@@ -28,6 +28,23 @@ export interface AlergenoDeclarado {
   tipo: TipoDeclaracion;
 }
 
+/** What the productor declares for one allergen when creating a supply (POST /gestion/insumos). */
+export interface AlergenoDeclaradoInput {
+  alergeno_id: number;
+  tipo: TipoDeclaracion;
+}
+
+/**
+ * Value of the allergen selector (HT06). A supply is valid when it declares at least one allergen
+ * or when the productor confirmed that it contains none; an empty, unconfirmed value is "unreviewed".
+ */
+export interface AlergenosValue {
+  items: AlergenoDeclaradoInput[];
+  sinAlergenos: boolean;
+}
+
+export const ALERGENOS_VACIOS: AlergenosValue = { items: [], sinAlergenos: false };
+
 export interface Insumo {
   id: number;
   productor_id: number;
@@ -46,6 +63,9 @@ export interface Insumo {
   activo: boolean;
   created_at: string;
   updated_at: string;
+  /** HT06: false = the allergens were never reviewed ("sin revisar"). */
+  alergenos_revisados: boolean;
+  alergenos_revisados_at: string | null;
   alergenos_declarados: AlergenoDeclarado[];
 }
 
@@ -62,6 +82,8 @@ export interface InsumoCreatePayload {
   fuente?: InsumoFuente;
   fecha_recuperacion?: string | null;
   habitual?: boolean;
+  /** HT06: sent (even empty) the supply is created with exactly these allergens and counts as reviewed. */
+  alergenos?: AlergenoDeclaradoInput[];
 }
 
 export interface InsumoUpdatePayload {

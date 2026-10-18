@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from app.models import Producto, Productor
 from app.repositories.producto_repository import ProductoRepository
 from app.schemas.producto import ProductoGestionRead
-from app.services.producto_service import ProductoNotFoundError
+from app.services.producto_service import ProductoNotFoundError, leer_productos
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_CONTENT_TYPES = {
@@ -54,7 +54,7 @@ class ProductImageService:
 
         imagen_url = f"{PRODUCTS_UPLOAD_PREFIX}{filename}"
         updated = self.repository.update(producto, imagen_url=imagen_url)
-        return ProductoGestionRead.model_validate(updated)
+        return leer_productos(self.repository, [updated])[0]
 
     def _validate_image(
         self,

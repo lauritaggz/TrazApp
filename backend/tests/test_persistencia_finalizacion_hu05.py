@@ -87,10 +87,10 @@ def _utc(valor: datetime) -> datetime:
     return valor.replace(tzinfo=timezone.utc) if valor.tzinfo is None else valor.astimezone(timezone.utc)
 
 
-def _esperado_leche(ctx, lote_id: int, conservada_en: str) -> dict:
+def _esperado_leche(ctx, lote_id: int, conservada_en: str, revisados_at: str) -> dict:
     a = ctx["alergenos"]
     return {
-        "esquema": 1,
+        "esquema": 2,
         "conservada_en": conservada_en,
         "ingrediente": {"id": ctx["leche"]["id"], "nombre": "Leche"},
         "insumo": {
@@ -107,6 +107,7 @@ def _esperado_leche(ctx, lote_id: int, conservada_en: str) -> dict:
             {"alergeno_id": a["apio"], "codigo": "apio", "nombre": "Apio", "obligatorio_chile": False, "tipo": "contiene"},
             {"alergeno_id": a["soya"], "codigo": "soya", "nombre": "Soya", "obligatorio_chile": True, "tipo": "trazas"},
         ],
+        "alergenos_revisados_at": revisados_at,
         "lote": {"id": lote_id, "codigo": "X123", "fecha_vencimiento": "2026-10-15"},
         "sin_lote": False,
     }
@@ -117,6 +118,8 @@ def _esperado_leche(ctx, lote_id: int, conservada_en: str) -> dict:
 
 def test_finalizar_persiste_el_estado_la_fecha_y_el_json_completo_de_cada_uso(api, ctx, fabrica) -> None:
     _asignar(api, ctx)
+    insumo = api.get(f"/gestion/insumos/{ctx['insumo_habitual']['id']}", headers=ctx["headers"]).json()
+    revision_insumo = _utc(datetime.fromisoformat(insumo["alergenos_revisados_at"].replace("Z", "+00:00")))
 
     response = _finalizar(api, ctx)
 
@@ -132,7 +135,11 @@ def test_finalizar_persiste_el_estado_la_fecha_y_el_json_completo_de_cada_uso(ap
     conservada_en = leche["conservada_en"]
     assert conservada_en.endswith("Z")
     assert _utc(datetime.fromisoformat(conservada_en.replace("Z", "+00:00"))) == _utc(elaboracion.finalizada_at)
-    assert leche == _esperado_leche(ctx, lote_id, conservada_en)
+    # HT06: the copy persists the review date of the supply, equal to the one it had when finalized.
+    revisados_at = leche["alergenos_revisados_at"]
+    assert revisados_at.endswith("Z")
+    assert _utc(datetime.fromisoformat(revisados_at.replace("Z", "+00:00"))) == revision_insumo
+    assert leche == _esperado_leche(ctx, lote_id, conservada_en, revisados_at)
     harina = copias[ctx["harina"]["id"]]
     assert harina["conservada_en"] == conservada_en
     assert harina["insumo"]["id"] == ctx["insumo_harina"]["id"]

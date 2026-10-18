@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -117,6 +119,48 @@ class ElaboracionRepository:
             InsumoComercial.activo.is_(True),
         )
         return {ingrediente_id: insumo_id for ingrediente_id, insumo_id in self.db.execute(stmt)}
+
+    def usos_de_la_ultima_finalizada(self, productor_id: int, producto_id: int) -> dict[int, Any]:
+        """Uses of the product's last FINALIZED elaboración (ingrediente_id -> row).
+
+        Last = latest fecha_elaboracion, then latest finalizada_at, then highest id. Borradores and
+        other products or productores never count. Reads the FK columns of the uses (insumo_id,
+        lote_id, sin_lote), not the JSON copy, so it works the same for any copy schema.
+        """
+        ultima = self.db.scalar(
+            select(Elaboracion.id)
+            .where(
+                Elaboracion.productor_id == productor_id,
+                Elaboracion.producto_id == producto_id,
+                Elaboracion.estado == ESTADO_FINALIZADA,
+            )
+            .order_by(
+                Elaboracion.fecha_elaboracion.desc(),
+                Elaboracion.finalizada_at.desc(),
+                Elaboracion.id.desc(),
+            )
+            .limit(1)
+        )
+        if ultima is None:
+            return {}
+        filas = self.db.execute(
+            select(UsoInsumo.ingrediente_id, UsoInsumo.insumo_id, UsoInsumo.lote_id, UsoInsumo.sin_lote).where(
+                UsoInsumo.elaboracion_id == ultima
+            )
+        )
+        return {fila.ingrediente_id: fila for fila in filas}
+
+    def insumos_activos(self, productor_id: int, insumo_ids: list[int]) -> dict[int, int]:
+        """Of those supplies, the active ones of the productor, with the ingredient they have TODAY
+        (insumo_id -> ingrediente_id)."""
+        if not insumo_ids:
+            return {}
+        stmt = select(InsumoComercial.id, InsumoComercial.ingrediente_id).where(
+            InsumoComercial.productor_id == productor_id,
+            InsumoComercial.id.in_(insumo_ids),
+            InsumoComercial.activo.is_(True),
+        )
+        return {insumo_id: ingrediente_id for insumo_id, ingrediente_id in self.db.execute(stmt)}
 
     def get_by_id_and_productor(
         self,

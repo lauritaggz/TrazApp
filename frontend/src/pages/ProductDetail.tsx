@@ -67,9 +67,16 @@ export default function ProductDetail() {
 
   useEffect(() => {
     const state = location.state as {
+      productCreated?: boolean;
       productUpdated?: boolean;
       elaboracionEliminada?: boolean;
     } | null;
+    if (state?.productCreated) {
+      // Coming from "Nuevo producto" (HT06-07). Not an update: going back to the list says nothing.
+      notify("Producto creado correctamente.");
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
     if (state?.elaboracionEliminada) {
       notify("Borrador eliminado.");
       navigate(location.pathname, { replace: true, state: null });

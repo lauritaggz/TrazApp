@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Categoria, Producto
+from app.models import Categoria, FormulacionVersionProducto, Producto, VersionProducto
 
 
 class DuplicateCodigoInternoError(Exception):
@@ -71,6 +71,28 @@ class ProductoRepository:
             .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
         )
         return list(self.db.scalars(stmt).all())
+
+    def ids_con_formulacion(self, producto_ids: list[int]) -> set[int]:
+        """Of those products, the ones whose CURRENT version has at least one ingredient line.
+
+        One query for any number of products. A line of an older, no longer current version does
+        not count: an elaboración is always registered against the current version.
+        """
+        if not producto_ids:
+            return set()
+        stmt = (
+            select(VersionProducto.producto_id)
+            .join(
+                FormulacionVersionProducto,
+                FormulacionVersionProducto.version_producto_id == VersionProducto.id,
+            )
+            .where(
+                VersionProducto.producto_id.in_(producto_ids),
+                VersionProducto.vigente.is_(True),
+            )
+            .distinct()
+        )
+        return set(self.db.scalars(stmt).all())
 
     def get_by_id_and_productor(
         self,

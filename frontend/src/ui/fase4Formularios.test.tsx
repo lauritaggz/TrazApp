@@ -44,6 +44,7 @@ vi.mock("@/services/ingredientService", () => ({
 }));
 
 const product: Product = {
+  tiene_formulacion: false,
   id: 1,
   productor_id: 1,
   codigo_interno: "GAL-001",

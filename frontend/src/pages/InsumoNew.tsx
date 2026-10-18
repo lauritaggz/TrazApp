@@ -18,8 +18,7 @@ export default function InsumoNew() {
 
   const form = useInsumoForm({
     mode: "create",
-    onSaved: (insumo) =>
-      navigate("/insumos", { state: { insumoCreated: true, insumoId: insumo?.id } }),
+    onSaved: () => navigate("/insumos", { state: { insumoCreated: true } }),
     onReactivated: (insumo) =>
       navigate(`/insumos/${insumo.id}`, { state: { insumoReactivated: true } }),
   });
@@ -65,6 +64,9 @@ export default function InsumoNew() {
           duplicate={form.duplicate}
           reactivating={form.reactivating}
           onReactivate={() => void form.handleReactivate()}
+          alergenos={form.alergenos}
+          onAlergenosChange={form.handleAlergenosChange}
+          mostrarErrorAlergenos={form.mostrarErrorAlergenos}
           onChange={form.handleChange}
           onSubmit={() => void form.handleSubmit()}
           onCancel={handleCancel}

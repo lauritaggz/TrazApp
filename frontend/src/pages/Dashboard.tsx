@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardAttention from "@/components/dashboard/DashboardAttention";
+import DashboardElaboracionesEnCurso from "@/components/dashboard/DashboardElaboracionesEnCurso";
 import DashboardGettingStarted from "@/components/dashboard/DashboardGettingStarted";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardProductPreviewCard from "@/components/dashboard/DashboardProductPreviewCard";
@@ -8,12 +9,15 @@ import DashboardRecentIngredients from "@/components/dashboard/DashboardRecentIn
 import DashboardSection from "@/components/dashboard/DashboardSection";
 import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
 import { BoxIcon, FlagIcon, LeafIcon } from "@/components/dashboard/dashboardIcons";
+import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
 import { productsWithGaps } from "@/lib/productCompleteness";
+import { listElaboraciones } from "@/services/elaboracionService";
 import { listIngredients } from "@/services/ingredientService";
 import { listProducts } from "@/services/productService";
+import type { ElaboracionResumen } from "@/types/elaboracion";
 import type { Ingrediente } from "@/types/ingredient";
 import type { Product } from "@/types/product";
 
@@ -44,6 +48,9 @@ export default function Dashboard() {
   const [loadingIngredients, setLoadingIngredients] = useState(true);
   const [productsError, setProductsError] = useState("");
   const [ingredientsError, setIngredientsError] = useState("");
+  // Drafts in progress (HT06-07). A secondary block: if it fails to load it is simply not shown.
+  const [borradores, setBorradores] = useState<ElaboracionResumen[]>([]);
+  const [elaboracionDialogOpen, setElaboracionDialogOpen] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -71,10 +78,19 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadBorradores = useCallback(async () => {
+    try {
+      setBorradores(await listElaboraciones({ estado: "borrador" }));
+    } catch {
+      setBorradores([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadProducts();
     void loadIngredients();
-  }, [loadProducts, loadIngredients]);
+    void loadBorradores();
+  }, [loadProducts, loadIngredients, loadBorradores]);
 
   const firstName = useMemo(() => {
     const trimmed = producerName?.trim();
@@ -92,6 +108,17 @@ export default function Dashboard() {
     [ingredients],
   );
 
+  // Only the products with a formulation can have an elaboración (the list says so: tiene_formulacion).
+  const productosConFormulacion = useMemo(
+    () =>
+      products
+        .filter((product) => product.tiene_formulacion)
+        .map((product) => ({ id: product.id, nombre: product.nombre })),
+    [products],
+  );
+  const puedeRegistrarElaboracion =
+    loadingProducts || productsError ? null : productosConFormulacion.length > 0;
+
   const incompleteProducts = useMemo(() => productsWithGaps(products), [products]);
   const hasProducts = products.length > 0 && !productsError;
   const hasIngredients = ingredients.length > 0 && !ingredientsError;
@@ -104,7 +131,12 @@ export default function Dashboard() {
       businessName={businessName}
     >
       <div className="w-full space-y-7">
-        <DashboardHeader firstName={firstName} businessName={businessName} />
+        <DashboardHeader
+          firstName={firstName}
+          businessName={businessName}
+          puedeRegistrarElaboracion={puedeRegistrarElaboracion}
+          onNuevaElaboracion={() => setElaboracionDialogOpen(true)}
+        />
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <DashboardStatCard
@@ -126,6 +158,8 @@ export default function Dashboard() {
             loading={loadingProducts}
           />
         </div>
+
+        <DashboardElaboracionesEnCurso borradores={borradores} />
 
         {!loadingProducts && !productsError && incompleteProducts.length > 0 && (
           <DashboardAttention items={incompleteProducts} />
@@ -189,6 +223,14 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {elaboracionDialogOpen && (
+        <ElaboracionCreateDialog
+          productos={productosConFormulacion}
+          onCreated={(creada) => navigate(`/elaboraciones/${creada.id}/registro`)}
+          onCancel={() => setElaboracionDialogOpen(false)}
+        />
+      )}
     </AppShell>
   );
 }

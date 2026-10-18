@@ -18,6 +18,19 @@ class ProductoNotFoundError(Exception):
     """Raised when a product is not visible to the authenticated productor."""
 
 
+def leer_productos(
+    repository: ProductoRepository, productos: list[Producto]
+) -> list[ProductoGestionRead]:
+    """The read payload of products, each with `tiene_formulacion` (one query for all of them)."""
+    con_formulacion = repository.ids_con_formulacion([producto.id for producto in productos])
+    return [
+        ProductoGestionRead.model_validate(producto).model_copy(
+            update={"tiene_formulacion": producto.id in con_formulacion}
+        )
+        for producto in productos
+    ]
+
+
 class ProductoService:
     def __init__(
         self,
@@ -39,11 +52,11 @@ class ProductoService:
             categoria_ids=categoria_ids,
             **data,
         )
-        return ProductoGestionRead.model_validate(producto)
+        return leer_productos(self.repository, [producto])[0]
 
     def list_mine(self, productor: Productor) -> list[ProductoGestionRead]:
         productos = self.repository.list_by_productor(productor.id)
-        return [ProductoGestionRead.model_validate(p) for p in productos]
+        return leer_productos(self.repository, productos)
 
     def get_mine(
         self,
@@ -51,7 +64,7 @@ class ProductoService:
         producto_id: int,
     ) -> ProductoGestionRead:
         producto = self._get_owned_or_raise(productor.id, producto_id)
-        return ProductoGestionRead.model_validate(producto)
+        return leer_productos(self.repository, [producto])[0]
 
     def update_mine(
         self,
@@ -69,7 +82,7 @@ class ProductoService:
         ):
             self.image_service.delete_stored_image(producto.imagen_url)
         updated = self.repository.update(producto, **updates)
-        return ProductoGestionRead.model_validate(updated)
+        return leer_productos(self.repository, [updated])[0]
 
     def delete_mine(self, productor: Productor, producto_id: int) -> None:
         producto = self._get_owned_or_raise(productor.id, producto_id)
