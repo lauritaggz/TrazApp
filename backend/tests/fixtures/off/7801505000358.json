@@ -1,0 +1,8 @@
+{
+  "body": {
+    "code": "7801505000358",
+    "status": 0,
+    "status_verbose": "product not found"
+  },
+  "http_status": 404
+}

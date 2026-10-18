@@ -1,0 +1,24 @@
+{
+  "body": {
+    "code": "7802910000971",
+    "product": {
+      "allergens_tags": [],
+      "brands": "Lonco Leche",
+      "code": "7802910000971",
+      "countries_tags": [
+        "en:chile",
+        "en:france"
+      ],
+      "ingredients_text": "Leche fluida natural entera, enzima lactasa y vitamina D3 (maltodextrina y vitamina D3 (colecalciferol)).",
+      "ingredients_text_es": "Leche fluida natural entera, enzima lactasa y vitamina D3 (maltodextrina y vitamina D3 (colecalciferol)).",
+      "last_modified_t": 1774545226,
+      "product_name": "LONCO LECHE SIN LACTOSA",
+      "product_name_es": "LONCO LECHE SIN LACTOSA",
+      "quantity": "1L",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

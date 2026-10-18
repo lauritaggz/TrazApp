@@ -1,0 +1,26 @@
+{
+  "body": {
+    "code": "8445291716841",
+    "product": {
+      "allergens_tags": [
+        "en:gluten",
+        "en:soybeans"
+      ],
+      "brands": "MCKAY",
+      "code": "8445291716841",
+      "countries_tags": [
+        "en:brazil"
+      ],
+      "ingredients_text": "Harina de Trigo, Al (con antioxidante TBHQ), Almidón de Maiz, Grasas Vegetales (Aceite de Palmiste y Palma Interestificada con TBHQ), Cacao, Colorante (Bicarbonato de Amonio y Sodio y Fosfato Monocálcico), Maltodextrina, Sal, Emulgente (Lecitina de Soya), Aromatizante (Artificial, Etilvainillina).",
+      "ingredients_text_es": "Harina de Trigo, Al (con antioxidante TBHQ), Almidón de Maiz, Grasas Vegetales (Aceite de Palmiste y Palma Interestificada con TBHQ), Cacao, Colorante (Bicarbonato de Amonio y Sodio y Fosfato Monocálcico), Maltodextrina, Sal, Emulgente (Lecitina de Soya), Aromatizante (Artificial, Etilvainillina).",
+      "last_modified_t": 1779461746,
+      "product_name": "TRITON SABOR VAINILLA",
+      "product_name_es": "TRITON SABOR VAINILLA",
+      "quantity": "116g",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

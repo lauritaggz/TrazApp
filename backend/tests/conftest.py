@@ -4,6 +4,7 @@ import os
 from collections.abc import Generator
 from urllib.parse import urlparse
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -15,6 +16,7 @@ import app.models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from tests.sin_red import RedRealBloqueadaError
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 USE_POSTGRESQL = bool(TEST_DATABASE_URL)
@@ -51,6 +53,21 @@ def _build_engine() -> Engine:
 
 engine = _build_engine()
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def sin_red_real(monkeypatch) -> None:
+    """No automated test may query a real external service (HU13).
+
+    Real transports are replaced by one that fails. `httpx.MockTransport` and the in-process
+    TestClient transport are different classes, so they keep working.
+    """
+
+    def bloqueado(self, request, *args, **kwargs):
+        raise RedRealBloqueadaError(f"Petición HTTP real bloqueada en las pruebas: {request.url}")
+
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", bloqueado)
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", bloqueado)
 
 
 @pytest.fixture

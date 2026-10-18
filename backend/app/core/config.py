@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     # Example prod: "https://tu-app.netlify.app"
     cors_origins: str = "http://localhost:5175"
     uploads_root: str = "/uploads"
+    # Open Food Facts (HU13). Public API: no credentials, but it asks apps to identify themselves.
+    off_base_url: str = "https://world.openfoodfacts.org"
+    # ASCII only: HTTP header values are encoded as ASCII.
+    off_user_agent: str = "TrazApp/2.0 (proyecto academico; https://github.com/lauritaggz/trazapp)"
+    off_timeout_seconds: float = 8.0
 
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

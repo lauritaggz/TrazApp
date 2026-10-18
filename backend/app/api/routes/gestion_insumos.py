@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.dependencies import get_current_productor, get_insumo_service
+from app.api.dependencies import (
+    get_current_productor,
+    get_insumo_service,
+    get_recuperacion_service,
+)
 from app.models import Productor
+from app.schemas.consulta_codigo import ConsultaCodigoRead
 from app.schemas.insumo import (
     AlergenoDeclaradoRead,
     InsumoAlergenoCreate,
@@ -21,6 +26,8 @@ from app.services.insumo_service import (
     InvalidInsumoAlergenoError,
     InvalidInsumoError,
 )
+from app.services.recuperacion.base import FuenteNoDisponibleError
+from app.services.recuperacion.service import CodigoInvalidoError, RecuperacionService
 
 router = APIRouter(prefix="/gestion/insumos", tags=["gestion-insumos"])
 
@@ -67,6 +74,32 @@ def crear_insumo(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
+        ) from exc
+
+
+@router.get("/consulta-codigo/{codigo}", response_model=ConsultaCodigoRead)
+def consultar_codigo_barras(
+    codigo: str,
+    current_productor: Productor = Depends(get_current_productor),
+    service: RecuperacionService = Depends(get_recuperacion_service),
+) -> ConsultaCodigoRead:
+    """Proposal for a new supply from the barcode. Read-only: nothing is registered here.
+
+    Declared before `/{insumo_id}` so the path is never read as a supply id.
+    """
+    try:
+        return service.consultar(current_productor, codigo)
+    except CodigoInvalidoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+        ) from exc
+    except DuplicateCodigoBarrasError as exc:
+        raise _duplicate_codigo_error(exc) from exc
+    except FuenteNoDisponibleError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"mensaje": str(exc), "motivo": exc.motivo},
         ) from exc
 
 

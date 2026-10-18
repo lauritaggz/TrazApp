@@ -25,6 +25,9 @@ from app.services.insumo_service import InsumoService
 from app.services.product_image_service import ProductImageService
 from app.services.producto_formulacion_service import ProductoFormulacionService
 from app.services.producto_service import ProductoService
+from app.services.recuperacion.base import FuenteProducto
+from app.services.recuperacion.open_food_facts import OpenFoodFactsFuente
+from app.services.recuperacion.service import RecuperacionService
 from app.services.trazabilidad_service import TrazabilidadService
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -66,6 +69,17 @@ def get_ingrediente_service(db: Session = Depends(get_db)) -> IngredienteService
 
 def get_insumo_service(db: Session = Depends(get_db)) -> InsumoService:
     return InsumoService(InsumoRepository(db))
+
+
+def get_fuente_producto() -> FuenteProducto:
+    return OpenFoodFactsFuente(get_settings())
+
+
+def get_recuperacion_service(
+    db: Session = Depends(get_db),
+    fuente: FuenteProducto = Depends(get_fuente_producto),
+) -> RecuperacionService:
+    return RecuperacionService(InsumoRepository(db), fuente)
 
 
 def get_product_image_service(db: Session = Depends(get_db)) -> ProductImageService:
