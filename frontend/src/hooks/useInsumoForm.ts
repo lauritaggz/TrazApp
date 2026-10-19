@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { duplicadoDe } from "@/lib/insumoDuplicado";
 import {
   alergenosCambiaron,
   alergenosParaEnviar,
@@ -57,16 +58,6 @@ interface UseInsumoFormOptions {
   onReactivated?: (insumo: Insumo) => void;
 }
 
-function duplicateFrom(error: ApiError): InsumoDuplicateInfo | null {
-  const detail = error.detail as { insumo_id?: unknown; activo?: unknown } | undefined;
-  if (!detail || typeof detail.insumo_id !== "number") return null;
-  return {
-    insumoId: detail.insumo_id,
-    activo: detail.activo !== false,
-    mensaje: error.message,
-  };
-}
-
 /** State, validation and saving of the supply form, for creating and for editing. */
 export function useInsumoForm({
   mode,
@@ -116,7 +107,7 @@ export function useInsumoForm({
   function handleSaveError(err: unknown) {
     if (err instanceof ApiError) {
       if (err.status === 409) {
-        const info = duplicateFrom(err);
+        const info = duplicadoDe(err);
         if (info) {
           setDuplicate(info);
           setFieldErrors({ codigo_barras: info.mensaje });
@@ -214,6 +205,8 @@ export function useInsumoForm({
     reactivating,
     alergenos,
     mostrarErrorAlergenos,
+    /** Create mode: the productor changed the declared allergens from the ones the form started with. */
+    alergenosModificados: mode === "create" && alergenosCambiaron(alergenos, alergenosBase),
     dirty:
       isInsumoFormDirtyComparedTo(values, baseline) ||
       (mode === "create" && alergenosCambiaron(alergenos, alergenosBase)),

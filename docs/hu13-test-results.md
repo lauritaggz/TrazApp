@@ -46,6 +46,17 @@ Esta verificación no reemplaza la prueba con una cámara real en Chrome para An
 
 ---
 
+## Verificación del `dist/` real (T13-05)
+
+Con el escáner ya en la página «Nuevo insumo» y en el diálogo de la elaboración, `npm run build` incluye el lector. Se comprobó sobre la salida real y queda cubierto por `src/escaner/hu13.dist.test.ts`, que hace el mismo build en una carpeta temporal:
+
+- `dist/assets/zbar-<hash>.wasm` está en la aplicación (239 kB), y ningún archivo publicado nombra una CDN ni importa código desde una URL.
+- El decodificador va en un archivo aparte (`main-<hash>.js`, 19,7 kB), cargado con `import()` solo al abrir el escáner. El código que carga primero (501 kB) no lo incluye y `index.html` no lo precarga.
+- Lo único externo que pide la hoja de estilos es la tipografía de Google Fonts, que la aplicación ya cargaba antes de HU13. No tiene relación con el escáner.
+- Vite emite además `index-<hash>.js` (17 kB), la versión de `zbar-wasm` para etiquetas `<script>`. Nada la importa y no se descarga.
+
+---
+
 ## Limitaciones conocidas del detector de alérgenos
 
 El detector (`backend/app/services/recuperacion/alergenos.py`, tablas en `backend/app/core/alergenos_palabras.py`) **sugiere**; el productor siempre confirma al guardar. En la duda favorece la detección: sugiere o envía a `sin_reconocer`. Sus límites conocidos:
@@ -72,5 +83,4 @@ La etiqueta de Open Food Facts dice **«contiene soja»** (`allergens_tags: en:s
 - Trazabilidad CA01 … CA13 y PT13-01 … PT13-15.
 - Mutaciones verificadas en HU13 (T13-01, T13-03, T13-04, T13-05 …).
 - Prueba en Chrome para Android y Safari para iOS (T13-07) y configuración HTTPS de desarrollo.
-- Comprobación de `dist/` real (con el escáner ya integrado en las páginas, T13-05): el `zbar-*.wasm` está en `dist/assets` y ningún archivo nombra una CDN.
 - Decisión sobre el aviso de licencias de terceros.

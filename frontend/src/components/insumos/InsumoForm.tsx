@@ -12,6 +12,7 @@ import {
   type InsumoFormFieldErrors,
 } from "@/lib/insumoFormValidation";
 import type { Ingrediente } from "@/types/ingredient";
+import type { SugerenciasAlergenos } from "@/types/consultaCodigo";
 import type {
   IngredienteResumen,
   InsumoDuplicateInfo,
@@ -57,6 +58,12 @@ interface InsumoFormProps {
   onAlergenosChange?: (value: AlergenosValue) => void;
   /** Show the "declare or confirm" message (the form turns it on after a failed save). */
   mostrarErrorAlergenos?: boolean;
+  /**
+   * HU13, presentation only: the allergens were suggested from a barcode lookup. Shows the notice,
+   * where each one comes from and the terms that could not be tied to the catalog. The supply is
+   * reviewed only when the form is saved, never by being suggested.
+   */
+  sugerencias?: SugerenciasAlergenos;
   onChange: (values: InsumoFormValues) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -85,6 +92,7 @@ export default function InsumoForm({
   alergenos,
   onAlergenosChange,
   mostrarErrorAlergenos = false,
+  sugerencias,
   onChange,
   onSubmit,
   onCancel,
@@ -344,11 +352,13 @@ export default function InsumoForm({
             title="Alérgenos"
             description="Obligatorio: declara los alérgenos del envase o confirma que no contiene ninguno."
           >
+            {sugerencias && <AvisoAlergenosSugeridos sugerencias={sugerencias} />}
             <AlergenosSelector
               value={alergenos}
               onChange={onAlergenosChange}
               disabled={loading}
               mostrarError={mostrarErrorAlergenos}
+              origenes={sugerencias?.origenes}
             />
           </ProductFormSection>
         )}
@@ -395,5 +405,39 @@ export default function InsumoForm({
         <FormActions>{actions}</FormActions>
       )}
     </form>
+  );
+}
+
+export const AVISO_ALERGENOS_SUGERIDOS =
+  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de registrar.";
+
+function AvisoAlergenosSugeridos({ sugerencias }: { sugerencias: SugerenciasAlergenos }) {
+  const haySugeridos = Object.keys(sugerencias.origenes).length > 0;
+  const { sinReconocer } = sugerencias;
+  return (
+    <div className="space-y-3">
+      {haySugeridos && (
+        <p
+          role="note"
+          className="rounded-lg border border-info-border bg-info-bg px-3.5 py-3 text-sm leading-relaxed text-info"
+        >
+          {AVISO_ALERGENOS_SUGERIDOS}
+        </p>
+      )}
+      {sinReconocer.length > 0 && (
+        <div
+          role="note"
+          className="space-y-1.5 rounded-lg border border-warning-border bg-warning-bg px-3.5 py-3 text-sm leading-relaxed text-warning"
+        >
+          <p className="font-medium">No pudimos asociar:</p>
+          <ul className="list-disc space-y-0.5 pl-5">
+            {sinReconocer.map((termino) => (
+              <li key={termino}>{termino}</li>
+            ))}
+          </ul>
+          <p>Si corresponden a un alérgeno del catálogo, agrégalo tú con «Agregar alérgeno».</p>
+        </div>
+      )}
+    </div>
   );
 }
