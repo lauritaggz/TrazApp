@@ -176,7 +176,9 @@ def test_la_fecha_de_recuperacion_es_la_de_la_consulta_y_tiene_zona_horaria(
 
 
 def test_la_respuesta_incluye_la_estructura_completa_de_alergenos_vacia(client, ana, fuente) -> None:
-    # detectar_alergenos is still empty in T13-03: T13-04 fills it.
+    # A product with nothing to suggest (T13-03 asserted this for every product, because the
+    # detection was a stub; since T13-04 it holds for a product without allergens).
+    fuente.resultado = _producto(ingredientes="Agua, sal")
     assert _consultar(client, ana, EAN_13).json()["alergenos"] == {
         "contiene": [],
         "trazas": [],
