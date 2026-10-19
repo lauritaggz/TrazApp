@@ -25,7 +25,7 @@ Una auditoría de solo lectura del frontend y del backend, hecha al terminar HU0
 |-------|---------|-----------|
 | Backend, SQLite | `python -m pytest -q` (sin `TEST_DATABASE_URL`) | 896 aprobadas, 147 omitidas, 0 fallos (12 min 46 s) |
 | Backend, PostgreSQL | `python -m pytest -q` (con `TEST_DATABASE_URL` → `trazapp_test`) | 1043 aprobadas, 0 omitidas, 0 fallos (23 min 53 s) |
-| Frontend | `npx vitest run` | 23 archivos, 553 pruebas aprobadas, 0 fallos |
+| Frontend | `npx vitest run` | 23 archivos, 553 pruebas aprobadas, 0 fallos al cierre de HT06-08 (555 con las 2 pruebas de la prueba intermitente de los recorridos) |
 | Frontend, estabilidad | 5 corridas completas seguidas, con las dos suites de backend corriendo a la vez | 5 de 5 sin fallos (553 aprobadas cada una) |
 | Build | `npm run build` | correcto (`tsc -b` + `vite build`) |
 | Type check | `npx tsc -b` | sin errores |
@@ -300,6 +300,90 @@ El `user.clear()` se había perdido y el texto nuevo se concatenó al valor orig
 **Demostración de estabilidad:**
 - la prueba original, 40 corridas con la CPU saturada: 0 fallos (antes, 1 de 12);
 - 5 corridas completas del frontend seguidas, con las suites de backend corriendo a la vez: 5 de 5 sin fallos.
+
+---
+
+## La prueba intermitente de los recorridos (escenario B)
+
+**Prueba:** `Escenario B > si en la anterior un ingrediente no tenía lote, solo suma el «Sin lote» de esa línea: 7 interacciones` (`src/recorridos/ht06.recorridos.test.tsx`). Falló de forma intermitente en CI sobre `main`, en la espera del título del detalle tras finalizar (`findByRole("heading", { name: "Elaboración E-002" })`). En el PR había pasado con el mismo código.
+
+### Cómo se reprodujo
+
+Se repitió el archivo y la suite completa con la CPU saturada (procesos de Node en bucle, de 4 a 16 a la vez, en un equipo de 8 núcleos lógicos). Sobre el código original:
+
+| Condición | Corridas | Fallos |
+|---|---|---|
+| Archivo, equipo ocupado con otras tareas (sin carga controlada) | 2 | 2 (la segunda con el mensaje exacto del CI: *element could not be found in the document*) |
+| Archivo, 16 procesos de carga | 12 | 1 (no apareció el título del registro en 4 s) |
+| Archivo, 12 procesos de carga, con medición de cada espera | 6 | 2 (un test de B pasó los 15 s del límite total; A no encontró «Finalizada» en 4 s) |
+| Escenario B solo, carga que venció a mitad de la tanda | 45 | 0 |
+| Suite completa, 8 procesos de carga | 3 | 0 |
+| Suite completa, 16 procesos de carga | 4 | 4 (11 o 12 pruebas cada vez; ver «Los formularios de producto» más abajo) |
+
+La falla del CI es la primera: aparece cuando la espera del título coincide con el cambio de pantalla, y por eso es intermitente y casi no depende de la carga. La carga solo ensancha la ventana.
+
+### Causa
+
+**Era un defecto de la prueba, no una carrera de la aplicación.** La pantalla de registro y el detalle de la elaboración finalizada tienen **el mismo título**, «Elaboración E-002». El recorrido, tras confirmar «Finalizar», esperaba ese título para saber que había llegado al detalle:
+
+1. `findByRole("heading", …)` encontraba el título **en la pantalla de registro**, que seguía montada, y respondía de inmediato.
+2. La aplicación terminaba de finalizar y navegaba al detalle: el registro se desmontaba.
+3. `toBeInTheDocument()` se evaluaba sobre un nodo que ya no estaba en el documento y fallaba.
+
+Evidencia: se instrumentó la espera y se registró, justo después de que `findByRole` respondiera, si el nodo seguía conectado, si ya estaba la insignia «Finalizada» y si seguía el botón «Finalizar elaboración» del registro. En 23 mediciones con 16 procesos de carga:
+
+- 18: nodo conectado, con el botón del registro presente y **sin** insignia (el título era el del registro);
+- 5: nodo **ya desmontado**, sin botón y sin insignia (el estado intermedio de la navegación). Cada una de estas habría hecho fallar la aserción original;
+- en ninguna estaba ya la insignia: la espera nunca estuvo mirando el detalle.
+
+La aplicación se comporta bien: finaliza, navega y muestra el detalle. La aserción era además vacía: pasaba en la pantalla equivocada.
+
+**Segunda causa, de tiempo (visible solo con saturación fuerte).** Una espera de este recorrido es una transición de página completa (montaje, API simulada, renderizado), y el límite de 4 s del resto de la suite quedaba al borde. Ver «Por qué se subieron los tiempos».
+
+### Corrección
+
+- Un helper, `esperarDetalleDeFinalizada(codigo)`, espera primero la insignia **«Finalizada»**, que existe solo en el detalle; después comprueba el título y que el botón «Finalizar elaboración» ya no esté. Reemplaza la espera del título en el escenario B y se agregó también al final del escenario A (que esperaba solo la insignia).
+- No se relajó ninguna aserción: el helper comprueba más que antes.
+- **Dos pruebas nuevas, deterministas y sin carga:**
+  - `el registro y el detalle comparten el título: solo la insignia «Finalizada» identifica el detalle`: con la pantalla de registro de un borrador, el título está presente y el helper debe **rechazar**;
+  - `reconoce el detalle de una elaboración finalizada`: en el detalle real, el helper acepta.
+- **Mutación:** si el helper vuelve a esperar solo el título, fallan los tres recorridos (A y las dos variantes de B).
+- El resto de las esperas de A y B se revisó con el mismo criterio. El título «Elaboración E-001/E-002» tras «Crear borrador» no tiene el problema, porque la pantalla anterior (Dashboard o producto) no tiene ese título; los demás puntos de llegada se reconocen por elementos que la pantalla anterior no tiene.
+
+### Por qué se subieron los tiempos
+
+Se midió la duración de **cada** espera asíncrona de los dos recorridos (incluye las interacciones de `userEvent`), 6 corridas completas con 12 procesos de carga: **1.020 esperas**.
+
+| Estadístico | Valor |
+|---|---|
+| Mediana | 198 ms |
+| Percentil 99 | 2.745 ms |
+| Esperas de 2 s o más | 29 |
+| Esperas de 3 s o más | 5 |
+| Máximo | 5.065 ms |
+
+Sin carga el máximo es de 512 ms. El límite de 4 s del resto de la suite (`setup.ts`) queda por debajo del peor caso medido, y las dos fallas de esa tanda ocurrieron justamente ahí. Además, cada test del escenario B llegó a durar 15,3 s en total, sobre los 15 s por defecto de Vitest (A ya tenía 120 s).
+
+- **Espera de las utilidades asíncronas: 15 s, solo en este archivo** (`ESPERA_TRANSICION_MS`, con `configure` en `beforeAll` y restituida en `afterAll`). Es tres veces el peor caso medido. Si algo se rompe de verdad, la prueba tarda hasta 15 s en fallar en vez de 4 s; no hay otro costo.
+- **Tiempo máximo de los tests de B: 60 s** (`TIEMPO_MAXIMO_RECORRIDO_B_MS`), como ya tenía A con 120 s.
+- El resto de la suite no cambia: sigue en 4 s y 15 s.
+
+### Demostración de estabilidad
+
+Con **4 procesos de carga** (un equipo de 4 núcleos como el runner de GitHub, saturado):
+
+| Qué | Corridas | Fallos |
+|---|---|---|
+| Archivo de recorridos corregido | 30 | **0** |
+| Suite completa del frontend (23 archivos, 555 pruebas) | 3 | **0** |
+
+La misma comprobación con 12 procesos de carga se interrumpió a pedido (el equipo de trabajo se volvió inutilizable) y no se completó. El código original no se midió con 4 procesos; con 12 fallaba 2 de 6 veces (33 %). La carga simulada (procesos en bucle) no es idéntica a un runner de CI: la demostración reduce el riesgo, no lo elimina.
+
+### Los formularios de producto bajo carga extrema
+
+Con **16 procesos de carga** (el doble de los núcleos), las 10 pruebas del formulario de producto (`src/products/hu01.products.test.tsx`, «Nuevo producto») superaron el límite de 15 s **en todas las corridas** (4 de 4; 11 o 12 pruebas con fallo cada vez, el resto de la suite sin problemas). Con 8 procesos de carga (uno por núcleo) y con 4 la suite completa pasó 3 de 3 veces cada una.
+
+No se corrigió, porque está fuera de esta tarea y solo aparece con una saturación mayor a la de un runner real. Es otra fragilidad del mismo tipo: son las pruebas con más campos escritos con `userEvent.type` y se vuelven lentas cuando la CPU está sobrecargada. Si el CI llegara a fallar en ese archivo, el camino es el mismo: medir y subir el límite solo ahí, o reducir el costo de escribir los campos, y no tocar el límite global.
 
 ---
 
