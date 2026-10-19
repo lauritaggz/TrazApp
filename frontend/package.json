@@ -15,6 +15,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@undecaf/barcode-detector-polyfill": "0.9.23",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"
