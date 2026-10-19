@@ -12,9 +12,9 @@
  * journeys rely on (formulation, supplies, lots, borrador prefilled from the last finalized
  * elaboración, suggested lot, finalization). The unit of measure is the screens, not the server.
  */
-import { screen, waitFor, within } from "@testing-library/react";
+import { configure, getConfig, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { hoyChile } from "@/lib/elaboracionUtils";
 import { setAccessToken } from "@/lib/tokenStorage";
@@ -459,6 +459,38 @@ beforeEach(() => {
 
 const linea = (nombre: string) => screen.getByRole("region", { name: nombre });
 
+/*
+ * Waiting time. These journeys cross whole pages of the App (mount + simulated API + render), so one
+ * wait is a page transition, not a field. Measured with every core busy, 1,020 waits of the two
+ * journeys: median 0.2 s, 29 waits over 2 s and 5 over 3 s, up to 5.1 s, past the 4 s of the rest of
+ * the suite (setup.ts); two of six runs failed on it. 15 s is three times the worst wait seen. The
+ * rest of the suite keeps 4 s: this only applies to this file.
+ */
+const ESPERA_TRANSICION_MS = 15_000;
+/** The B journeys took up to 15.3 s in total under the same load, over the 15 s default; A has 120 s. */
+const TIEMPO_MAXIMO_RECORRIDO_B_MS = 60_000;
+
+const ESPERA_ASYNC_DE_LA_SUITE = getConfig().asyncUtilTimeout;
+beforeAll(() => {
+  configure({ asyncUtilTimeout: ESPERA_TRANSICION_MS });
+});
+afterAll(() => {
+  configure({ asyncUtilTimeout: ESPERA_ASYNC_DE_LA_SUITE });
+});
+
+/**
+ * Arrival at the detail of a FINALIZED elaboración. The registro screen and the detail share the
+ * same title («Elaboración E-002»), so the title alone proves nothing: it is found on the registro
+ * screen right before that screen is replaced, and the node it returns can be gone by the time it is
+ * asserted. The «Finalizada» badge exists only in the detail, so it is awaited first.
+ */
+async function esperarDetalleDeFinalizada(codigo: string, espera?: number) {
+  const opciones = espera === undefined ? undefined : { timeout: espera };
+  expect(await screen.findByText("Finalizada", undefined, opciones)).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: `Elaboración ${codigo}`, level: 1 })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Finalizar elaboración" })).not.toBeInTheDocument();
+}
+
 // =============================================================================================
 // Escenario B: segunda elaboración del mismo producto, con los mismos insumos y los mismos lotes.
 // =============================================================================================
@@ -588,8 +620,7 @@ describe("Escenario B (HT06-08): segunda elaboración con los mismos insumos y l
     await r.clic("Confirmar «Finalizar»", await screen.findByRole("button", { name: "Finalizar" }));
 
     // The goal of the journey: the detail of the finalized elaboración.
-    expect(await screen.findByRole("heading", { name: "Elaboración E-002", level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText("Finalizada")).toBeInTheDocument();
+    await esperarDetalleDeFinalizada("E-002");
     return r;
   }
 
@@ -614,7 +645,7 @@ describe("Escenario B (HT06-08): segunda elaboración con los mismos insumos y l
     ]);
     // No new lot was created: the existing ones were reused.
     expect(mundo.lotes).toHaveLength(2);
-  });
+  }, TIEMPO_MAXIMO_RECORRIDO_B_MS);
 
   it("si en la anterior un ingrediente no tenía lote, solo suma el «Sin lote» de esa línea: 7 interacciones", async () => {
     const mundo = mundoConUnaElaboracionAnterior(true);
@@ -628,6 +659,27 @@ describe("Escenario B (HT06-08): segunda elaboración con los mismos insumos y l
     });
     expect(r.total).toBe(7);
     expect(r.total).toBeLessThanOrEqual(7);
+  }, TIEMPO_MAXIMO_RECORRIDO_B_MS);
+
+  // The cause of the intermittent failure of the two journeys above, pinned down without any load.
+  it("el registro y el detalle comparten el título: solo la insignia «Finalizada» identifica el detalle", async () => {
+    const mundo = mundoConUnaElaboracionAnterior();
+    crearBorrador(mundo, 5, "E-002", "2026-10-16");
+    instalarApi(mundo);
+    renderWithProviders(<App />, { initialEntries: ["/elaboraciones/20/registro"] });
+
+    // On the registro screen the title is already there...
+    expect(await screen.findByRole("heading", { name: "Elaboración E-002", level: 1 })).toBeInTheDocument();
+    // ...and that must not count as having arrived at the detail.
+    await expect(esperarDetalleDeFinalizada("E-002", 300)).rejects.toThrow();
+  });
+
+  it("reconoce el detalle de una elaboración finalizada", async () => {
+    const mundo = mundoConUnaElaboracionAnterior();
+    instalarApi(mundo);
+    renderWithProviders(<App />, { initialEntries: ["/elaboraciones/19"] });
+
+    await esperarDetalleDeFinalizada("E-001");
   });
 });
 
@@ -705,7 +757,7 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     r.etapa("Finalizar");
     await r.clic("«Finalizar elaboración» (guarda el borrador por sí sola)", screen.getByRole("button", { name: "Finalizar elaboración" }));
     await r.clic("Confirmar «Finalizar»", await screen.findByRole("button", { name: "Finalizar" }));
-    expect(await screen.findByText("Finalizada")).toBeInTheDocument();
+    await esperarDetalleDeFinalizada("E-001");
 
     // The count. Every stage is asserted, so the test fails if any of them grows.
     expect(r.desglose()).toEqual({
