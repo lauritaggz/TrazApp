@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Ingrediente, InsumoAlergeno, InsumoComercial, Productor
+from app.models.insumo import FUENTE_MANUAL
 from app.repositories.insumo_repository import InsumoRepository
 from app.schemas.insumo import (
     AlergenoDeclaradoRead,
@@ -19,6 +20,9 @@ MENSAJE_ALERGENO_EN_LISTA_REPETIDO = "El alérgeno está repetido en la lista."
 MENSAJE_CAMBIO_SIMULTANEO = (
     "No se pudo guardar el insumo por un cambio simultáneo. Inténtalo nuevamente."
 )
+MENSAJE_FUENTE_SIN_FECHA = (
+    "Indica la fecha de recuperación de la información cuando el insumo viene de una fuente externa."
+)
 MENSAJE_CODIGO_ACTIVO = "Ya existe un insumo con ese código de barras."
 MENSAJE_CODIGO_INACTIVO = (
     "Ya existe un insumo desactivado con ese código de barras. Puedes reactivarlo."
@@ -35,6 +39,15 @@ class InvalidInsumoError(Exception):
 
 class InsumoAlergenoNotFoundError(Exception):
     """Raised when the allergen is not declared by the supply (404, URL resource)."""
+
+
+class FuenteSinFechaError(InvalidInsumoError):
+    """A supply that comes from an external source must say when the information was retrieved (CA11)."""
+
+    campo = "fecha_recuperacion"
+
+    def __init__(self) -> None:
+        super().__init__(MENSAJE_FUENTE_SIN_FECHA)
 
 
 class InvalidInsumoAlergenoError(Exception):
@@ -74,6 +87,9 @@ class InsumoService:
         self.repository = repository
 
     def create(self, productor: Productor, payload: InsumoCreate) -> InsumoRead:
+        # Retrieved information is only credible with the date it was retrieved (CA11).
+        if payload.fuente != FUENTE_MANUAL and payload.fecha_recuperacion is None:
+            raise FuenteSinFechaError()
         # Read the id up front: after a failed flush the session cannot refresh ORM objects.
         productor_id = productor.id
         ingrediente = self._get_valid_ingrediente(productor_id, payload.ingrediente_id)

@@ -9,11 +9,6 @@ export const TIPO_DECLARACION_LABELS: Record<TipoDeclaracion, string> = {
   trazas: "Puede contener (trazas)",
 };
 
-export const FUENTE_LABELS: Record<string, string> = {
-  manual: "Registro manual",
-  open_food_facts: "Open Food Facts",
-};
-
 export interface IngredienteResumen {
   id: number;
   nombre: string;

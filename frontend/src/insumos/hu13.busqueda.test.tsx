@@ -254,6 +254,26 @@ describe("Estados de la búsqueda", () => {
     expect(campo("Código de barras")).toHaveValue(CODIGO);
   });
 
+  it("un conflicto (409) que no dice qué insumo es: mensaje genérico, no «fuente no disponible»", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(new ApiError("Conflicto", 409));
+    const user = await abrirPagina();
+    await user.type(campo("Nombre"), "Lo que yo escribí");
+
+    await entregarCodigo(user, CODIGO);
+
+    expect(
+      await screen.findByText(
+        "No pudimos completar la búsqueda. Intenta de nuevo o completa los datos manualmente.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(MENSAJE_NO_DISPONIBLE)).not.toBeInTheDocument();
+    // The form is untouched: no code written, nothing replaced, no confirmation.
+    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    expect(campo("Código de barras")).toHaveValue("");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(botonEscanear()).toBeEnabled();
+  });
+
   it("sin conexión con el servidor: se trata como fuente no disponible", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(new TypeError("Failed to fetch"));
     const user = await abrirPagina();

@@ -146,13 +146,28 @@ describe("Máquina de estados de la búsqueda", () => {
     expect(onResultado).not.toHaveBeenCalled();
   });
 
-  it("un 409 que no trae el insumo existente se trata como fuente no disponible", async () => {
+  it("un 409 que no trae el insumo existente es un error de la búsqueda, no una fuente caída", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(new ApiError("Conflicto", 409));
-    const { result } = renderHook(() => useBusquedaCodigoBarras());
+    const onResultado = vi.fn();
+    const { result } = renderHook(() => useBusquedaCodigoBarras({ onResultado }));
 
     await act(async () => result.current.buscar(CODIGO));
 
-    expect(result.current.estado).toBe("no_disponible");
+    expect(result.current.estado).toBe("error");
+    expect(result.current.duplicado).toBeNull();
+    // Nothing is loaded into the form: the productor decides what to do.
+    expect(onResultado).not.toHaveBeenCalled();
+  });
+
+  it("después de un error de la búsqueda se acepta otro código", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValueOnce(new ApiError("Conflicto", 409));
+    const { result } = renderHook(() => useBusquedaCodigoBarras());
+    await act(async () => result.current.buscar(CODIGO));
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(ENCONTRADO);
+
+    await act(async () => result.current.buscar(OTRO));
+
+    expect(result.current.estado).toBe("encontrado");
   });
 
   it("un código inválido no se consulta", async () => {

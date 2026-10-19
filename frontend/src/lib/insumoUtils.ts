@@ -1,5 +1,4 @@
 import {
-  FUENTE_LABELS,
   type AlergenoDeclarado,
   type Insumo,
   type InsumoListFilters,
@@ -11,10 +10,6 @@ export function insumoCountLabel(count: number, activos: boolean): string {
   const estado = activos ? "" : " inactivo";
   if (count === 1) return `1 insumo${estado} registrado`;
   return `${count} insumos${activos ? "" : " inactivos"} registrados`;
-}
-
-export function formatFuente(fuente: string): string {
-  return FUENTE_LABELS[fuente] ?? fuente;
 }
 
 /** Date and time in 24 h, Chile time zone (project convention). */

@@ -18,6 +18,7 @@ from app.schemas.insumo import (
 )
 from app.services.insumo_service import (
     DuplicateCodigoBarrasError,
+    FuenteSinFechaError,
     InsumoAlergenoNotFoundError,
     InsumoConflictError,
     InsumoNotFoundError,
@@ -70,6 +71,11 @@ def crear_insumo(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except InvalidAlergenosError as exc:
         raise _alergenos_error(exc) from exc
+    except FuenteSinFechaError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc), "campo": exc.campo},
+        ) from exc
     except InvalidInsumoError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

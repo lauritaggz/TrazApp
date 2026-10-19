@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import InsumoAllergensSection from "@/components/insumos/InsumoAllergensSection";
+import OrigenInformacion from "@/components/insumos/OrigenInformacion";
 import InsumoUnavailable from "@/components/insumos/InsumoUnavailable";
 import AppShell from "@/components/layout/AppShell";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
@@ -11,7 +12,6 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
-import { formatFechaHora, formatFuente } from "@/lib/insumoUtils";
 import { deactivateInsumo, getInsumo, reactivateInsumo } from "@/services/insumoService";
 import type { Insumo } from "@/types/insumo";
 
@@ -200,21 +200,21 @@ export default function InsumoDetail() {
               </dl>
             </ProductDetailSection>
 
-            <ProductDetailSection id="insumo-detail-origen" title="Estado y fuente">
+            <ProductDetailSection id="insumo-detail-origen" title="Origen de la información">
+              <OrigenInformacion
+                fuente={insumo.fuente}
+                fechaRecuperacion={insumo.fecha_recuperacion}
+                ficha={insumo.ficha}
+              />
+            </ProductDetailSection>
+
+            <ProductDetailSection id="insumo-detail-estado" title="Estado">
               <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <DetailField label="Estado">
                   <Badge variant={insumo.activo ? "success" : "neutral"}>
                     {insumo.activo ? "Activo" : "Inactivo"}
                   </Badge>
                 </DetailField>
-                <DetailField label="Fuente de la información">
-                  {formatFuente(insumo.fuente)}
-                </DetailField>
-                {insumo.fecha_recuperacion && (
-                  <DetailField label="Recuperado el">
-                    {formatFechaHora(insumo.fecha_recuperacion)}
-                  </DetailField>
-                )}
               </dl>
             </ProductDetailSection>
 

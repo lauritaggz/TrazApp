@@ -14,7 +14,8 @@ export type EstadoBusqueda =
   | "no_encontrado"
   | "duplicado"
   | "no_disponible"
-  | "invalido";
+  | "invalido"
+  | "error";
 
 /** What the screen has to do with the form when a lookup ends without a duplicate. */
 export type ResultadoBusqueda =
@@ -116,6 +117,9 @@ export function useBusquedaCodigoBarras({ onResultado }: Options = {}) {
           setBase("duplicado");
           return;
         }
+        // A conflict that does not say which supply it is about: not "the source is down".
+        setBase("error");
+        return;
       }
       if (error instanceof ApiError && error.status === 422) {
         setMensajeInvalido(error.message);

@@ -2,14 +2,17 @@ import { Link } from "react-router-dom";
 import EscanerCodigoBarras from "@/components/insumos/EscanerCodigoBarras";
 import Button from "@/components/ui/Button";
 import type { BusquedaCodigoBarras } from "@/hooks/useBusquedaCodigoBarras";
+import { nombreFuente } from "@/lib/fuentesInsumo";
 import type { InsumoDuplicateInfo } from "@/types/insumo";
 
 export const MENSAJE_BUSCANDO = "Buscando el producto…";
-export const MENSAJE_ENCONTRADO =
-  "Encontramos este producto en Open Food Facts. Revisa los datos antes de registrar.";
+export const mensajeEncontrado = (fuente: string) =>
+  `Encontramos este producto en ${nombreFuente(fuente)}. Revisa los datos antes de registrar.`;
 export const MENSAJE_NO_ENCONTRADO = "No encontramos este código. Completa los datos manualmente.";
 export const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
+export const MENSAJE_ERROR_BUSQUEDA =
+  "No pudimos completar la búsqueda. Intenta de nuevo o completa los datos manualmente.";
 export const TITULO_DUPLICADO = "Ya tienes este insumo registrado";
 
 /** What can be done with the supply that already has the code; the screen decides which options it offers. */
@@ -39,10 +42,13 @@ export default function BuscarPorCodigo({ busqueda, existente, embedded = false 
 
   let mensaje = "";
   if (estado === "buscando") mensaje = MENSAJE_BUSCANDO;
-  else if (estado === "encontrado") mensaje = MENSAJE_ENCONTRADO;
+  else if (estado === "encontrado") {
+    mensaje = mensajeEncontrado(busqueda.consulta?.fuente ?? "");
+  }
   else if (estado === "no_encontrado") mensaje = MENSAJE_NO_ENCONTRADO;
   else if (estado === "no_disponible") mensaje = MENSAJE_NO_DISPONIBLE;
   else if (estado === "invalido") mensaje = busqueda.mensajeInvalido;
+  else if (estado === "error") mensaje = MENSAJE_ERROR_BUSQUEDA;
 
   return (
     <section

@@ -46,6 +46,15 @@ Esta verificación no reemplaza la prueba con una cámara real en Chrome para An
 
 ---
 
+## Registro del código, la fuente y la fecha de recuperación (T13-06, CA11)
+
+- **Regla (backend):** `POST /gestion/insumos` con una `fuente` distinta de `manual` y sin `fecha_recuperacion` responde **422** con `{"mensaje", "campo": "fecha_recuperacion"}` y no guarda nada. Un insumo manual no exige fecha. Ninguna prueba de HU04 cambió: todas las que enviaban una fuente externa ya traían la fecha. Por ahora la regla vale para el alta; `PATCH` todavía acepta `fuente` sin fecha (quedó fuera del alcance de la tarea).
+- **De punta a punta** (`test_registro_desde_codigo_hu13.py`, SQLite y PostgreSQL, leyendo desde una sesión independiente): consulta con una respuesta grabada → registro con los datos de la propuesta → el insumo guarda `codigo_barras`, `fuente = open_food_facts`, `fecha_recuperacion`, la ficha con la URL de la fuente y los alérgenos con su tipo, ya revisados. Los registros manuales siguen con fuente `manual` y sin fecha ni ficha.
+- **Información conservada:** al finalizar una elaboración, la copia de un insumo recuperado conserva su `codigo_barras` (y no la ficha, la fuente ni la fecha). Cambiar o desactivar el insumo después no la altera.
+- **Detalle del insumo (frontend):** bloque «Origen de la información»: «Registrado manualmente» o «Obtenido de Open Food Facts el dd-mm-aaaa» (fecha en la hora de Chile) con el enlace a la ficha de la fuente, que se abre en otra pestaña con `rel="noopener noreferrer"`. Solo se enlazan direcciones http(s) (la ficha la envía el cliente al registrar, así que un `javascript:` no se convierte en enlace). El nombre visible de cada fuente sale de `src/lib/fuentesInsumo.ts`, el único archivo del código que lo escribe; una prueba estática lo exige.
+
+---
+
 ## Verificación del `dist/` real (T13-05)
 
 Con el escáner ya en la página «Nuevo insumo» y en el diálogo de la elaboración, `npm run build` incluye el lector. Se comprobó sobre la salida real y queda cubierto por `src/escaner/hu13.dist.test.ts`, que hace el mismo build en una carpeta temporal:

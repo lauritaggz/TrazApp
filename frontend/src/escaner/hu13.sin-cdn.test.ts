@@ -39,6 +39,26 @@ describe("Sin CDN ni consultas directas desde el navegador", () => {
   });
 });
 
+describe("El nombre visible de la fuente sale de un único archivo", () => {
+  const MAPA_DE_FUENTES = "src/lib/fuentesInsumo.ts";
+  const NOMBRE_VISIBLE = /open food facts/i;
+  // The tests assert the texts the productor reads, so they spell them out; the code does not.
+  const esPrueba = (ruta: string) => /\.test\.tsx?$/.test(ruta) || ruta.includes("camaraFalsa");
+  const rutas = archivos("src").map((ruta) => ruta.replaceAll("\\", "/"));
+
+  it("solo el mapa de fuentes escribe el nombre; el resto del código lo pide al mapa", () => {
+    const infractores = rutas
+      .filter((ruta) => ruta !== MAPA_DE_FUENTES && !esPrueba(ruta))
+      .filter((ruta) => NOMBRE_VISIBLE.test(readFileSync(ruta, "utf8")));
+
+    expect(infractores).toEqual([]);
+  });
+
+  it("la excepción no está muerta: el mapa de fuentes sí contiene el nombre", () => {
+    expect(readFileSync(MAPA_DE_FUENTES, "utf8")).toMatch(NOMBRE_VISIBLE);
+  });
+});
+
 describe("El alias del decodificador sigue la versión instalada del polyfill", () => {
   const polyfill = readFileSync(
     "node_modules/@undecaf/barcode-detector-polyfill/dist/main.js",

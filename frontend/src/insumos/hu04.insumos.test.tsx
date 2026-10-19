@@ -815,18 +815,19 @@ describe("Detalle de insumo", () => {
     const declarado = screen.getByRole("region", { name: "Información declarada" });
     expect(within(declarado).getByText("Leche semidescremada")).toBeInTheDocument();
     expect(within(declarado).getByText("Puede contener trazas de maní")).toBeInTheDocument();
-    const origen = screen.getByRole("region", { name: "Estado y fuente" });
-    expect(within(origen).getByText("Activo")).toBeInTheDocument();
-    expect(within(origen).getByText("Open Food Facts")).toBeInTheDocument();
-    expect(within(origen).getByText(/15:30/)).toBeInTheDocument();
+    const estado = screen.getByRole("region", { name: "Estado" });
+    expect(within(estado).getByText("Activo")).toBeInTheDocument();
+    // HU13 (T13-06): the source and when it was retrieved have their own block, with the date only.
+    const origen = screen.getByRole("region", { name: "Origen de la información" });
+    expect(within(origen).getByText("Obtenido de Open Food Facts el 04-10-2026")).toBeInTheDocument();
   });
 
-  it("de un insumo manual no muestra fecha de recuperación", async () => {
+  it("de un insumo manual dice que se registró manualmente y no muestra fecha de recuperación", async () => {
     openPage("/insumos/10");
 
-    const origen = await screen.findByRole("region", { name: "Estado y fuente" });
-    expect(within(origen).getByText("Registro manual")).toBeInTheDocument();
-    expect(within(origen).queryByText("Recuperado el")).not.toBeInTheDocument();
+    const origen = await screen.findByRole("region", { name: "Origen de la información" });
+    expect(within(origen).getByText("Registrado manualmente")).toBeInTheDocument();
+    expect(within(origen).queryByText(/Obtenido de/)).not.toBeInTheDocument();
   });
 
   it("el botón Editar insumo abre el formulario de edición", async () => {
@@ -897,7 +898,7 @@ describe("Detalle de insumo", () => {
     openPage("/insumos/12");
 
     const boton = await screen.findByRole("button", { name: "Reactivar insumo" });
-    const estado = screen.getByRole("region", { name: "Estado y fuente" });
+    const estado = screen.getByRole("region", { name: "Estado" });
     expect(within(estado).getByText("Inactivo")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desactivar insumo" })).not.toBeInTheDocument();
 
