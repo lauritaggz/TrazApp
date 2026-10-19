@@ -15,6 +15,16 @@ import {
   VENTANA_REPETIDOS_MS,
 } from "@/hooks/useEscanerCodigoBarras";
 import { crearDetector, type DetectorCreado } from "@/lib/lectorCodigoBarras";
+import {
+  avanzar,
+  crearPista,
+  crearStream,
+  definirContextoSeguro,
+  errorDeCamara,
+  lectura,
+  quitarContextoSeguro,
+  type Lectura,
+} from "./camaraFalsa";
 
 vi.mock("@/lib/lectorCodigoBarras", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/lectorCodigoBarras")>()),
@@ -24,31 +34,6 @@ vi.mock("@/lib/lectorCodigoBarras", async (importOriginal) => ({
 const EAN_13 = "7802910000971";
 const OTRO_EAN_13 = "4006381333931";
 const EAN_13_INVALIDO = "7802910000972";
-
-type Lectura = { rawValue: string; format: string };
-const lectura = (rawValue: string, format = "ean_13"): Lectura => ({ rawValue, format });
-
-function crearPista(capacidades?: Record<string, unknown>) {
-  return {
-    kind: "video",
-    stop: vi.fn(),
-    getCapabilities: capacidades === undefined ? undefined : vi.fn(() => capacidades),
-    applyConstraints: vi.fn(async () => undefined),
-  };
-}
-
-function crearStream(pista: ReturnType<typeof crearPista>) {
-  return {
-    getTracks: () => [pista],
-    getVideoTracks: () => [pista],
-  } as unknown as MediaStream;
-}
-
-function errorDeCamara(name: string) {
-  const error = new Error(`falla simulada: ${name}`);
-  error.name = name;
-  return error;
-}
 
 let pista: ReturnType<typeof crearPista>;
 let getUserMedia: ReturnType<typeof vi.fn>;
@@ -62,18 +47,13 @@ function instalarMediaDevices() {
   });
 }
 
-async function avanzar(ms: number) {
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(ms);
-  });
-}
-
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   pista = crearPista({ torch: false });
   detect = vi.fn(async (_fuente: HTMLVideoElement) => [] as Lectura[]);
   vi.mocked(crearDetector).mockResolvedValue({ detector: { detect }, origen: "nativo" });
   vi.spyOn(window.HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  definirContextoSeguro(true);
   instalarMediaDevices();
 });
 
@@ -83,6 +63,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(crearDetector).mockReset();
   Reflect.deleteProperty(navigator, "mediaDevices");
+  quitarContextoSeguro();
 });
 
 // --- a small screen that exposes the hook ---
@@ -173,14 +154,17 @@ describe("Arranque de la cámara", () => {
     expect(espiar.mock.lastCall?.[0].error).toBe(denegado);
   });
 
-  it("sin API de cámara, el estado es error con un error de no soportado", async () => {
+  it("sin API de cámara, el estado es error por contexto inseguro y no se pide nada", async () => {
+    // T13-01 reported a NotSupportedError here; since T13-02 it is a ContextoInseguroError, which the
+    // screen explains (HTTPS) instead of showing a generic failure.
     Reflect.deleteProperty(navigator, "mediaDevices");
     const espiar = vi.fn();
 
     await montarArnes(vi.fn(), espiar);
 
     expect(estado()).toBe("error");
-    expect(espiar.mock.lastCall?.[0].error).toMatchObject({ name: "NotSupportedError" });
+    expect(espiar.mock.lastCall?.[0].error).toMatchObject({ name: "ContextoInseguroError" });
+    expect(crearDetector).not.toHaveBeenCalled();
   });
 
   it("si el detector no se puede crear, el estado es error y no pide la cámara", async () => {
@@ -543,11 +527,13 @@ describe("Componente EscanerCodigoBarras", () => {
   });
 
   it("si la cámara falla, lo dice y deja «Cerrar» disponible", async () => {
+    // T13-01 showed one generic text for every failure; since T13-02 each failure has its own
+    // (see hu13.entrada-manual.test.tsx), here the permission one.
     getUserMedia.mockRejectedValue(errorDeCamara("NotAllowedError"));
     montarEscaner();
     await avanzar(0);
 
-    expect(screen.getByRole("status")).toHaveTextContent("No pudimos usar la cámara.");
+    expect(screen.getByRole("status")).toHaveTextContent(/no tiene permiso para usar la cámara/);
     expect(screen.getByRole("button", { name: "Cerrar" })).toBeEnabled();
   });
 });

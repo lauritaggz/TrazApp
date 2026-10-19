@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { normalizarCodigoBarras, validarCodigoBarras } from "@/lib/codigoBarras";
+import { ContextoInseguroError } from "@/lib/errorCamara";
 import {
   crearDetector,
   FORMATOS_CODIGO_BARRAS,
@@ -7,6 +8,9 @@ import {
 } from "@/lib/lectorCodigoBarras";
 
 export type EstadoEscaner = "iniciando" | "escaneando" | "reconocido" | "error" | "detenido";
+
+/** Where the delivered code came from. */
+export type OrigenCodigo = "camara" | "manual";
 
 /** The detector runs every 250 ms, not on every frame. */
 export const INTERVALO_DETECCION_MS = 250;
@@ -25,15 +29,17 @@ function nombreDelError(error: unknown): string {
   return error instanceof Error || error instanceof DOMException ? error.name : "";
 }
 
+/** The camera can only be requested from a secure context (HTTPS or localhost) that has the API. */
+function camaraDisponible(): boolean {
+  return Boolean(window.isSecureContext) && Boolean(navigator.mediaDevices?.getUserMedia);
+}
+
 /**
  * Rear camera. iOS Safari rejects the whole request when it cannot satisfy every constraint (Chrome
  * ignores the ones it cannot), so the richer constraints are tried first and the minimal ones after.
  */
 async function pedirCamara(): Promise<MediaStream> {
   const medios = navigator.mediaDevices;
-  if (!medios?.getUserMedia) {
-    throw new DOMException("La cámara no está disponible en este navegador.", "NotSupportedError");
-  }
   try {
     return await medios.getUserMedia(RESTRICCIONES_IDEALES);
   } catch (error) {
@@ -54,7 +60,8 @@ interface Options {
 /**
  * The camera and the reading loop of the barcode scanner. It starts when the component that uses it
  * mounts, and releases the camera when a code is recognized, on `cerrar` and on unmount (CA13).
- * `error` is the raw error of the camera or of the reader; classifying it is up to the screen.
+ * `error` is the raw error of the camera or of the reader; `lib/errorCamara` turns it into a message.
+ * `usarCodigoManual` delivers a code typed by hand through the same `onDetectado`.
  */
 export function useEscanerCodigoBarras({ onDetectado }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,6 +76,7 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
   const [estado, setEstado] = useState<EstadoEscaner>("iniciando");
   const [error, setError] = useState<unknown>(null);
   const [codigo, setCodigo] = useState<string | null>(null);
+  const [origenCodigo, setOrigenCodigo] = useState<OrigenCodigo | null>(null);
   const [linternaDisponible, setLinternaDisponible] = useState(false);
   const [linternaEncendida, setLinternaEncendida] = useState(false);
 
@@ -87,6 +95,22 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
     }
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
+
+  /** Ends the current session with a code: releases the camera, then reports it once. */
+  const entregar = useCallback(
+    (entregado: string, origen: OrigenCodigo) => {
+      ultimoRef.current = { codigo: entregado, en: Date.now() };
+      // Anything still in flight from this session must not report again.
+      sesionVigenteRef.current += 1;
+      liberarCamara();
+      setLinternaEncendida(false);
+      setCodigo(entregado);
+      setOrigenCodigo(origen);
+      setEstado("reconocido");
+      onDetectadoRef.current(entregado);
+    },
+    [liberarCamara],
+  );
 
   useEffect(() => {
     const numero = ++sesionVigenteRef.current;
@@ -107,23 +131,21 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
       return null;
     }
 
-    function reconocer(reconocido: string) {
-      ultimoRef.current = { codigo: reconocido, en: Date.now() };
-      // Anything still in flight from this session must not report again.
-      sesionVigenteRef.current += 1;
-      liberarCamara();
-      setLinternaEncendida(false);
-      setCodigo(reconocido);
-      setEstado("reconocido");
-      onDetectadoRef.current(reconocido);
-    }
-
     async function iniciar() {
       setEstado("iniciando");
       setError(null);
       setCodigo(null);
+      setOrigenCodigo(null);
       setLinternaDisponible(false);
       setLinternaEncendida(false);
+
+      // Without a secure context the browser has no camera API to ask: do not even try.
+      if (!camaraDisponible()) {
+        setError(new ContextoInseguroError());
+        setEstado("error");
+        return;
+      }
+
       try {
         const { detector } = await crearDetector();
         if (!vigente()) return;
@@ -158,7 +180,7 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
           if (!vigente()) return;
           const reconocido = elegir(lecturas);
           if (reconocido !== null) {
-            reconocer(reconocido);
+            entregar(reconocido, "camara");
             return;
           }
           temporizadorRef.current = setTimeout(revisar, INTERVALO_DETECCION_MS);
@@ -178,7 +200,7 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
       sesionVigenteRef.current += 1;
       liberarCamara();
     };
-  }, [sesion, liberarCamara]);
+  }, [sesion, liberarCamara, entregar]);
 
   /** Closes the scanner: stops the camera for good. */
   const cerrar = useCallback(() => {
@@ -188,10 +210,18 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
     setEstado("detenido");
   }, [liberarCamara]);
 
-  /** Opens the camera again, for example to read another code. */
+  /** Opens the camera again, for example to read another code or after a failure. */
   const reiniciar = useCallback(() => {
     setSesion((actual) => actual + 1);
   }, []);
+
+  /** Delivers a code typed by hand, already validated by the caller, and stops the camera. */
+  const usarCodigoManual = useCallback(
+    (manual: string) => {
+      entregar(manual, "manual");
+    },
+    [entregar],
+  );
 
   const alternarLinterna = useCallback(async () => {
     const pista = streamRef.current?.getVideoTracks()[0];
@@ -212,10 +242,12 @@ export function useEscanerCodigoBarras({ onDetectado }: Options) {
     estado,
     error,
     codigo,
+    origenCodigo,
     linternaDisponible,
     linternaEncendida,
     alternarLinterna,
     cerrar,
     reiniciar,
+    usarCodigoManual,
   };
 }

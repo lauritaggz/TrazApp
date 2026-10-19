@@ -1,36 +1,49 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useEscanerCodigoBarras, type EstadoEscaner } from "@/hooks/useEscanerCodigoBarras";
+import { validarEntradaManual } from "@/lib/entradaCodigoBarras";
+import { clasificarErrorCamara, ERRORES_CAMARA } from "@/lib/errorCamara";
 
 interface EscanerCodigoBarrasProps {
-  /** Called with the recognized code. The camera is already stopped. */
+  /** Called with the code, read by the camera or typed by hand. The camera is already stopped. */
   onDetectado: (codigo: string) => void;
   /** Called after the camera has been stopped because the productor closed the scanner. */
   onCerrar: () => void;
 }
 
-const MENSAJES: Record<EstadoEscaner, string> = {
+const MENSAJES: Record<Exclude<EstadoEscaner, "error">, string> = {
   iniciando: "Iniciando la cámara…",
   escaneando:
     "Apunta al código de barras. Acércalo a unos 10 o 15 cm, con buena luz y sin reflejos.",
   reconocido: "Código reconocido.",
-  error: "No pudimos usar la cámara.",
   detenido: "Cámara detenida.",
 };
 
-/** Mount only while open: the camera starts on mount and is released on unmount. */
+/**
+ * Mount only while open: the camera starts on mount and is released on unmount. The field to type
+ * the number of the code is always there, with the camera working and when it fails (CA04, CA05).
+ */
 export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCodigoBarrasProps) {
   const titleId = useId();
   const estadoId = useId();
+  const campoId = useId();
   const cerrarRef = useRef<HTMLButtonElement>(null);
+  const campoRef = useRef<HTMLInputElement>(null);
+  const [entrada, setEntrada] = useState("");
+  const [errorEntrada, setErrorEntrada] = useState("");
   const {
     videoRef,
     estado,
+    error,
     codigo,
+    origenCodigo,
     linternaDisponible,
     linternaEncendida,
     alternarLinterna,
     cerrar,
+    reiniciar,
+    usarCodigoManual,
   } = useEscanerCodigoBarras({ onDetectado });
 
   function handleCerrar() {
@@ -38,11 +51,28 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
     onCerrar();
   }
 
+  function handleBuscar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const resultado = validarEntradaManual(entrada);
+    if (resultado.error !== null) {
+      setErrorEntrada(resultado.error);
+      campoRef.current?.focus();
+      return;
+    }
+    setErrorEntrada("");
+    usarCodigoManual(resultado.codigo);
+  }
+
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
     cerrarRef.current?.focus();
     return () => previousFocus?.focus();
   }, []);
+
+  // When the camera fails, the way forward is the field: the focus goes there.
+  useEffect(() => {
+    if (estado === "error") campoRef.current?.focus();
+  }, [estado]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -55,7 +85,14 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [cerrar, onCerrar]);
 
-  const mensaje = estado === "reconocido" && codigo ? `Código reconocido: ${codigo}.` : MENSAJES[estado];
+  const presentacionError = estado === "error" ? ERRORES_CAMARA[clasificarErrorCamara(error)] : null;
+
+  let mensaje: string;
+  if (presentacionError) mensaje = presentacionError.mensaje;
+  else if (estado === "reconocido" && codigo) {
+    mensaje =
+      origenCodigo === "manual" ? `Código ingresado: ${codigo}.` : `Código reconocido: ${codigo}.`;
+  } else mensaje = MENSAJES[estado === "error" ? "iniciando" : estado];
 
   return (
     <div
@@ -74,7 +111,11 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
           Escanear código de barras
         </h2>
 
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-black">
+        {/* Stays mounted while the camera fails: "Intentar de nuevo" starts it again on this element. */}
+        <div
+          className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-black"
+          hidden={estado === "error"}
+        >
           <video
             ref={videoRef}
             className="h-full w-full object-cover"
@@ -99,6 +140,32 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
         >
           {mensaje}
         </p>
+
+        {presentacionError?.reintentable && (
+          <Button type="button" variant="secondary" className="w-full" onClick={reiniciar}>
+            Intentar de nuevo
+          </Button>
+        )}
+
+        <form onSubmit={handleBuscar} noValidate className="space-y-3">
+          <Input
+            ref={campoRef}
+            id={campoId}
+            label="Número del código de barras"
+            hint="8, 12 o 13 dígitos. Puedes escribirlo con espacios o guiones."
+            error={errorEntrada || undefined}
+            value={entrada}
+            inputMode="numeric"
+            autoComplete="off"
+            onChange={(event) => {
+              setEntrada(event.target.value);
+              if (errorEntrada) setErrorEntrada("");
+            }}
+          />
+          <Button type="submit" className="w-full">
+            Buscar
+          </Button>
+        </form>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
           {linternaDisponible && (
