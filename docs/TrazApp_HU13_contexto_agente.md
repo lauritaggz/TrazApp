@@ -4,7 +4,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 
 ---
 
-## 1. Reglas de trabajo (obligatorias, sin cambios)
+## 1. Reglas de trabajo (obligatorias)
 
 1. **Se trabaja tarea por tarea.** Para cada tarea recibirás un prompt específico. No comiences una tarea sin su prompt ni avances a la siguiente.
 2. **Detente al terminar cada tarea** y entrega un reporte: qué hiciste, decisiones que conviene revisar, archivos creados y modificados, y resultado de las pruebas.
@@ -16,6 +16,11 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 8. **Nunca agregues al repositorio** respaldos (`*.sql`) ni certificados o claves (`*.pem`).
 9. **Pruebas de mutación:** antes de modificar un archivo para verificar que una prueba detecta una falla, copia el original y restáuralo desde esa copia. Al terminar, confirma con `git diff` que solo quedan los cambios de la tarea.
 10. **Las pruebas automatizadas nunca consultan servicios externos reales.** Toda llamada a Open Food Facts se simula con respuestas grabadas (ver sección 7). La integración continua se ejecuta sin acceso garantizado a internet y no debe depender de la disponibilidad de terceros.
+11. **Alcance de las pruebas por tarea (regla vigente desde T13-07).**
+    - **Por tarea:** corre solo los archivos de prueba nuevos o modificados y los directamente relacionados. En las pruebas de mutación, máximo 3 o 4 mutaciones: las de mayor riesgo.
+    - **Suites completas locales** (backend en SQLite y PostgreSQL, y frontend con `npm run build`): solo en T13-08, o si la tarea toca algo compartido: modelos, `conftest`, configuración de Vite o Vitest, o el cliente de la API.
+    - **Las suites completas las corre GitHub Actions** en cada push.
+    - Nunca corras dos suites de PostgreSQL a la vez: comparten la base `trazapp_test`.
 
 ---
 

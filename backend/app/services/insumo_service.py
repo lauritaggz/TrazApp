@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Ingrediente, InsumoAlergeno, InsumoComercial, Productor
@@ -23,6 +25,7 @@ MENSAJE_CAMBIO_SIMULTANEO = (
 MENSAJE_FUENTE_SIN_FECHA = (
     "Indica la fecha de recuperación de la información cuando el insumo viene de una fuente externa."
 )
+MENSAJE_FICHA_URL = "La dirección de la ficha de la fuente debe empezar con http:// o https://."
 MENSAJE_CODIGO_ACTIVO = "Ya existe un insumo con ese código de barras."
 MENSAJE_CODIGO_INACTIVO = (
     "Ya existe un insumo desactivado con ese código de barras. Puedes reactivarlo."
@@ -48,6 +51,34 @@ class FuenteSinFechaError(InvalidInsumoError):
 
     def __init__(self) -> None:
         super().__init__(MENSAJE_FUENTE_SIN_FECHA)
+
+
+class FichaInvalidaError(InvalidInsumoError):
+    """The address of the product in its source (`ficha.url`) is not an http(s) link (422)."""
+
+    campo = "ficha"
+
+    def __init__(self) -> None:
+        super().__init__(MENSAJE_FICHA_URL)
+
+
+def validar_url_de_la_ficha(ficha: dict | None) -> None:
+    """If the data record carries a `url`, it must be an absolute http or https address.
+
+    It is a link the productor will open, so `javascript:`, `data:`, `file:`, relative addresses
+    and anything that is not text are refused. Records without a `url` are not affected.
+    """
+    if not ficha or "url" not in ficha:
+        return
+    url = ficha["url"]
+    if not isinstance(url, str) or any(c.isspace() or ord(c) < 32 for c in url):
+        raise FichaInvalidaError()
+    try:
+        partes = urlsplit(url)
+    except ValueError as exc:
+        raise FichaInvalidaError() from exc
+    if partes.scheme.lower() not in ("http", "https") or not partes.netloc:
+        raise FichaInvalidaError()
 
 
 class InvalidInsumoAlergenoError(Exception):
@@ -90,6 +121,7 @@ class InsumoService:
         # Retrieved information is only credible with the date it was retrieved (CA11).
         if payload.fuente != FUENTE_MANUAL and payload.fecha_recuperacion is None:
             raise FuenteSinFechaError()
+        validar_url_de_la_ficha(payload.ficha)
         # Read the id up front: after a failed flush the session cannot refresh ORM objects.
         productor_id = productor.id
         ingrediente = self._get_valid_ingrediente(productor_id, payload.ingrediente_id)
@@ -143,6 +175,19 @@ class InsumoService:
         updates = payload.model_dump(exclude_unset=True)
         if not updates:
             return InsumoRead.from_insumo(insumo)
+        if "ficha" in updates:
+            validar_url_de_la_ficha(updates["ficha"])
+        # Same rule as the creation, on the final result. It is checked when the request touches the
+        # source or the date, so a record from before this rule can still be edited in other fields.
+        if "fuente" in updates or "fecha_recuperacion" in updates:
+            fuente_final = updates.get("fuente", insumo.fuente)
+            fecha_final = (
+                updates["fecha_recuperacion"]
+                if "fecha_recuperacion" in updates
+                else insumo.fecha_recuperacion
+            )
+            if fuente_final != FUENTE_MANUAL and fecha_final is None:
+                raise FuenteSinFechaError()
 
         target_ingrediente_id = insumo.ingrediente_id
         if "ingrediente_id" in updates and updates["ingrediente_id"] != insumo.ingrediente_id:

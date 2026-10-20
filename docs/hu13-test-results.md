@@ -48,10 +48,32 @@ Esta verificación no reemplaza la prueba con una cámara real en Chrome para An
 
 ## Registro del código, la fuente y la fecha de recuperación (T13-06, CA11)
 
-- **Regla (backend):** `POST /gestion/insumos` con una `fuente` distinta de `manual` y sin `fecha_recuperacion` responde **422** con `{"mensaje", "campo": "fecha_recuperacion"}` y no guarda nada. Un insumo manual no exige fecha. Ninguna prueba de HU04 cambió: todas las que enviaban una fuente externa ya traían la fecha. Por ahora la regla vale para el alta; `PATCH` todavía acepta `fuente` sin fecha (quedó fuera del alcance de la tarea).
+- **Regla (backend):** `POST /gestion/insumos` con una `fuente` distinta de `manual` y sin `fecha_recuperacion` responde **422** con `{"mensaje", "campo": "fecha_recuperacion"}` y no guarda nada. Un insumo manual no exige fecha. Ninguna prueba de HU04 cambió: todas las que enviaban una fuente externa ya traían la fecha. `PATCH` aplica la misma regla (ver más abajo).
 - **De punta a punta** (`test_registro_desde_codigo_hu13.py`, SQLite y PostgreSQL, leyendo desde una sesión independiente): consulta con una respuesta grabada → registro con los datos de la propuesta → el insumo guarda `codigo_barras`, `fuente = open_food_facts`, `fecha_recuperacion`, la ficha con la URL de la fuente y los alérgenos con su tipo, ya revisados. Los registros manuales siguen con fuente `manual` y sin fecha ni ficha.
 - **Información conservada:** al finalizar una elaboración, la copia de un insumo recuperado conserva su `codigo_barras` (y no la ficha, la fuente ni la fecha). Cambiar o desactivar el insumo después no la altera.
 - **Detalle del insumo (frontend):** bloque «Origen de la información»: «Registrado manualmente» o «Obtenido de Open Food Facts el dd-mm-aaaa» (fecha en la hora de Chile) con el enlace a la ficha de la fuente, que se abre en otra pestaña con `rel="noopener noreferrer"`. Solo se enlazan direcciones http(s) (la ficha la envía el cliente al registrar, así que un `javascript:` no se convierte en enlace). El nombre visible de cada fuente sale de `src/lib/fuentesInsumo.ts`, el único archivo del código que lo escribe; una prueba estática lo exige.
+
+---
+
+## La fuente y la ficha también al editar (cierre de T13-06)
+
+Dos reglas, iguales en `POST` y en `PATCH /gestion/insumos/{id}`; ambas responden **422** con `{"mensaje", "campo"}` y no guardan nada:
+
+- **Fuente externa sin fecha** (`campo: "fecha_recuperacion"`). En el `PATCH` se juzga el **resultado final**: la fuente que quedaría y la fecha que quedaría (la que trae el pedido, o la que ya estaba guardada). Poner la fuente a un insumo que ya tenía fecha se acepta; quitar la fecha a un insumo recuperado, no; volver a `manual` sin fecha, sí. **Decisión:** la regla se revisa cuando el pedido toca `fuente` o `fecha_recuperacion`. Un registro anterior a la regla (fuente externa sin fecha, algo que antes el alta permitía) se puede seguir editando en otros campos; si se le toca la fuente, hay que darle la fecha.
+- **Dirección de la ficha** (`campo: "ficha"`). Si la ficha trae `url`, debe ser una dirección absoluta http o https, con dominio y sin espacios ni caracteres de control. Se rechazan `javascript:` (también `javascript://dominio/%0A...`), `data:`, `file:`, `ftp:`, direcciones relativas, vacías o que no son texto. Vale para cualquier fuente, también `manual`. Una ficha sin `url` no se toca. El detalle del insumo ya descartaba esas direcciones al mostrarlas; ahora tampoco se guardan.
+
+Pruebas: `test_fuente_y_ficha_hu13.py` (59), SQLite y PostgreSQL. Ninguna prueba existente cambió.
+
+---
+
+## Preparación de la prueba en celular (T13-07)
+
+La prueba con cámara real la hace la desarrolladora; la guía está en `docs/hu13-prueba-celular.md`. Lo preparado:
+
+- **`npm run dev:https`:** sirve la aplicación por HTTPS con un certificado propio (`@vitejs/plugin-basic-ssl` 2.3.0, devDependency con versión exacta), expuesta en la red local (`0.0.0.0`), y reenvía `/api/...` al backend local (`http://localhost:8000`, o `VITE_DEV_API_TARGET`) quitando el prefijo. El celular habla con un solo origen HTTPS: sin contenido mixto ni CORS.
+- **Solo se activa con `VITE_DEV_HTTPS=1`**, que fija el script `scripts/dev-https.mjs` (junto con `VITE_API_URL=/api`). La aplicación arma las direcciones como `${VITE_API_URL}${ruta}`, así que una base relativa funciona sin cambiar código. Sin la variable, `npm run dev` y `npm run build` quedan como antes: el build produce **exactamente los mismos archivos** (mismos nombres con hash) con y sin la variable, y el plugin del certificado ni siquiera se carga.
+- **Pruebas** (`src/escaner/hu13.dev-https.test.ts`): cuándo se activa; la configuración de Vite en cada modo; el build idéntico; un servidor `dev:https` real contra un backend falso (HTTPS, reenvío de `/api`, método, token y ruta sin prefijo; `/api-docs` no se reenvía); la API relativa en la aplicación; los scripts de `package.json`.
+- **Detalle de Vite 8:** en HTTPS no valida la cabecera `Host`, así que un túnel de cloudflared funciona sin configuración extra.
 
 ---
 
@@ -91,5 +113,5 @@ La etiqueta de Open Food Facts dice **«contiene soja»** (`allergens_tags: en:s
 - Resumen de ejecución y números.
 - Trazabilidad CA01 … CA13 y PT13-01 … PT13-15.
 - Mutaciones verificadas en HU13 (T13-01, T13-03, T13-04, T13-05 …).
-- Prueba en Chrome para Android y Safari para iOS (T13-07) y configuración HTTPS de desarrollo.
+- Resultados de la prueba en Chrome para Android y Safari para iOS (T13-07): las tablas están vacías en `docs/hu13-prueba-celular.md` para que la desarrolladora las llene a mano.
 - Decisión sobre el aviso de licencias de terceros.
