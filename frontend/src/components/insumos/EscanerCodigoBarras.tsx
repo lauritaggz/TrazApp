@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
+import { LinternaApagadaIcon, LinternaEncendidaIcon } from "@/components/insumos/linternaIcons";
 import { Input } from "@/components/ui/Input";
 import { useEscanerCodigoBarras, type EstadoEscaner } from "@/hooks/useEscanerCodigoBarras";
 import { validarEntradaManual } from "@/lib/entradaCodigoBarras";
@@ -126,9 +127,25 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
           />
           {estado === "escaneando" && (
             <div
-              className="pointer-events-none absolute left-1/2 top-1/2 aspect-[3/2] w-4/5 -translate-x-1/2 -translate-y-1/2 rounded-lg border-2 border-white/90"
+              className="pointer-events-none absolute left-1/2 top-[8%] aspect-[3/2] w-3/4 -translate-x-1/2 rounded-lg border-2 border-white/90"
               aria-hidden="true"
             />
+          )}
+          {/* On the video, centered under the guide frame, within reach of the thumb. */}
+          {estado === "escaneando" && linternaDisponible && (
+            <button
+              type="button"
+              aria-label={linternaEncendida ? "Apagar linterna" : "Encender linterna"}
+              aria-pressed={linternaEncendida}
+              onClick={() => void alternarLinterna()}
+              className={`absolute bottom-1.5 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                linternaEncendida
+                  ? "border-white bg-white text-black hover:bg-white/90"
+                  : "border-white/50 bg-black/65 text-white hover:bg-black/80"
+              }`}
+            >
+              {linternaEncendida ? <LinternaEncendidaIcon /> : <LinternaApagadaIcon />}
+            </button>
           )}
         </div>
 
@@ -168,17 +185,6 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
         </form>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-          {linternaDisponible && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full sm:w-auto"
-              aria-pressed={linternaEncendida}
-              onClick={() => void alternarLinterna()}
-            >
-              Linterna
-            </Button>
-          )}
           <Button
             ref={cerrarRef}
             type="button"

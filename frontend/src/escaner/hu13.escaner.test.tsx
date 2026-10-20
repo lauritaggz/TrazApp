@@ -539,12 +539,15 @@ describe("Componente EscanerCodigoBarras", () => {
 });
 
 describe("Linterna", () => {
+  const linterna = () => screen.queryByRole("button", { name: /linterna/i });
+  const icono = (boton: HTMLElement) => boton.querySelector("svg")?.getAttribute("data-icono");
+
   it("aparece solo si la pista declara torch", async () => {
     pista = crearPista({ torch: true });
     montarEscaner();
     await avanzar(0);
 
-    expect(screen.getByRole("button", { name: "Linterna" })).toBeInTheDocument();
+    expect(linterna()).toBeInTheDocument();
   });
 
   it.each([
@@ -556,34 +559,116 @@ describe("Linterna", () => {
     montarEscaner();
     await avanzar(0);
 
-    expect(screen.queryByRole("button", { name: "Linterna" })).not.toBeInTheDocument();
+    expect(linterna()).not.toBeInTheDocument();
   });
 
-  it("enciende y apaga la linterna y lo indica con aria-pressed", async () => {
+  it("no aparece antes de que la cámara esté lista, ni cuando falla", async () => {
+    pista = crearPista({ torch: true });
+    montarEscaner();
+    expect(linterna()).not.toBeInTheDocument();
+    cleanup();
+
+    getUserMedia.mockRejectedValue(errorDeCamara("NotAllowedError"));
+    montarEscaner();
+    await avanzar(0);
+    expect(linterna()).not.toBeInTheDocument();
+  });
+
+  it("deja de mostrarse cuando se reconoce un código y la cámara se detiene", async () => {
+    pista = crearPista({ torch: true });
+    detect.mockResolvedValue([lectura(EAN_13)]);
+    montarEscaner();
+    await avanzar(0);
+    expect(linterna()).toBeInTheDocument();
+
+    await avanzar(INTERVALO_DETECCION_MS);
+
+    expect(linterna()).not.toBeInTheDocument();
+  });
+
+  it("está sobre el video, bajo el recuadro guía, y no en la fila de botones del panel", async () => {
     pista = crearPista({ torch: true });
     montarEscaner();
     await avanzar(0);
-    const boton = screen.getByRole("button", { name: "Linterna" });
-    expect(boton).toHaveAttribute("aria-pressed", "false");
+    const boton = linterna()!;
 
-    await act(async () => fireEvent.click(boton));
-    expect(pista.applyConstraints).toHaveBeenLastCalledWith({ advanced: [{ torch: true }] });
-    expect(boton).toHaveAttribute("aria-pressed", "true");
-
-    await act(async () => fireEvent.click(boton));
-    expect(pista.applyConstraints).toHaveBeenLastCalledWith({ advanced: [{ torch: false }] });
-    expect(boton).toHaveAttribute("aria-pressed", "false");
+    const video = screen.getByLabelText("Vista de la cámara");
+    expect(video.parentElement).toContainElement(boton);
+    expect(screen.getByRole("button", { name: "Cerrar" }).parentElement).not.toContainElement(boton);
+    // Centered at the bottom of the video, under the guide frame (which is raised to leave room).
+    expect(boton.className).toMatch(/(^|\s)bottom-1\.5(\s|$)/);
+    expect(boton.className).toMatch(/(^|\s)left-1\/2(\s|$)/);
+    expect(video.parentElement?.querySelector("[class*='border-white/90']")?.className).toMatch(/top-\[8%\]/);
   });
 
-  it("si el dispositivo rechaza la linterna, el botón queda como estaba", async () => {
+  it("se puede tocar con el pulgar: al menos 44 × 44 px", async () => {
+    pista = crearPista({ torch: true });
+    montarEscaner();
+    await avanzar(0);
+
+    // jsdom has no layout: 2.75 rem (h-11 / w-11) is 44 px.
+    expect(linterna()!.className).toMatch(/(^|\s)h-11(\s|$)/);
+    expect(linterna()!.className).toMatch(/(^|\s)w-11(\s|$)/);
+  });
+
+  it("tiene fondo semitransparente para leerse sobre el video, y cambia al encender", async () => {
+    pista = crearPista({ torch: true });
+    montarEscaner();
+    await avanzar(0);
+    const boton = linterna()!;
+    expect(boton.className).toMatch(/(^|\s)bg-black\/65(\s|$)/);
+    expect(boton.className).toMatch(/(^|\s)text-white(\s|$)/);
+
+    await act(async () => fireEvent.click(boton));
+
+    expect(boton.className).toMatch(/(^|\s)bg-white(\s|$)/);
+    expect(boton.className).toMatch(/(^|\s)text-black(\s|$)/);
+  });
+
+  it("cambia la etiqueta, aria-pressed y el ícono al encender y al apagar", async () => {
+    pista = crearPista({ torch: true });
+    montarEscaner();
+    await avanzar(0);
+    const apagada = screen.getByRole("button", { name: "Encender linterna" });
+    expect(apagada).toHaveAttribute("aria-pressed", "false");
+    expect(icono(apagada)).toBe("apagada");
+
+    await act(async () => fireEvent.click(apagada));
+    expect(pista.applyConstraints).toHaveBeenLastCalledWith({ advanced: [{ torch: true }] });
+    const encendida = screen.getByRole("button", { name: "Apagar linterna" });
+    expect(encendida).toHaveAttribute("aria-pressed", "true");
+    expect(icono(encendida)).toBe("encendida");
+    expect(screen.queryByRole("button", { name: "Encender linterna" })).not.toBeInTheDocument();
+
+    await act(async () => fireEvent.click(encendida));
+    expect(pista.applyConstraints).toHaveBeenLastCalledWith({ advanced: [{ torch: false }] });
+    const de_nuevo = screen.getByRole("button", { name: "Encender linterna" });
+    expect(de_nuevo).toHaveAttribute("aria-pressed", "false");
+    expect(icono(de_nuevo)).toBe("apagada");
+  });
+
+  it("el ícono es decorativo: el nombre del botón es solo la etiqueta", async () => {
+    pista = crearPista({ torch: true });
+    montarEscaner();
+    await avanzar(0);
+
+    const boton = linterna()!;
+    expect(boton).toHaveAccessibleName("Encender linterna");
+    expect(boton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(boton).not.toHaveTextContent(/\S/);
+  });
+
+  it("si el dispositivo rechaza la linterna, la etiqueta, aria-pressed y el ícono quedan como estaban", async () => {
     pista = crearPista({ torch: true });
     pista.applyConstraints.mockRejectedValue(new Error("no soportado"));
     montarEscaner();
     await avanzar(0);
-    const boton = screen.getByRole("button", { name: "Linterna" });
+    const boton = screen.getByRole("button", { name: "Encender linterna" });
 
     await act(async () => fireEvent.click(boton));
 
     expect(boton).toHaveAttribute("aria-pressed", "false");
+    expect(boton).toHaveAccessibleName("Encender linterna");
+    expect(icono(boton)).toBe("apagada");
   });
 });
