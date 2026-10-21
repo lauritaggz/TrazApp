@@ -136,7 +136,7 @@ export default function ElaboracionLinea({
 
       {sinInsumosActivos && (
         <Aviso>
-          Este ingrediente no tiene insumos activos. Registra uno nuevo para poder asignarlo.
+          Este ingrediente no tiene insumos activos. Crea uno para poder asignarlo.
         </Aviso>
       )}
 
@@ -264,11 +264,11 @@ export default function ElaboracionLinea({
                 <p className="text-sm text-text-secondary">Cargando lotes...</p>
               ) : lotes.length === 0 ? (
                 <p className="text-sm text-text-secondary">
-                  Este insumo aún no tiene lotes registrados. Usa «Lote nuevo».
+                  Este insumo aún no tiene lotes cargados. Usa «Lote nuevo».
                 </p>
               ) : (
                 <Select
-                  label="Lote registrado"
+                  label="Elige el lote"
                   id={`linea-${id}-lote-existente`}
                   value={linea.loteId}
                   onChange={(event) => onCambio({ loteId: event.target.value })}

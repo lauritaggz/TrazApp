@@ -25,7 +25,8 @@ export default function PageHeader({
     <div className="space-y-3">
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Ruta de navegación">
-          <ol className="flex flex-wrap items-center gap-1.5 text-sm text-text-secondary">
+          {/* Los enlaces miden 44 px; el margen negativo conserva el ritmo vertical de la página. */}
+          <ol className="-my-3 flex flex-wrap items-center gap-1.5 text-sm text-text-secondary">
             {breadcrumbs.map((item, index) => {
               const last = index === breadcrumbs.length - 1;
               return (
@@ -36,14 +37,14 @@ export default function PageHeader({
                   {item.to && !last ? (
                     <Link
                       to={item.to}
-                      className="rounded font-medium text-accent-strong underline-offset-2 hover:underline"
+                      className="inline-flex min-h-11 items-center rounded font-medium text-accent-strong underline-offset-2 hover:underline"
                     >
                       {item.label}
                     </Link>
                   ) : (
                     <span
                       aria-current={last ? "page" : undefined}
-                      className={last ? "text-text-primary" : ""}
+                      className={`inline-flex min-h-11 items-center ${last ? "text-text-primary" : ""}`}
                     >
                       {item.label}
                     </span>

@@ -220,7 +220,7 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
                 data-estado-revision="revisado-sin-alergenos"
                 className="rounded-lg border border-success-border bg-success-bg px-4 py-3 text-sm font-medium text-success"
               >
-                Revisado: no contiene alérgenos
+                Sin alérgenos (revisado)
               </p>
             ) : (
               <div
@@ -271,7 +271,7 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
                             <Badge
                               variant="warning"
                               title={ROTULACION_OBLIGATORIA_AYUDA}
-                              className="text-[10px] font-semibold uppercase tracking-wide"
+                              className="text-xs font-semibold"
                             >
                               Rotulación obligatoria
                               <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>

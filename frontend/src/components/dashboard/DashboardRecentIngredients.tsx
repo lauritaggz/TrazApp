@@ -27,7 +27,7 @@ export default function DashboardRecentIngredients({
         <button
           type="button"
           onClick={onViewAll}
-          className="text-xs font-medium text-accent underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline-offset-2 hover:underline"
           aria-label="Ver todos los ingredientes"
         >
           Ver todos
@@ -51,7 +51,7 @@ export default function DashboardRecentIngredients({
         </div>
       ) : recent.length === 0 ? (
         <p className="text-sm text-text-secondary">
-          Aún no has registrado ingredientes.
+          Aún no tienes ingredientes.
         </p>
       ) : (
         <ul className="space-y-2.5">

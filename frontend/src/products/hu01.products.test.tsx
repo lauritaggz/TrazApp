@@ -120,11 +120,11 @@ describe("Productos HU01 — listado y navegación", () => {
     expect(productsLink).toBeInTheDocument();
 
     expect(
-      await screen.findByText("Aún no has registrado productos."),
+      await screen.findByText("Aún no tienes productos."),
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getAllByRole("button", { name: "Registrar primer producto" })[0],
+      screen.getAllByRole("button", { name: "Crear tu primer producto" })[0],
     );
 
     expect(
@@ -198,7 +198,7 @@ describe("Productos HU01 — listado y navegación", () => {
       screen.getByRole("heading", { name: "Aún no tienes productos", level: 2 }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Registrar primer producto" }),
+      screen.getByRole("button", { name: "Crear tu primer producto" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Nuevo producto" })).toBeInTheDocument();
   });
@@ -429,7 +429,7 @@ describe("Productos HU01 — creación", () => {
     expect(screen.getByLabelText(/Precio de venta/)).toBeInTheDocument();
     expect(screen.getByText("Categorías")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Guardar producto" }),
+      screen.getByRole("button", { name: "Crear producto" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
   });
@@ -438,7 +438,7 @@ describe("Productos HU01 — creación", () => {
     const user = userEvent.setup();
     await openNewProductPage();
 
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     expect(
       screen.getByText("El código interno es obligatorio."),
@@ -460,21 +460,21 @@ describe("Productos HU01 — creación", () => {
     await user.type(screen.getByLabelText(/Descripción/), "Desc");
     await user.type(screen.getByLabelText(/Contenido neto/), "0");
     await user.selectOptions(screen.getByLabelText(/Unidad de medida/), "g");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(
       screen.getByText("El contenido neto debe ser mayor que 0."),
     ).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText(/Contenido neto/));
     await user.type(screen.getByLabelText(/Contenido neto/), "-5");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(
       screen.getByText("El contenido neto debe ser mayor que 0."),
     ).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText(/Contenido neto/));
     await user.type(screen.getByLabelText(/Contenido neto/), "1.2345");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(screen.getByText("Máximo 3 decimales.")).toBeInTheDocument();
     expect(productService.createProduct).not.toHaveBeenCalled();
   });
@@ -502,7 +502,7 @@ describe("Productos HU01 — creación", () => {
     await openNewProductPage();
     await fillValidProductForm(user, { presentacion: "" });
 
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     await waitFor(() => {
       expect(productService.createProduct).toHaveBeenCalledTimes(1);
@@ -525,7 +525,7 @@ describe("Productos HU01 — creación", () => {
       await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Producto creado correctamente."),
+      await screen.findByText("Producto creado."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("GAL-001").length).toBeGreaterThan(0);
     expect(screen.queryByText("1 producto registrado")).not.toBeInTheDocument();
@@ -542,7 +542,7 @@ describe("Productos HU01 — creación", () => {
     await openNewProductPage();
     await fillValidProductForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     expect(
       await screen.findByText("Ya existe un producto con este código interno."),
@@ -550,11 +550,11 @@ describe("Productos HU01 — creación", () => {
     expect(screen.getByLabelText(/Código interno/)).toHaveValue("GAL-001");
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue("Galleta de chocolate");
 
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     expect(
       await screen.findByText(
-        "No pudimos guardar el producto. Inténtalo nuevamente.",
+        "No pudimos guardar el producto. Revisa tu conexión e inténtalo de nuevo.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Código interno/)).toHaveValue("GAL-001");
@@ -574,7 +574,7 @@ describe("Productos HU01 — creación", () => {
     await openNewProductPage();
     await fillValidProductForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(screen.getByRole("button", { name: "Guardando…" })).toBeDisabled();
     expect(productService.createProduct).toHaveBeenCalledTimes(1);
 
@@ -660,7 +660,7 @@ describe("Productos HU01 — creación", () => {
     await fillValidProductForm(user);
     await user.click(screen.getByLabelText("Pastelería"));
     await user.click(screen.getByLabelText("Dulce"));
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     await waitFor(() => {
       expect(productService.createProduct).toHaveBeenCalledWith(
@@ -697,7 +697,7 @@ describe("Productos HU01 — creación", () => {
     await fillValidProductForm(user);
     await user.type(screen.getByLabelText(/Costo de producción/), "12.50");
     await user.type(screen.getByLabelText(/Precio de venta/), "25");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     await waitFor(() => {
       expect(productService.createProduct).toHaveBeenCalledWith(
@@ -715,7 +715,7 @@ describe("Productos HU01 — creación", () => {
     await fillValidProductForm(user);
 
     await user.type(screen.getByLabelText(/Costo de producción/), "-1");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(
       screen.getByText("El costo de producción debe ser mayor o igual que 0."),
     ).toBeInTheDocument();
@@ -723,7 +723,7 @@ describe("Productos HU01 — creación", () => {
 
     await user.clear(screen.getByLabelText(/Costo de producción/));
     await user.type(screen.getByLabelText(/Precio de venta/), "-0.01");
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     expect(
       screen.getByText("El precio de venta debe ser mayor o igual que 0."),
     ).toBeInTheDocument();
@@ -762,7 +762,7 @@ describe("Productos HU01 — creación", () => {
       document.getElementById("imagen_producto") as HTMLInputElement,
       imageFile,
     );
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     await waitFor(() => {
       expect(productService.createProduct).toHaveBeenCalledTimes(1);
@@ -794,7 +794,7 @@ describe("Productos HU01 — creación", () => {
 
     await openNewProductPage();
     await fillValidProductForm(user);
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     await waitFor(() => {
       expect(productService.createProduct).toHaveBeenCalledTimes(1);
@@ -851,7 +851,7 @@ describe("Productos HU01 — creación", () => {
       document.getElementById("imagen_producto") as HTMLInputElement,
       imageFile,
     );
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     expect(
       await screen.findByText(
@@ -870,7 +870,7 @@ describe("Productos HU01 — creación", () => {
     expect(
       await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Producto creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Producto creado.")).toBeInTheDocument();
   });
 
   it("HT06-07: «Continuar al producto» sin imagen abre el detalle con el aviso de creación, por el mismo camino", async () => {
@@ -899,13 +899,13 @@ describe("Productos HU01 — creación", () => {
       document.getElementById("imagen_producto") as HTMLInputElement,
       new File(["png"], "galleta.png", { type: "image/png" }),
     );
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
     await user.click(await screen.findByRole("button", { name: "Continuar al producto" }));
 
     expect(
       await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Producto creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Producto creado.")).toBeInTheDocument();
     expect(productService.getProduct).toHaveBeenCalledWith(21);
   });
 
@@ -930,7 +930,7 @@ describe("Productos HU01 — creación", () => {
 
     await openNewProductPage();
     await fillValidProductForm(user);
-    await user.click(screen.getByRole("button", { name: "Guardar producto" }));
+    await user.click(screen.getByRole("button", { name: "Crear producto" }));
 
     expect(
       await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
@@ -938,7 +938,7 @@ describe("Productos HU01 — creación", () => {
     expect(productService.getProduct).toHaveBeenCalledWith(33);
     expect(screen.queryByRole("heading", { name: "Productos", level: 1 })).not.toBeInTheDocument();
     // The notice is shown once: the state that carried it is cleared.
-    expect(await screen.findAllByText("Producto creado correctamente.")).toHaveLength(1);
+    expect(await screen.findAllByText("Producto creado.")).toHaveLength(1);
   });
 });
 
@@ -1237,7 +1237,7 @@ describe("Productos HU01 — detalle y edición", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Producto actualizado correctamente."),
+      screen.getByText("Cambios guardados."),
     ).toBeInTheDocument();
     expect(screen.getByText("No especificada")).toBeInTheDocument();
   });
@@ -1269,7 +1269,7 @@ describe("Productos HU01 — detalle y edición", () => {
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
     expect(
       await screen.findByText(
-        "No pudimos guardar los cambios. Inténtalo nuevamente.",
+        "No pudimos guardar los cambios. Revisa tu conexión e inténtalo de nuevo.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Código interno/)).toHaveValue("PAN-001");
@@ -1360,7 +1360,7 @@ describe("Productos HU01 — detalle y edición", () => {
     ).toBeInTheDocument();
 
     // HT07: «Volver» son las migas; el aviso de «Producto actualizado» sale al llegar al detalle.
-    expect(await screen.findByText("Producto actualizado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Cambios guardados.")).toBeInTheDocument();
     await user.click(
       within(screen.getByRole("navigation", { name: "Ruta de navegación" })).getByRole("link", { name: "Productos" }),
     );
@@ -1511,7 +1511,7 @@ describe("Productos HU01 — detalle y edición", () => {
       await screen.findByRole("heading", { name: "Galleta de chocolate", level: 1 }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Producto actualizado correctamente."),
+      await screen.findByText("Cambios guardados."),
     ).toBeInTheDocument();
   });
 
@@ -1574,7 +1574,7 @@ describe("Productos HU01 — detalle y edición", () => {
       await screen.findByRole("heading", { name: "Productos", level: 1 }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Producto eliminado correctamente."),
+      await screen.findByText("Producto eliminado."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Galleta de chocolate")).not.toBeInTheDocument();
   });
@@ -1600,7 +1600,7 @@ describe("Productos HU01 — detalle y edición", () => {
 
     expect(
       await screen.findByText(
-        "No pudimos eliminar el producto. Inténtalo nuevamente.",
+        "No pudimos eliminar el producto. Revisa tu conexión e inténtalo de nuevo.",
       ),
     ).toBeInTheDocument();
     expect(

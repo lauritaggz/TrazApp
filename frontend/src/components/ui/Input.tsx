@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
+              min-h-11 w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 transition-all duration-150
               focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
@@ -95,7 +95,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             id={inputId}
             type={visible ? "text" : "password"}
             className={`
-              w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
+              min-h-11 w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 pr-12 transition-all duration-150
               focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
@@ -113,7 +113,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-1 my-auto flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:text-text-primary transition-colors"
+            className="absolute inset-y-0 right-0 my-auto flex h-11 w-11 items-center justify-center rounded-md text-text-secondary hover:text-text-primary transition-colors"
             aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
           >
             {visible ? <EyeOffIcon /> : <EyeIcon />}

@@ -200,7 +200,7 @@ export default function AlergenosSelector({
                           <Badge
                             variant="warning"
                             title={ROTULACION_OBLIGATORIA_AYUDA}
-                            className="text-[10px] font-semibold uppercase tracking-wide"
+                            className="text-xs font-semibold"
                           >
                             Rotulación obligatoria
                             <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>

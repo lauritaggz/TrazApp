@@ -49,7 +49,7 @@ async function fillRegisterForm(
   await user.type(screen.getByLabelText("Nombre completo"), "Ana Perez");
   if (!options?.skipBusiness) {
     await user.type(
-      screen.getByLabelText("Nombre del negocio o emprendimiento"),
+      screen.getByLabelText("Nombre del negocio"),
       "Panaderia La Espiga",
     );
   }
@@ -177,7 +177,7 @@ describe("Registro HU12", () => {
     expect(screen.getByText("El nombre es obligatorio.")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "El nombre del negocio o emprendimiento es obligatorio.",
+        "El nombre del negocio es obligatorio.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -199,7 +199,7 @@ describe("Registro HU12", () => {
     });
 
     expect(
-      screen.getByLabelText("Nombre del negocio o emprendimiento"),
+      screen.getByLabelText("Nombre del negocio"),
     ).toBeInTheDocument();
   });
 
@@ -308,10 +308,10 @@ describe("Protección y logout HU12", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("Panaderia La Espiga").length).toBeGreaterThan(0);
     expect(
-      await screen.findByText("Aún no has registrado productos."),
+      await screen.findByText("Aún no tienes productos."),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: "Registrar primer producto" })
+      screen.getAllByRole("button", { name: "Crear tu primer producto" })
         .length,
     ).toBeGreaterThan(0);
   });
@@ -331,7 +331,7 @@ describe("Protección y logout HU12", () => {
     );
     expect(productsError).toBeInTheDocument();
     expect(
-      screen.queryByText("Aún no has registrado productos."),
+      screen.queryByText("Aún no tienes productos."),
     ).not.toBeInTheDocument();
 
     const productsAlert = productsError.closest("[role='alert']");
@@ -343,7 +343,7 @@ describe("Protección y logout HU12", () => {
     );
 
     expect(
-      await screen.findByText("Aún no has registrado productos."),
+      await screen.findByText("Aún no tienes productos."),
     ).toBeInTheDocument();
   });
 
@@ -437,7 +437,7 @@ describe("Perfil HU12", () => {
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Perfil actualizado correctamente.",
+      "Cambios guardados.",
     );
     expect(authService.updateProfile).toHaveBeenCalledWith({
       nombre: "Ana Maria Perez",

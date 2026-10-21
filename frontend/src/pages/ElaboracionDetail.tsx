@@ -72,7 +72,7 @@ export default function ElaboracionDetail() {
   useEffect(() => {
     const state = location.state as { elaboracionFinalizada?: boolean } | null;
     if (!state?.elaboracionFinalizada) return;
-    notify("Elaboración finalizada correctamente.");
+    notify("Elaboración finalizada.");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -155,7 +155,7 @@ export default function ElaboracionDetail() {
                     className="w-full sm:w-auto"
                     onClick={() => setOtraDialogOpen(true)}
                   >
-                    Registrar otra elaboración
+                    Nueva elaboración
                   </Button>
                   <Button
                     type="button"
@@ -180,7 +180,7 @@ export default function ElaboracionDetail() {
                 <Dato titulo="Producto">
                   <Link
                     to={`/productos/${elaboracion.producto.id}`}
-                    className="font-medium text-accent-strong underline-offset-2 hover:underline"
+                    className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
                   >
                     {elaboracion.producto.nombre}
                   </Link>
@@ -204,7 +204,7 @@ export default function ElaboracionDetail() {
             >
               <h2
                 id="elaboracion-resumen-alergenos"
-                className="text-sm font-semibold uppercase tracking-wide text-text-primary"
+                className="text-sm font-semibold text-text-primary"
               >
                 Alérgenos de la elaboración
               </h2>
@@ -230,7 +230,7 @@ export default function ElaboracionDetail() {
             <section aria-labelledby="elaboracion-usos" className="space-y-3">
               <h2
                 id="elaboracion-usos"
-                className="text-sm font-semibold uppercase tracking-wide text-text-primary"
+                className="text-sm font-semibold text-text-primary"
               >
                 Insumos utilizados
               </h2>
@@ -261,7 +261,7 @@ export default function ElaboracionDetail() {
 function Dato({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{titulo}</dt>
+      <dt className="text-xs font-medium text-text-secondary">{titulo}</dt>
       <dd className="text-sm text-text-primary">{children}</dd>
     </div>
   );
@@ -272,8 +272,8 @@ function textoSinAlergenos(uso: UsoInsumo): string {
   if (uso.alergenos_revisados === true) {
     const fecha = uso.insumo?.alergenos_revisados_at;
     return fecha
-      ? `No contiene alérgenos (revisado el ${formatFechaDeMomento(fecha)})`
-      : "No contiene alérgenos (revisado)";
+      ? `Sin alérgenos (revisado el ${formatFechaDeMomento(fecha)})`
+      : "Sin alérgenos (revisado)";
   }
   // Null: a copy made before HT06. Never "no allergens": nobody reviewed them.
   if (uso.alergenos_revisados === null) return "Sin información de revisión de alérgenos";
@@ -312,7 +312,7 @@ function UsoDetalle({ uso }: { uso: UsoInsumo }) {
 
       {insumo?.ingredientes_declarados && (
         <div className="space-y-1">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+          <h4 className="text-xs font-medium text-text-secondary">
             Ingredientes declarados
           </h4>
           <p className="whitespace-pre-wrap text-sm text-text-primary">
@@ -323,7 +323,7 @@ function UsoDetalle({ uso }: { uso: UsoInsumo }) {
 
       {insumo?.advertencias && (
         <div className="space-y-1">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+          <h4 className="text-xs font-medium text-text-secondary">
             Advertencias
           </h4>
           <p className="whitespace-pre-wrap text-sm text-text-primary">{insumo.advertencias}</p>

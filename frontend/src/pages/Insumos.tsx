@@ -218,6 +218,7 @@ function InsumoListControls({
       searchPlaceholder="Buscar por nombre, marca, presentación o código de barras..."
       disabled={disabled}
       chips={chips}
+      controlsColumns={3}
       onClearAll={() => onChange(DEFAULT_INSUMO_LIST_FILTERS)}
       status={
         showResultCount && hasActiveInsumoFilters(filters)
@@ -281,7 +282,7 @@ function InsumoNameCell({ insumo }: { insumo: Insumo }) {
         <Link
           to={`/insumos/${insumo.id}`}
           aria-label={`Ver insumo ${insumo.nombre}`}
-          className="rounded font-medium text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
+          className="inline-flex min-h-11 items-center rounded font-medium text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
         >
           {insumo.nombre}
         </Link>
@@ -362,7 +363,7 @@ function InsumosCards({ insumos }: { insumos: Insumo[] }) {
             <Link
               to={`/insumos/${insumo.id}`}
               aria-label={`Ver insumo ${insumo.nombre}`}
-              className="break-words after:absolute after:inset-0 focus:outline-none"
+              className="inline-flex min-h-11 items-center break-words after:absolute after:inset-0 focus:outline-none"
             >
               {insumo.nombre}
             </Link>
@@ -393,15 +394,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <EmptyStateCard
       title="Aún no tienes insumos"
-      description="Registra los productos comerciales que usas, con sus ingredientes declarados y alérgenos, para saber qué se utilizó realmente en cada elaboración."
+      description="Crea los insumos que compras y usas, con sus ingredientes declarados y alérgenos, para saber qué se utilizó realmente en cada elaboración."
       steps={[
-        "Escribe su nombre y marca u origen, y elige el ingrediente que abastece.",
-        "Agrega su código de barras si lo tiene.",
+        "Escanea el código de barras del envase, o escribe su nombre y marca u origen.",
+        "Elige el ingrediente que abastece.",
         "Declara sus alérgenos o confirma que no contiene ninguno.",
       ]}
       action={
         <Button type="button" onClick={onCreate}>
-          Registrar primer insumo
+          Crear tu primer insumo
         </Button>
       }
     />

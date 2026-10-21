@@ -351,7 +351,7 @@ describe("Dashboard HT02", () => {
     await user.click(retryButtons[0]);
 
     expect(
-      await screen.findByText("Aún no has registrado productos."),
+      await screen.findByText("Aún no tienes productos."),
     ).toBeInTheDocument();
   });
 
@@ -382,7 +382,7 @@ describe("Dashboard HT02", () => {
 
     expect(
       await within(section as HTMLElement).findByText(
-        "Aún no has registrado ingredientes.",
+        "Aún no tienes ingredientes.",
       ),
     ).toBeInTheDocument();
   });

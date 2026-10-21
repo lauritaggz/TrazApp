@@ -15,6 +15,8 @@ interface ListToolbarProps {
   disabled?: boolean;
   /** Controles de filtro y orden; en móvil quedan tras el botón «Filtros». */
   controls: ReactNode;
+  /** Columns of the controls from `lg`: 3 when there are three, so none is left alone in a second row. */
+  controlsColumns?: 2 | 3;
   chips: FilterChip[];
   onClearAll: () => void;
   status?: string;
@@ -27,6 +29,7 @@ export default function ListToolbar({
   searchPlaceholder,
   disabled = false,
   controls,
+  controlsColumns = 2,
   chips,
   onClearAll,
   status,
@@ -68,7 +71,9 @@ export default function ListToolbar({
 
       <div
         id={controlsId}
-        className={`${expanded ? "grid" : "hidden"} grid-cols-1 gap-4 sm:grid sm:grid-cols-2`}
+        className={`${expanded ? "grid" : "hidden"} grid-cols-1 gap-4 sm:grid sm:grid-cols-2 ${
+          controlsColumns === 3 ? "lg:grid-cols-3" : ""
+        }`}
       >
         {controls}
       </div>
@@ -85,7 +90,7 @@ export default function ListToolbar({
                 type="button"
                 onClick={chip.onRemove}
                 aria-label={`Quitar filtro: ${chip.label}`}
-                className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-brand-100"
+                className="-my-3 -mr-1 flex h-11 w-11 items-center justify-center rounded-full hover:bg-brand-100"
               >
                 <svg
                   aria-hidden="true"
@@ -106,7 +111,7 @@ export default function ListToolbar({
           <button
             type="button"
             onClick={onClearAll}
-            className="rounded px-1 text-xs font-medium text-accent-strong underline-offset-2 hover:underline"
+            className="inline-flex min-h-11 items-center rounded px-2 text-xs font-medium text-accent-strong underline-offset-2 hover:underline"
           >
             Limpiar todo
           </button>

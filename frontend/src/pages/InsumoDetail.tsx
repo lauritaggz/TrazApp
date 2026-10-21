@@ -64,8 +64,8 @@ export default function InsumoDetail() {
       insumoUpdated?: boolean;
       insumoReactivated?: boolean;
     } | null;
-    if (state?.insumoUpdated) notify("Insumo actualizado correctamente.");
-    else if (state?.insumoReactivated) notify("Insumo reactivado correctamente.");
+    if (state?.insumoUpdated) notify("Cambios guardados.");
+    else if (state?.insumoReactivated) notify("Insumo reactivado.");
     else return;
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
@@ -77,9 +77,9 @@ export default function InsumoDetail() {
     try {
       await deactivateInsumo(insumo.id);
       setInsumo(await getInsumo(insumo.id));
-      notify("Insumo desactivado correctamente.");
+      notify("Insumo desactivado.");
     } catch {
-      setActionError("No pudimos desactivar el insumo. Inténtalo nuevamente.");
+      setActionError("No pudimos desactivar el insumo. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setWorking(false);
       setShowDeactivateConfirm(false);
@@ -92,9 +92,9 @@ export default function InsumoDetail() {
     setWorking(true);
     try {
       setInsumo(await reactivateInsumo(insumo.id));
-      notify("Insumo reactivado correctamente.");
+      notify("Insumo reactivado.");
     } catch {
-      setActionError("No pudimos reactivar el insumo. Inténtalo nuevamente.");
+      setActionError("No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setWorking(false);
     }
@@ -129,14 +129,6 @@ export default function InsumoDetail() {
               breadcrumbs={[{ label: "Insumos", to: "/insumos" }, { label: insumo.nombre }]}
               actions={
                 <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                    onClick={() => navigate("/insumos")}
-                  >
-                    Volver a insumos
-                  </Button>
                   {insumo.activo ? (
                     <Button
                       type="button"
@@ -176,7 +168,7 @@ export default function InsumoDetail() {
                 <DetailField label="Ingrediente">
                   <Link
                     to={`/ingredientes/${insumo.ingrediente.id}`}
-                    className="font-medium text-accent-strong underline-offset-2 hover:underline"
+                    className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
                   >
                     {insumo.ingrediente.nombre}
                   </Link>
@@ -261,7 +253,7 @@ export default function InsumoDetail() {
 function DetailField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
+      <dt className="text-xs font-medium text-text-secondary">{label}</dt>
       <dd className="whitespace-pre-wrap text-sm text-text-primary">{children}</dd>
     </div>
   );

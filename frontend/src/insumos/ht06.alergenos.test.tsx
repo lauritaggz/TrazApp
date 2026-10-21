@@ -573,10 +573,10 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
 
     expect(await screen.findByText("Alérgenos sin revisar")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirmar que no contiene alérgenos" })).toBeInTheDocument();
-    expect(screen.queryByText("Revisado: no contiene alérgenos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos (revisado)")).not.toBeInTheDocument();
   });
 
-  it("el botón llama al PUT con una lista vacía y el estado pasa a «Revisado: no contiene alérgenos»", async () => {
+  it("el botón llama al PUT con una lista vacía y el estado pasa a «Sin alérgenos (revisado)»", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.replaceInsumoAlergenos).mockResolvedValue(insumo({ id: 11 }));
     render(<InsumoAllergensSection insumoId={11} revisado={false} />);
@@ -585,7 +585,7 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
 
     expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledTimes(1);
     expect(insumoService.replaceInsumoAlergenos).toHaveBeenCalledWith(11, []);
-    expect(await screen.findByText("Revisado: no contiene alérgenos")).toBeInTheDocument();
+    expect(await screen.findByText("Sin alérgenos (revisado)")).toBeInTheDocument();
     expect(screen.queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar que no contiene alérgenos" })).not.toBeInTheDocument();
   });
@@ -602,10 +602,10 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
     expect(screen.getByRole("button", { name: "Confirmar que no contiene alérgenos" })).toBeInTheDocument();
   });
 
-  it("revisado y sin alérgenos: muestra «Revisado: no contiene alérgenos» y no ofrece confirmar", async () => {
+  it("revisado y sin alérgenos: muestra «Sin alérgenos (revisado)» y no ofrece confirmar", async () => {
     render(<InsumoAllergensSection insumoId={12} revisado />);
 
-    expect(await screen.findByText("Revisado: no contiene alérgenos")).toBeInTheDocument();
+    expect(await screen.findByText("Sin alérgenos (revisado)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar que no contiene alérgenos" })).not.toBeInTheDocument();
     expect(screen.queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
   });
@@ -617,12 +617,12 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
     expect(await screen.findByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar que no contiene alérgenos" })).not.toBeInTheDocument();
     expect(screen.queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Revisado: no contiene alérgenos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos (revisado)")).not.toBeInTheDocument();
     unmount();
 
     render(<InsumoAllergensSection insumoId={13} revisado />);
     expect(await screen.findByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
-    expect(screen.queryByText("Revisado: no contiene alérgenos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin alérgenos (revisado)")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar que no contiene alérgenos" })).not.toBeInTheDocument();
   });
 
@@ -647,7 +647,7 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
     expect(screen.queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
   });
 
-  it("quitar el último alérgeno deja el insumo «Revisado: no contiene alérgenos», no «sin revisar»", async () => {
+  it("quitar el último alérgeno deja el insumo «Sin alérgenos (revisado)», no «sin revisar»", async () => {
     const user = userEvent.setup();
     let declarados: AlergenoDeclarado[] = [...DECLARADOS];
     vi.mocked(insumoService.listInsumoAlergenos).mockImplementation(async () => [...declarados]);
@@ -659,7 +659,7 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
     await user.click(await screen.findByRole("button", { name: "Quitar alérgeno Leche" }));
     await user.click(await screen.findByRole("button", { name: "Quitar alérgeno" }));
 
-    expect(await screen.findByText("Revisado: no contiene alérgenos")).toBeInTheDocument();
+    expect(await screen.findByText("Sin alérgenos (revisado)")).toBeInTheDocument();
     expect(screen.queryByText("Alérgenos sin revisar")).not.toBeInTheDocument();
   });
 
@@ -669,7 +669,7 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
     unmount();
 
     openPage("/insumos/12");
-    expect(await screen.findByText("Revisado: no contiene alérgenos")).toBeInTheDocument();
+    expect(await screen.findByText("Sin alérgenos (revisado)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar que no contiene alérgenos" })).not.toBeInTheDocument();
   });
 });

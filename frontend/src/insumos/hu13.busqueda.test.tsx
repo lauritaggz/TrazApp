@@ -206,7 +206,7 @@ const MENSAJE_NO_ENCONTRADO = "No encontramos este código. Completa los datos m
 const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
 const AVISO_SUGERIDOS =
-  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de registrar.";
+  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de crear el insumo.";
 
 // =============================================================================================
 
@@ -815,8 +815,8 @@ describe("El código ya está registrado (409)", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    expect(await screen.findByText(/Ya tienes este insumo registrado/)).toBeInTheDocument();
-    const aviso = screen.getByText(/Ya tienes este insumo registrado/).closest("div")!;
+    expect(await screen.findByText(/Ya tienes este insumo/)).toBeInTheDocument();
+    const aviso = screen.getByText(/Ya tienes este insumo/).closest("div")!;
     expect(within(aviso).getByRole("link", { name: "Ver insumo" })).toHaveAttribute("href", "/insumos/10");
     expect(within(aviso).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
     expect(campo("Nombre")).toHaveValue("");
@@ -830,7 +830,7 @@ describe("El código ya está registrado (409)", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    const aviso = (await screen.findByText(/Ya tienes este insumo registrado/)).closest("div")!;
+    const aviso = (await screen.findByText(/Ya tienes este insumo/)).closest("div")!;
     expect(within(aviso).getByRole("link", { name: "Ver insumo" })).toBeInTheDocument();
     expect(within(aviso).getByRole("button", { name: "Reactivar" })).toBeInTheDocument();
   });
@@ -856,7 +856,7 @@ describe("El código ya está registrado (409)", () => {
 
     await user.click(await screen.findByRole("button", { name: "Reactivar" }));
 
-    expect(await screen.findByText("No pudimos reactivar el insumo. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reactivar" })).toBeInTheDocument();
   });
 
@@ -864,12 +864,12 @@ describe("El código ya está registrado (409)", () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValueOnce(duplicado(10, true));
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
-    await screen.findByText(/Ya tienes este insumo registrado/);
+    await screen.findByText(/Ya tienes este insumo/);
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
 
     await entregarCodigo(user, OTRO_CODIGO);
 
     await waitFor(() => expect(campo("Nombre")).toHaveValue("Bicarbonato sódico"));
-    expect(screen.queryByText(/Ya tienes este insumo registrado/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ya tienes este insumo/)).not.toBeInTheDocument();
   });
 });

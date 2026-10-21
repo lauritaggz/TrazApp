@@ -132,12 +132,12 @@ export default function ProductFormulationHistory({
                       Versión {version.numero_version}
                     </span>
                     {version.vigente && (
-                      <span className="rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2 py-0.5 text-[11px] font-semibold">
+                      <span className="rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2 py-0.5 text-xs font-semibold">
                         Vigente
                       </span>
                     )}
                     {version.usada_en_elaboracion && (
-                      <span className="rounded-full border border-border bg-surface text-text-secondary px-2 py-0.5 text-[11px] font-semibold">
+                      <span className="rounded-full border border-border bg-surface text-text-secondary px-2 py-0.5 text-xs font-semibold">
                         Usada en elaboraciones
                       </span>
                     )}

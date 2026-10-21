@@ -281,7 +281,7 @@ describe("Listado de insumos", () => {
     expect(await screen.findByRole("heading", { name: "Aún no tienes insumos" })).toBeInTheDocument();
     expect(screen.getByText("Declara sus alérgenos o confirma que no contiene ninguno.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Registrar primer insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear tu primer insumo" }));
 
     expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
   });
@@ -602,7 +602,7 @@ describe("Formulario de insumo", () => {
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(
-      await screen.findByText("No pudimos guardar el insumo. Inténtalo nuevamente."),
+      await screen.findByText("No pudimos guardar el insumo. Revisa tu conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
   });
 
@@ -687,7 +687,7 @@ describe("Código de barras repetido (409)", () => {
 
     expect(insumoService.reactivateInsumo).toHaveBeenCalledWith(12);
     expect(await screen.findByRole("heading", { name: "Leche vieja", level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText("Insumo reactivado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo reactivado.")).toBeInTheDocument();
     expect(insumoService.createInsumo).toHaveBeenCalledTimes(1);
   });
 
@@ -699,7 +699,7 @@ describe("Código de barras repetido (409)", () => {
     await user.click(await screen.findByRole("button", { name: "Reactivar" }));
 
     expect(
-      await screen.findByText("No pudimos reactivar el insumo. Inténtalo nuevamente."),
+      await screen.findByText("No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
   });
@@ -719,7 +719,7 @@ describe("Código de barras repetido (409)", () => {
     const user = userEvent.setup();
     await submitWithDuplicate(
       user,
-      new ApiError("No se pudo guardar el insumo por un cambio simultáneo. Inténtalo nuevamente.", 409),
+      new ApiError("No se pudo guardar el insumo por un cambio simultáneo. Revisa tu conexión e inténtalo de nuevo.", 409),
     );
 
     expect(await screen.findByText(/cambio simultáneo/)).toBeInTheDocument();
@@ -750,7 +750,7 @@ describe("Edición de insumo", () => {
     await waitFor(() =>
       expect(insumoService.updateInsumo).toHaveBeenCalledWith(10, { nombre: "Leche Colun Entera 1 L" }),
     );
-    expect(await screen.findByText("Insumo actualizado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Cambios guardados.")).toBeInTheDocument();
   });
 
   it("sin cambios no envía nada y vuelve al detalle", async () => {
@@ -827,7 +827,7 @@ describe("Detalle de insumo", () => {
     openPage("/insumos/10");
 
     const origen = await screen.findByRole("region", { name: "Origen de la información" });
-    expect(within(origen).getByText("Registrado manualmente")).toBeInTheDocument();
+    expect(within(origen).getByText("Creado manualmente")).toBeInTheDocument();
     expect(within(origen).queryByText(/Obtenido de/)).not.toBeInTheDocument();
   });
 
@@ -858,7 +858,7 @@ describe("Detalle de insumo", () => {
     await user.click(within(dialogo).getByRole("button", { name: "Desactivar insumo" }));
 
     await waitFor(() => expect(insumoService.deactivateInsumo).toHaveBeenCalledWith(10));
-    expect(await screen.findByText("Insumo desactivado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo desactivado.")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Reactivar insumo" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar insumo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desactivar insumo" })).not.toBeInTheDocument();
@@ -888,7 +888,7 @@ describe("Detalle de insumo", () => {
     await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Desactivar insumo" }));
 
     expect(
-      await screen.findByText("No pudimos desactivar el insumo. Inténtalo nuevamente."),
+      await screen.findByText("No pudimos desactivar el insumo. Revisa tu conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Editar insumo" })).toBeInTheDocument();
   });
@@ -907,7 +907,7 @@ describe("Detalle de insumo", () => {
     await user.click(boton);
 
     await waitFor(() => expect(insumoService.reactivateInsumo).toHaveBeenCalledWith(12));
-    expect(await screen.findByText("Insumo reactivado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo reactivado.")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Editar insumo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desactivar insumo" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reactivar insumo" })).not.toBeInTheDocument();
@@ -921,7 +921,7 @@ describe("Detalle de insumo", () => {
     await user.click(await screen.findByRole("button", { name: "Reactivar insumo" }));
 
     expect(
-      await screen.findByText("No pudimos reactivar el insumo. Inténtalo nuevamente."),
+      await screen.findByText("No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reactivar insumo" })).toBeInTheDocument();
   });
@@ -1313,9 +1313,9 @@ describe("PT04-13: adaptación a dispositivos móviles (verificación estructura
     openPage("/insumos/10");
     await screen.findByRole("heading", { name: INS_LECHE.nombre, level: 1 });
 
-    for (const nombre of ["Volver a insumos", "Editar insumo"]) {
-      expect(screen.getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
-    }
+    // HT07: «Volver a insumos» ya no va encima de la acción principal; quedan las migas.
+    expect(screen.queryByRole("button", { name: "Volver a insumos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar insumo" })).toHaveClass("w-full", "sm:w-auto");
   });
 
   it("la sección de alérgenos pasa de una a dos columnas desde sm", async () => {

@@ -33,9 +33,9 @@ import type {
 } from "@/types/elaboracion";
 import type { Insumo } from "@/types/insumo";
 
-const SAVE_ERROR = "No pudimos guardar el borrador. Inténtalo nuevamente.";
-const FINALIZE_ERROR = "No pudimos finalizar la elaboración. Inténtalo nuevamente.";
-const DELETE_ERROR = "No pudimos eliminar el borrador. Inténtalo nuevamente.";
+const SAVE_ERROR = "No pudimos guardar el borrador. Revisa tu conexión e inténtalo de nuevo.";
+const FINALIZE_ERROR = "No pudimos finalizar la elaboración. Revisa tu conexión e inténtalo de nuevo.";
+const DELETE_ERROR = "No pudimos eliminar el borrador. Revisa tu conexión e inténtalo de nuevo.";
 export const MENSAJE_LINEAS_CON_PROBLEMAS =
   "No se puede finalizar todavía: revisa las líneas marcadas.";
 

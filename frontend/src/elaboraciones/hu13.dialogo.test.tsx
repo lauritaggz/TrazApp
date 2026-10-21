@@ -296,7 +296,7 @@ describe("El código ya está registrado: usarlo o reactivarlo solo para el ingr
 
     await entregarCodigo(user, dialogo);
 
-    await within(dialogo).findByText(/Ya tienes este insumo registrado/);
+    await within(dialogo).findByText(/Ya tienes este insumo/);
     expect(within(dialogo).queryByRole("link", { name: "Ver insumo" })).not.toBeInTheDocument();
     expect(within(dialogo).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
   });
@@ -404,7 +404,7 @@ describe("El foco después de buscar un código", () => {
 
     await entregarCodigo(user, dialogo);
 
-    await waitFor(() => expect(enElResultado(dialogo)).toHaveTextContent(/Ya tienes este insumo registrado/));
+    await waitFor(() => expect(enElResultado(dialogo)).toHaveTextContent(/Ya tienes este insumo/));
   });
 });
 

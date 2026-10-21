@@ -15,7 +15,7 @@ export default function DashboardGettingStarted({
   const steps = [
     {
       n: 1,
-      label: "Registra tus productos",
+      label: "Crea tus productos",
       done: hasProducts,
     },
     {

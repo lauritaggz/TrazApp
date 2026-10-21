@@ -45,7 +45,7 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
                   <Link
                     to={`/productos/${product.id}`}
                     aria-label={`Ver producto ${product.nombre}`}
-                    className="after:absolute after:inset-0 focus:outline-none"
+                    className="inline-flex min-h-11 items-center after:absolute after:inset-0 focus:outline-none"
                   >
                     {product.nombre}
                   </Link>

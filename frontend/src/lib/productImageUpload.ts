@@ -65,7 +65,7 @@ export async function uploadProductImage(
     }
 
     throw new ApiError(
-      "No pudimos subir la imagen. Inténtalo nuevamente.",
+      "No pudimos subir la imagen. Revisa tu conexión e inténtalo de nuevo.",
       response.status,
     );
   }

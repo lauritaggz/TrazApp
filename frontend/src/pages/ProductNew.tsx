@@ -25,7 +25,7 @@ import {
 const DUPLICATE_CODE_MESSAGE =
   "Ya existe un producto con este código interno.";
 const SAVE_ERROR_MESSAGE =
-  "No pudimos guardar el producto. Inténtalo nuevamente.";
+  "No pudimos guardar el producto. Revisa tu conexión e inténtalo de nuevo.";
 const IMAGE_UPLOAD_ERROR_MESSAGE =
   "El producto se creó, pero no pudimos subir la imagen.";
 const CATEGORIES_LOAD_ERROR_MESSAGE =

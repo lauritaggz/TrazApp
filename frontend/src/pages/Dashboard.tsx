@@ -244,10 +244,10 @@ export default function Dashboard() {
           ) : recentProducts.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-border bg-card p-5">
               <p className="text-sm text-text-secondary">
-                Aún no has registrado productos.
+                Aún no tienes productos.
               </p>
               <Button type="button" onClick={() => navigate("/productos")}>
-                Registrar primer producto
+                Crear tu primer producto
               </Button>
             </div>
           ) : (

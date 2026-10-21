@@ -231,13 +231,13 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
           </h2>
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              <dt className="text-xs font-medium text-text-secondary">
                 Producto
               </dt>
               <dd className="text-sm text-text-primary">{producto.nombre}</dd>
             </div>
             <div className="space-y-1">
-              <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              <dt className="text-xs font-medium text-text-secondary">
                 Versión de la formulación
               </dt>
               <dd className="text-sm text-text-primary">

@@ -175,10 +175,10 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
     await screen.findByRole("heading", { name: /Hola/ });
 
     await waitFor(() =>
-      expect(screen.getByText(/Define la formulación de un producto para registrar elaboraciones/)).toBeInTheDocument(),
+      expect(screen.getByText(/Define la formulación de un producto para crear elaboraciones/)).toBeInTheDocument(),
     );
     expect(botonNueva()).toBeDisabled();
-    const explicacion = screen.getByText(/Define la formulación de un producto para registrar elaboraciones/);
+    const explicacion = screen.getByText(/Define la formulación de un producto para crear elaboraciones/);
     expect(botonNueva().getAttribute("aria-describedby")).toBe(explicacion.id);
     expect(within(explicacion).getByRole("link", { name: "Ir a Productos" })).toHaveAttribute("href", "/productos");
   });
@@ -397,9 +397,9 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
   });
 });
 
-// --- «Registrar otra elaboración» en el detalle de una finalizada ---
+// --- «Nueva elaboración» en el detalle de una finalizada ---
 
-describe("Detalle de una elaboración finalizada: «Registrar otra elaboración» (HT06-07)", () => {
+describe("Detalle de una elaboración finalizada: «Nueva elaboración» (HT06-07)", () => {
   beforeEach(() => {
     vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) =>
       id === 31 ? elaboracionCreada(31, "E-010", "finalizada") : elaboracionCreada(id, "E-011"),
@@ -414,7 +414,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("ofrece el botón junto a «Volver al producto»", async () => {
     await abrirDetalle();
 
-    expect(screen.getByRole("button", { name: "Registrar otra elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva elaboración" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Volver al producto" })).toBeInTheDocument();
   });
 
@@ -422,7 +422,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
     const user = userEvent.setup();
     await abrirDetalle();
 
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
 
     const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     expect(within(dialogo).getByText("Producto: Queque de vainilla")).toBeInTheDocument();
@@ -433,7 +433,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("al crear navega al registro de la nueva elaboración", async () => {
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
     const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
 
@@ -450,7 +450,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("cancelar cierra el diálogo y no crea nada", async () => {
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
     const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
 
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
@@ -465,7 +465,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
     );
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
     const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
 

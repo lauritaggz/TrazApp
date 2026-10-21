@@ -713,7 +713,7 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     await r.escribir("Descripción", screen.getByLabelText(/Descripción/), "Queque casero");
     await r.escribir("Contenido neto", screen.getByLabelText(/Contenido neto/), "500");
     await r.elegir("Unidad de medida", screen.getByLabelText(/Unidad de medida/), "g");
-    await r.clic("«Guardar producto»", screen.getByRole("button", { name: "Guardar producto" }));
+    await r.clic("«Crear producto»", screen.getByRole("button", { name: "Crear producto" }));
     // A created product opens its own detail (HT06-07): no extra click to get to it.
     await screen.findByRole("heading", { name: "Queque de vainilla", level: 1 });
 

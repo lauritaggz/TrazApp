@@ -69,7 +69,7 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
           y {hidden} producto{hidden === 1 ? "" : "s"} más.{" "}
           <Link
             to="/productos"
-            className="font-medium text-accent-strong underline-offset-2 hover:underline"
+            className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
           >
             Ver todos los productos
           </Link>

@@ -64,7 +64,7 @@ export default function IngredientDetail() {
   useEffect(() => {
     const state = location.state as { ingredientUpdated?: boolean } | null;
     if (!state?.ingredientUpdated) return;
-    notify("Ingrediente actualizado correctamente.");
+    notify("Cambios guardados.");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -80,7 +80,7 @@ export default function IngredientDetail() {
         setUnavailable(true);
         return;
       }
-      setDeleteError("No pudimos desactivar el ingrediente. Inténtalo nuevamente.");
+      setDeleteError("No pudimos desactivar el ingrediente. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -115,14 +115,6 @@ export default function IngredientDetail() {
               ]}
               actions={
                 <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                    onClick={() => navigate("/ingredientes")}
-                  >
-                    Volver a ingredientes
-                  </Button>
                   <Button
                     type="button"
                     className="w-full sm:w-auto"
@@ -207,7 +199,7 @@ function DetailField({
 }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+      <dt className="text-xs font-medium text-text-secondary">
         {label}
       </dt>
       <dd className="text-sm text-text-primary whitespace-pre-wrap">{children}</dd>

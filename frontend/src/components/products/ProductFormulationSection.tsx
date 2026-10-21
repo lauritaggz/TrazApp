@@ -181,7 +181,7 @@ export default function ProductFormulationSection({
       setSaveError(
         err instanceof ApiError && (err.status === 422 || err.status === 409)
           ? err.message
-          : "No pudimos guardar la formulación. Inténtalo nuevamente.",
+          : "No pudimos guardar la formulación. Revisa tu conexión e inténtalo de nuevo.",
       );
     } finally {
       setSaving(false);
@@ -348,7 +348,7 @@ export default function ProductFormulationSection({
         </div>
       ) : (
         <>
-          <p className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+          <p className="text-xs font-medium text-text-secondary">
             Versión vigente: {version.numero_version}
           </p>
 
@@ -480,7 +480,7 @@ function DraftLineRow({
 
 function DesactivadoBadge() {
   return (
-    <span className="inline-flex items-center rounded-full border border-error-border bg-error-bg px-2 py-0.5 text-[11px] font-semibold text-error">
+    <span className="inline-flex items-center rounded-full border border-error-border bg-error-bg px-2 py-0.5 text-xs font-semibold text-error">
       Ingrediente desactivado
     </span>
   );

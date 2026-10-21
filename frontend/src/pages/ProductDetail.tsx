@@ -95,7 +95,7 @@ export default function ProductDetail() {
     } | null;
     if (state?.productCreated) {
       // Coming from "Nuevo producto" (HT06-07). Not an update: going back to the list says nothing.
-      notify("Producto creado correctamente.");
+      notify("Producto creado.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
@@ -105,7 +105,7 @@ export default function ProductDetail() {
       return;
     }
     if (!state?.productUpdated) return;
-    notify("Producto actualizado correctamente.");
+    notify("Cambios guardados.");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -127,7 +127,7 @@ export default function ProductDetail() {
         setUnavailable(true);
         return;
       }
-      setDeleteError("No pudimos eliminar el producto. Inténtalo nuevamente.");
+      setDeleteError("No pudimos eliminar el producto. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -309,7 +309,7 @@ function DetailField({
 }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+      <dt className="text-xs font-medium text-text-secondary">
         {label}
       </dt>
       <dd className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">

@@ -15,7 +15,7 @@ import {
 const DUPLICATE_CODE_MESSAGE =
   "Ya existe un ingrediente con este código interno.";
 const SAVE_ERROR_MESSAGE =
-  "No pudimos guardar el ingrediente. Inténtalo nuevamente.";
+  "No pudimos guardar el ingrediente. Revisa tu conexión e inténtalo de nuevo.";
 
 export function useIngredientCreateForm(onCreated: (ingrediente: Ingrediente) => void) {
   const [values, setValues] = useState<IngredienteFormValues>(

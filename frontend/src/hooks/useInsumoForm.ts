@@ -30,9 +30,9 @@ import {
   type InsumoFormValues,
 } from "@/types/insumo";
 
-const SAVE_ERROR_MESSAGE = "No pudimos guardar el insumo. Inténtalo nuevamente.";
+const SAVE_ERROR_MESSAGE = "No pudimos guardar el insumo. Revisa tu conexión e inténtalo de nuevo.";
 const REACTIVATE_ERROR_MESSAGE =
-  "No pudimos reactivar el insumo. Inténtalo nuevamente.";
+  "No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo.";
 const INGREDIENTE_NO_VALIDO = "Ingrediente no válido";
 
 interface UseInsumoFormOptions {

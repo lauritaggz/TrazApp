@@ -30,7 +30,7 @@ export default function ViewToggle<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={`min-h-9 rounded-md px-3 text-sm font-medium transition-colors ${
+            className={`min-h-11 rounded-md px-3 text-sm font-medium transition-colors ${
               active
                 ? "bg-brand-50 text-accent-strong"
                 : "text-text-secondary hover:text-text-primary"

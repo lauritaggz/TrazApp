@@ -198,8 +198,8 @@ describe("FormActions y Toast", () => {
         <button
           type="button"
           onClick={() => {
-            notify("Producto actualizado correctamente.");
-            notify("Producto actualizado correctamente.");
+            notify("Cambios guardados.");
+            notify("Cambios guardados.");
           }}
         >
           avisar
@@ -215,7 +215,7 @@ describe("FormActions y Toast", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "avisar" }));
-    expect(screen.getAllByText("Producto actualizado correctamente.")).toHaveLength(1);
+    expect(screen.getAllByText("Cambios guardados.")).toHaveLength(1);
   });
 });
 

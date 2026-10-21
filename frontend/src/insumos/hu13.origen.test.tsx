@@ -78,10 +78,10 @@ async function abrirDetalle(datos: Insumo) {
 // =============================================================================================
 
 describe("Origen de la información en el detalle del insumo", () => {
-  it("un insumo manual dice «Registrado manualmente» y no ofrece ninguna ficha", async () => {
+  it("un insumo manual dice «Creado manualmente» y no ofrece ninguna ficha", async () => {
     const origen = await abrirDetalle(insumo());
 
-    expect(within(origen).getByText("Registrado manualmente")).toBeInTheDocument();
+    expect(within(origen).getByText("Creado manualmente")).toBeInTheDocument();
     expect(within(origen).queryByText(/Obtenido de/)).not.toBeInTheDocument();
     expect(within(origen).queryByRole("link")).not.toBeInTheDocument();
   });
@@ -92,7 +92,7 @@ describe("Origen de la información en el detalle del insumo", () => {
     );
 
     expect(within(origen).getByText("Obtenido de Open Food Facts el 19-10-2026")).toBeInTheDocument();
-    expect(within(origen).queryByText("Registrado manualmente")).not.toBeInTheDocument();
+    expect(within(origen).queryByText("Creado manualmente")).not.toBeInTheDocument();
   });
 
   it("la fecha se cuenta en la hora de Chile, no en UTC", async () => {

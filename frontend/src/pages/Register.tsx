@@ -38,7 +38,7 @@ export default function Register() {
     if (!form.name.trim()) errs.name = "El nombre es obligatorio.";
     if (!form.businessName.trim()) {
       errs.businessName =
-        "El nombre del negocio o emprendimiento es obligatorio.";
+        "El nombre del negocio es obligatorio.";
     }
     if (!form.email) errs.email = "El correo electrónico es obligatorio.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
@@ -142,9 +142,9 @@ export default function Register() {
             />
 
             <Input
-              label="Nombre del negocio o emprendimiento"
+              label="Nombre del negocio"
               type="text"
-              placeholder="Tu negocio o emprendimiento"
+              placeholder="Tu negocio"
               value={form.businessName}
               onChange={(e) => update("businessName", e.target.value)}
               error={fieldErrors.businessName}

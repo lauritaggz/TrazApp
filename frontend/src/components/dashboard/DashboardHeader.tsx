@@ -11,7 +11,7 @@ interface DashboardHeaderProps {
   onNuevaElaboracion?: () => void;
 }
 
-const SIN_FORMULACION = "Define la formulación de un producto para registrar elaboraciones";
+const SIN_FORMULACION = "Define la formulación de un producto para crear elaboraciones";
 
 export default function DashboardHeader({
   firstName,

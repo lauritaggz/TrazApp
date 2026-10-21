@@ -15,7 +15,7 @@ export default function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
       onClick={toggleTheme}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Modo claro" : "Modo oscuro"}
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors ${
         variant === "onBrand"
           ? "text-white hover:bg-white/15 focus-visible:outline-white"
           : "text-text-secondary hover:bg-surface hover:text-text-primary"

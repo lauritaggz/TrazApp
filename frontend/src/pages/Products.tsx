@@ -69,17 +69,17 @@ export default function Products() {
       productUpdated?: boolean;
     } | null;
     if (state?.productCreated) {
-      notify("Producto creado correctamente.");
+      notify("Producto creado.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productDeleted) {
-      notify("Producto eliminado correctamente.");
+      notify("Producto eliminado.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.productUpdated) {
-      notify("Producto actualizado correctamente.");
+      notify("Cambios guardados.");
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate, notify]);
@@ -364,7 +364,7 @@ function ProductRow({
               <Link
                 to={`/productos/${product.id}`}
                 aria-label={`Ver producto ${product.nombre}`}
-                className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
+                className="inline-flex min-h-11 items-center rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
               >
                 {product.nombre}
               </Link>
@@ -420,12 +420,12 @@ function ProductsCards({ products }: { products: Product[] }) {
                   <Link
                     to={`/productos/${product.id}`}
                     aria-label={`Ver producto ${product.nombre}`}
-                    className="after:absolute after:inset-0 focus:outline-none"
+                    className="inline-flex min-h-11 items-center after:absolute after:inset-0 focus:outline-none"
                   >
                     {product.nombre}
                   </Link>
                 </h2>
-                <p className="text-[13px] font-medium text-accent uppercase tracking-wide">
+                <p className="text-[13px] font-medium text-accent">
                   {product.codigo_interno ?? "—"}
                 </p>
                 {formatCategoriasCompact(product.categorias) ? (
@@ -468,15 +468,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <EmptyStateCard
       title="Aún no tienes productos"
-      description="Registra tu primer producto para comenzar a organizar su información de trazabilidad."
+      description="Crea tu primer producto para empezar a registrar tus elaboraciones."
       steps={[
         "Escribe su nombre, código y contenido.",
         "Agrega categorías, precio e imagen cuando quieras.",
-        "Luego vincularás sus ingredientes y lotes.",
+        "Define su formulación: los ingredientes que lleva. Con ella podrás crear elaboraciones.",
       ]}
       action={
         <Button type="button" onClick={onCreate}>
-          Registrar primer producto
+          Crear tu primer producto
         </Button>
       }
     />

@@ -15,7 +15,7 @@ export const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
 export const MENSAJE_ERROR_BUSQUEDA =
   "No pudimos completar la búsqueda. Intenta de nuevo o completa los datos manualmente.";
-export const TITULO_DUPLICADO = "Ya tienes este insumo registrado";
+export const TITULO_DUPLICADO = "Ya tienes este insumo";
 
 /** What can be done with the supply that already has the code; the screen decides which options it offers. */
 export interface AccionesExistente {

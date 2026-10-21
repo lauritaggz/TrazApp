@@ -233,7 +233,7 @@ export default function InsumoForm({
                 error={errors.ingrediente_id}
                 hint={
                   ingredienteFijo
-                    ? "Este insumo se registra para el ingrediente de la línea."
+                    ? "Este insumo se crea para el ingrediente de la línea."
                     : "El ingrediente genérico al que abastece este insumo."
                 }
                 disabled={
@@ -449,7 +449,7 @@ export default function InsumoForm({
 }
 
 export const AVISO_ALERGENOS_SUGERIDOS =
-  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de registrar.";
+  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de crear el insumo.";
 
 function AvisoAlergenosSugeridos({ sugerencias }: { sugerencias: SugerenciasAlergenos }) {
   const haySugeridos = Object.keys(sugerencias.origenes).length > 0;

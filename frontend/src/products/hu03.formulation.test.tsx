@@ -459,7 +459,7 @@ describe("HU03 — edición de la formulación", () => {
     await user.click(screen.getByRole("button", { name: "Guardar formulación" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos guardar la formulación. Inténtalo nuevamente.",
+      "No pudimos guardar la formulación. Revisa tu conexión e inténtalo de nuevo.",
     );
   });
 

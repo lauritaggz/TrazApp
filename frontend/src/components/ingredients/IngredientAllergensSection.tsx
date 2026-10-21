@@ -122,8 +122,8 @@ export default function IngredientAllergensSection({
     <div className="space-y-4">
       <div className="space-y-1 text-xs text-text-secondary leading-relaxed">
         <p>
-          Alérgenos de referencia del ingrediente. Los alérgenos de cada
-          elaboración se obtienen de los insumos comerciales utilizados.
+          Los alérgenos del ingrediente son solo de referencia: los de cada
+          elaboración salen de los insumos que uses.
         </p>
         <p>
           Los marcados con «Rotulación obligatoria» deben declararse en la
@@ -169,7 +169,7 @@ export default function IngredientAllergensSection({
                     <Badge
                       variant="warning"
                       title={ROTULACION_OBLIGATORIA_AYUDA}
-                      className="uppercase tracking-wide text-[10px] font-semibold"
+                      className="text-xs font-semibold"
                     >
                       Rotulación obligatoria
                       <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>

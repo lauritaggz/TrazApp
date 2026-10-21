@@ -18,7 +18,7 @@ export default function ProductDetailSection({
     >
       <h2
         id={id}
-        className="text-sm font-semibold text-text-primary uppercase tracking-wide mb-4"
+        className="text-sm font-semibold text-text-primary mb-4"
       >
         {title}
       </h2>

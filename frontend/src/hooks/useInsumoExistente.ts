@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getInsumo, reactivateInsumo } from "@/services/insumoService";
 import type { Insumo } from "@/types/insumo";
 
-const LOOKUP_ERROR = "No pudimos comprobar el insumo existente. Inténtalo nuevamente.";
-const REACTIVATE_ERROR = "No pudimos reactivar el insumo. Inténtalo nuevamente.";
+const LOOKUP_ERROR = "No pudimos comprobar el insumo existente. Revisa tu conexión e inténtalo de nuevo.";
+const REACTIVATE_ERROR = "No pudimos reactivar el insumo. Revisa tu conexión e inténtalo de nuevo.";
 
 function otroIngrediente(nombre: string): string {
   return `Ese insumo está asociado a «${nombre}».`;
