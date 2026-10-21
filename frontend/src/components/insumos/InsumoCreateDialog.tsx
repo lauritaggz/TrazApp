@@ -36,6 +36,7 @@ export default function InsumoCreateDialog({
   // The supply that already has the scanned code: it can be used (or reactivated) only for this line's ingredient.
   const existenteDeLaBusqueda = useInsumoExistente({
     ingredienteId: ingrediente.id,
+    duplicadoId: busqueda.duplicado?.insumoId ?? null,
     onUsar: onAssigned,
     onReactivado: onAssigned,
   });
@@ -79,6 +80,7 @@ export default function InsumoCreateDialog({
             onReactivar: (duplicado) => void existenteDeLaBusqueda.reactivar(duplicado.insumoId),
             ocupado: existenteDeLaBusqueda.ocupado,
             aviso: existenteDeLaBusqueda.aviso,
+            veredicto: existenteDeLaBusqueda.veredicto,
           }}
         />
 

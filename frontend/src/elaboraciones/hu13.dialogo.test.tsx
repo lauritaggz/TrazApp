@@ -258,22 +258,26 @@ describe("El código ya está registrado: usarlo o reactivarlo solo para el ingr
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 
-  it("activo pero de otro ingrediente: lo explica y no lo asigna", async () => {
+  it("activo pero de otro ingrediente: lo explica desde el primer momento y no ofrece usarlo", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(11, true));
     vi.mocked(insumoService.getInsumo).mockResolvedValue(DE_HARINA);
     const user = userEvent.setup();
     const { dialogo, onAssigned } = abrirDialogo();
+
     await entregarCodigo(user, dialogo);
 
-    await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
-
+    // Without pressing anything: the explanation is there and there is nothing to press that does nothing.
     expect(await within(dialogo).findByText("Ese insumo está asociado a «Harina».")).toBeInTheDocument();
+    expect(insumoService.getInsumo).toHaveBeenCalledWith(11);
+    expect(within(dialogo).queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
+    expect(within(dialogo).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
     expect(onAssigned).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
   });
 
   it("en el diálogo no hay enlace a otra pantalla: solo usar o reactivar", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(10, true));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(DE_LECHE);
     const user = userEvent.setup();
     const { dialogo } = abrirDialogo();
 
@@ -300,32 +304,94 @@ describe("El código ya está registrado: usarlo o reactivarlo solo para el ingr
     expect(within(dialogo).queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
   });
 
-  it("desactivado y de otro ingrediente: no lo reactiva y lo explica", async () => {
+  it("desactivado y de otro ingrediente: lo explica y no ofrece reactivarlo", async () => {
     const inactivo = insumo({ ...DE_HARINA, activo: false });
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(11, false));
     vi.mocked(insumoService.getInsumo).mockResolvedValue(inactivo);
     const user = userEvent.setup();
     const { dialogo, onAssigned } = abrirDialogo();
+
     await entregarCodigo(user, dialogo);
 
-    await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
-
     expect(await within(dialogo).findByText("Ese insumo está asociado a «Harina».")).toBeInTheDocument();
+    expect(within(dialogo).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
+    expect(within(dialogo).queryByText(/puedes reactivarlo/)).not.toBeInTheDocument();
     expect(insumoService.reactivateInsumo).not.toHaveBeenCalled();
     expect(onAssigned).not.toHaveBeenCalled();
   });
 
-  it("si no se puede comprobar el insumo existente, lo informa y no lo asigna", async () => {
+  it("si no se puede comprobar el insumo existente, lo informa y no ofrece usarlo", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(10, true));
     vi.mocked(insumoService.getInsumo).mockRejectedValue(new ApiError("falla", 500));
     const user = userEvent.setup();
     const { dialogo, onAssigned } = abrirDialogo();
+
     await entregarCodigo(user, dialogo);
 
-    await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
-
     expect(await within(dialogo).findByText(/No pudimos comprobar el insumo existente/)).toBeInTheDocument();
+    expect(within(dialogo).queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
     expect(onAssigned).not.toHaveBeenCalled();
+  });
+
+  it("mientras se comprueba de qué ingrediente es, no ofrece usarlo", async () => {
+    let terminar: (valor: Insumo) => void = () => {};
+    vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(10, true));
+    vi.mocked(insumoService.getInsumo).mockReturnValue(new Promise<Insumo>((resolver) => (terminar = resolver)));
+    const user = userEvent.setup();
+    const { dialogo } = abrirDialogo();
+
+    await entregarCodigo(user, dialogo);
+
+    expect(await within(dialogo).findByText("Comprobando el insumo…")).toBeInTheDocument();
+    expect(within(dialogo).queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
+    terminar(DE_LECHE);
+    expect(await within(dialogo).findByRole("button", { name: "Usar este insumo" })).toBeInTheDocument();
+  });
+});
+
+// =============================================================================================
+
+describe("El foco después de buscar un código", () => {
+  const enElResultado = (dialogo: HTMLElement) => {
+    const activo = document.activeElement as HTMLElement;
+    expect(activo).not.toBe(document.body);
+    expect(dialogo.contains(activo)).toBe(true);
+    return activo;
+  };
+
+  it("encontrado: queda en el mensaje del resultado, no en BODY", async () => {
+    const user = userEvent.setup();
+    const { dialogo } = abrirDialogo();
+
+    await entregarCodigo(user, dialogo);
+
+    await waitFor(() => expect(enElResultado(dialogo)).toHaveTextContent(/Encontramos este producto/));
+  });
+
+  it("no encontrado: queda en el mensaje del resultado", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue({
+      ...LONCOLECHE,
+      encontrado: false,
+      producto: null,
+      ficha: null,
+    });
+    const user = userEvent.setup();
+    const { dialogo } = abrirDialogo();
+
+    await entregarCodigo(user, dialogo);
+
+    await waitFor(() => expect(enElResultado(dialogo)).toHaveTextContent(/No encontramos este código/));
+  });
+
+  it("duplicado: queda en el aviso del resultado", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(duplicado(11, true));
+    vi.mocked(insumoService.getInsumo).mockResolvedValue(DE_HARINA);
+    const user = userEvent.setup();
+    const { dialogo } = abrirDialogo();
+
+    await entregarCodigo(user, dialogo);
+
+    await waitFor(() => expect(enElResultado(dialogo)).toHaveTextContent(/Ya tienes este insumo registrado/));
   });
 });
 
