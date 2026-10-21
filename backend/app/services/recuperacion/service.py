@@ -13,6 +13,7 @@ from app.schemas.consulta_codigo import (
 from app.services.insumo_service import DuplicateCodigoBarrasError
 from app.services.recuperacion.alergenos import AlergenoDetectado, Deteccion, detectar_alergenos
 from app.services.recuperacion.base import FuenteProducto
+from app.services.recuperacion.limpieza import limpiar_ingredientes
 
 Detector = Callable[[tuple[str, ...], tuple[str, ...], str | None], Deteccion]
 
@@ -66,7 +67,8 @@ class RecuperacionService:
                 nombre=producto.nombre,
                 marca_origen=producto.marca,
                 presentacion=producto.presentacion,
-                ingredientes_declarados=producto.ingredientes,
+                # Only the proposal is cleaned; the detection above and the `ficha` use the original.
+                ingredientes_declarados=limpiar_ingredientes(producto.ingredientes),
             ),
             alergenos=self._alergenos(deteccion),
             ficha=producto.ficha,

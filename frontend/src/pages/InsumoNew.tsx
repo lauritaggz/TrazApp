@@ -117,6 +117,7 @@ function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef }: Formul
         ingredientesLoading={ingredientes.loading}
         ingredientesError={ingredientes.error}
         onIngredientesRetry={() => void ingredientes.reload()}
+        onIngredienteCreado={ingredientes.agregar}
         loading={form.loading}
         errorFocusToken={form.errorFocusToken}
         duplicate={form.duplicate}

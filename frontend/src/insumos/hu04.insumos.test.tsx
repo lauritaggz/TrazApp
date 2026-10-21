@@ -611,10 +611,10 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo");
 
     expect(await screen.findByText(/Aún no tienes ingredientes activos\./)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Crear un ingrediente" })).toHaveAttribute(
-      "href",
-      "/ingredientes/nuevo",
-    );
+    // T13-09: el enlace a /ingredientes/nuevo (que hacía perder lo escrito) pasó a ser un botón
+    // que abre el diálogo de ingrediente sin salir de la página.
+    expect(screen.getByRole("button", { name: "Crear ingrediente" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Crear un ingrediente" })).not.toBeInTheDocument();
   });
 
   it("si falla la carga de ingredientes permite reintentar", async () => {

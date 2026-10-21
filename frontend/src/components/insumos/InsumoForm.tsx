@@ -1,5 +1,6 @@
-import { useEffect, useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import IngredientCreateDialog from "@/components/ingredients/IngredientCreateDialog";
 import AlergenosSelector from "@/components/insumos/AlergenosSelector";
 import ProductFormSection from "@/components/products/ProductFormSection";
 import Button from "@/components/ui/Button";
@@ -51,6 +52,12 @@ interface InsumoFormProps {
   onUseExisting?: () => void;
   usingExisting?: boolean;
   /**
+   * HU13 (T13-09): offers "Crear ingrediente" next to the selector. The dialog creates it without
+   * leaving the page; the parent adds it to its list here and the form selects it, leaving
+   * everything else as it was. Without it (or with a fixed ingredient) the button is not shown.
+   */
+  onIngredienteCreado?: (ingrediente: Ingrediente) => void;
+  /**
    * HT06, create mode: the allergens declared in this same form. Without them (edit mode) the
    * selector is not shown: the allergens of an existing supply are managed in its detail.
    */
@@ -89,6 +96,7 @@ export default function InsumoForm({
   ingredienteFijo = null,
   onUseExisting,
   usingExisting = false,
+  onIngredienteCreado,
   alergenos,
   onAlergenosChange,
   mostrarErrorAlergenos = false,
@@ -98,6 +106,26 @@ export default function InsumoForm({
   onCancel,
 }: InsumoFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [creandoIngrediente, setCreandoIngrediente] = useState(false);
+  const devolverFoco = useRef(false);
+
+  // The dialog hands the focus back to its button when it closes; the selector is what changed.
+  useEffect(() => {
+    if (creandoIngrediente || !devolverFoco.current) return;
+    devolverFoco.current = false;
+    formRef.current?.querySelector<HTMLElement>('[name="ingrediente_id"]')?.focus();
+  }, [creandoIngrediente]);
+
+  function cerrarDialogoDeIngrediente() {
+    devolverFoco.current = true;
+    setCreandoIngrediente(false);
+  }
+
+  function handleIngredienteCreado(ingrediente: Ingrediente) {
+    onIngredienteCreado?.(ingrediente);
+    onChange({ ...values, ingrediente_id: String(ingrediente.id) });
+    cerrarDialogoDeIngrediente();
+  }
 
   useEffect(() => {
     if (!errorFocusToken || !formRef.current) return;
@@ -151,260 +179,274 @@ export default function InsumoForm({
   );
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className={embedded ? "space-y-4" : "max-w-2xl space-y-6"}
-      noValidate
-    >
-      <div
-        className={
-          embedded
-            ? "space-y-8"
-            : "space-y-8 rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
-        }
+    <>
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className={embedded ? "space-y-4" : "max-w-2xl space-y-6"}
+        noValidate
       >
-        <ProductFormSection
-          id="insumo-form-general"
-          title="Información general"
-          description="Qué producto comercial es y a qué ingrediente abastece."
+        <div
+          className={
+            embedded
+              ? "space-y-8"
+              : "space-y-8 rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
+          }
         >
-          <Input
-            label="Nombre"
-            name="nombre"
-            placeholder="Chocolate Ambrosoli 500 g"
-            value={values.nombre}
-            onChange={(e) => update("nombre", e.target.value)}
-            error={errors.nombre}
-            disabled={loading}
-            maxLength={255}
-            autoComplete="off"
-            required
-          />
-          <Input
-            label="Marca u origen"
-            name="marca_origen"
-            placeholder="Ambrosoli"
-            value={values.marca_origen}
-            onChange={(e) => update("marca_origen", e.target.value)}
-            error={errors.marca_origen}
-            hint="Por ejemplo, la marca del producto o 'Feria local'."
-            disabled={loading}
-            maxLength={255}
-            autoComplete="off"
-            required
-          />
-
-          <div className="space-y-2">
-            <Select
-              label="Ingrediente"
-              name="ingrediente_id"
-              value={values.ingrediente_id}
-              onChange={(e) => update("ingrediente_id", e.target.value)}
-              error={errors.ingrediente_id}
-              hint={
-                ingredienteFijo
-                  ? "Este insumo se registra para el ingrediente de la línea."
-                  : "El ingrediente genérico al que abastece este insumo."
-              }
-              disabled={
-                Boolean(ingredienteFijo) ||
-                loading ||
-                ingredientesLoading ||
-                Boolean(ingredientesError)
-              }
-              required
-            >
-              {ingredienteFijo ? (
-                <option value={ingredienteFijo.id}>{ingredienteFijo.nombre}</option>
-              ) : (
-                <>
-                  <option value="">
-                    {ingredientesLoading ? "Cargando ingredientes..." : "Selecciona un ingrediente"}
-                  </option>
-                  {faltaElActual && ingredienteActual && (
-                    <option value={ingredienteActual.id}>
-                      {ingredienteActual.nombre} (desactivado)
-                    </option>
-                  )}
-                  {options.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nombre}
-                    </option>
-                  ))}
-                </>
-              )}
-            </Select>
-            {ingredientesError && !ingredienteFijo && (
-              <div className="flex flex-wrap items-center gap-3" role="alert">
-                <p className="text-[13px] text-error">{ingredientesError}</p>
-                {onIngredientesRetry && (
-                  <Button type="button" variant="secondary" onClick={onIngredientesRetry}>
-                    Reintentar
-                  </Button>
-                )}
-              </div>
-            )}
-            {sinIngredientes && (
-              <p className="text-[13px] text-text-secondary">
-                Aún no tienes ingredientes activos.{" "}
-                <Link
-                  to="/ingredientes/nuevo"
-                  className="font-medium text-accent-strong underline-offset-2 hover:underline"
-                >
-                  Crear un ingrediente
-                </Link>
-              </p>
-            )}
-          </div>
-
-          <Input
-            label="Presentación"
-            name="presentacion"
-            placeholder="Ej.: Barra de 500 g"
-            value={values.presentacion}
-            onChange={(e) => update("presentacion", e.target.value)}
-            error={errors.presentacion}
-            hint="Opcional."
-            disabled={loading}
-            maxLength={255}
-            autoComplete="off"
-          />
-
-          <div className="space-y-2">
+          <ProductFormSection
+            id="insumo-form-general"
+            title="Información general"
+            description="Qué producto comercial es y a qué ingrediente abastece."
+          >
             <Input
-              label="Código de barras"
-              name="codigo_barras"
-              inputMode="numeric"
-              placeholder="7802910000971"
-              value={values.codigo_barras}
-              onChange={(e) => update("codigo_barras", e.target.value)}
-              error={errors.codigo_barras}
-              hint="Opcional. EAN-8, UPC-A o EAN-13 (8, 12 o 13 dígitos)."
+              label="Nombre"
+              name="nombre"
+              placeholder="Chocolate Ambrosoli 500 g"
+              value={values.nombre}
+              onChange={(e) => update("nombre", e.target.value)}
+              error={errors.nombre}
               disabled={loading}
+              maxLength={255}
+              autoComplete="off"
+              required
+            />
+            <Input
+              label="Marca u origen"
+              name="marca_origen"
+              placeholder="Ambrosoli"
+              value={values.marca_origen}
+              onChange={(e) => update("marca_origen", e.target.value)}
+              error={errors.marca_origen}
+              hint="Por ejemplo, la marca del producto o 'Feria local'."
+              disabled={loading}
+              maxLength={255}
+              autoComplete="off"
+              required
+            />
+
+            <div className="space-y-2">
+              <Select
+                label="Ingrediente"
+                name="ingrediente_id"
+                value={values.ingrediente_id}
+                onChange={(e) => update("ingrediente_id", e.target.value)}
+                error={errors.ingrediente_id}
+                hint={
+                  ingredienteFijo
+                    ? "Este insumo se registra para el ingrediente de la línea."
+                    : "El ingrediente genérico al que abastece este insumo."
+                }
+                disabled={
+                  Boolean(ingredienteFijo) ||
+                  loading ||
+                  ingredientesLoading ||
+                  Boolean(ingredientesError)
+                }
+                required
+              >
+                {ingredienteFijo ? (
+                  <option value={ingredienteFijo.id}>{ingredienteFijo.nombre}</option>
+                ) : (
+                  <>
+                    <option value="">
+                      {ingredientesLoading ? "Cargando ingredientes..." : "Selecciona un ingrediente"}
+                    </option>
+                    {faltaElActual && ingredienteActual && (
+                      <option value={ingredienteActual.id}>
+                        {ingredienteActual.nombre} (desactivado)
+                      </option>
+                    )}
+                    {options.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.nombre}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </Select>
+              {ingredientesError && !ingredienteFijo && (
+                <div className="flex flex-wrap items-center gap-3" role="alert">
+                  <p className="text-[13px] text-error">{ingredientesError}</p>
+                  {onIngredientesRetry && (
+                    <Button type="button" variant="secondary" onClick={onIngredientesRetry}>
+                      Reintentar
+                    </Button>
+                  )}
+                </div>
+              )}
+              {sinIngredientes && (
+                <p className="text-[13px] text-text-secondary">Aún no tienes ingredientes activos.</p>
+              )}
+              {!ingredienteFijo && onIngredienteCreado && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full sm:w-auto px-2"
+                  onClick={() => setCreandoIngrediente(true)}
+                  disabled={loading}
+                >
+                  Crear ingrediente
+                </Button>
+              )}
+            </div>
+
+            <Input
+              label="Presentación"
+              name="presentacion"
+              placeholder="Ej.: Barra de 500 g"
+              value={values.presentacion}
+              onChange={(e) => update("presentacion", e.target.value)}
+              error={errors.presentacion}
+              hint="Opcional."
+              disabled={loading}
+              maxLength={255}
               autoComplete="off"
             />
-            {duplicate && (
-              <div className="flex flex-wrap items-center gap-3" aria-live="polite">
-                {duplicate.activo && onUseExisting ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={onUseExisting}
-                    loading={usingExisting}
-                  >
-                    Usar este insumo
-                  </Button>
-                ) : duplicate.activo ? (
-                  <Link
-                    to={`/insumos/${duplicate.insumoId}`}
-                    className="text-sm font-medium text-accent-strong underline-offset-2 hover:underline"
-                  >
-                    Ver insumo existente
-                  </Link>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={onReactivate}
-                    loading={reactivating}
-                  >
-                    Reactivar
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </ProductFormSection>
 
-        <ProductFormSection
-          id="insumo-form-declarado"
-          title="Información declarada"
-          description="Lo que dice el envase. Es lo que se conserva en cada elaboración."
-          optional
-        >
-          <Textarea
-            label="Ingredientes declarados"
-            name="ingredientes_declarados"
-            rows={3}
-            placeholder="Azúcar, pasta de cacao, leche en polvo"
-            value={values.ingredientes_declarados}
-            onChange={(e) => update("ingredientes_declarados", e.target.value)}
-            error={errors.ingredientes_declarados}
-            hint="Tal como aparecen en el envase."
-            disabled={loading}
-          />
-          <Textarea
-            label="Advertencias"
-            name="advertencias"
-            rows={2}
-            placeholder="Puede contener trazas de maní"
-            value={values.advertencias}
-            onChange={(e) => update("advertencias", e.target.value)}
-            error={errors.advertencias}
-            disabled={loading}
-          />
-        </ProductFormSection>
+            <div className="space-y-2">
+              <Input
+                label="Código de barras"
+                name="codigo_barras"
+                inputMode="numeric"
+                placeholder="7802910000971"
+                value={values.codigo_barras}
+                onChange={(e) => update("codigo_barras", e.target.value)}
+                error={errors.codigo_barras}
+                hint="Opcional. EAN-8, UPC-A o EAN-13 (8, 12 o 13 dígitos)."
+                disabled={loading}
+                autoComplete="off"
+              />
+              {duplicate && (
+                <div className="flex flex-wrap items-center gap-3" aria-live="polite">
+                  {duplicate.activo && onUseExisting ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={onUseExisting}
+                      loading={usingExisting}
+                    >
+                      Usar este insumo
+                    </Button>
+                  ) : duplicate.activo ? (
+                    <Link
+                      to={`/insumos/${duplicate.insumoId}`}
+                      className="text-sm font-medium text-accent-strong underline-offset-2 hover:underline"
+                    >
+                      Ver insumo existente
+                    </Link>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={onReactivate}
+                      loading={reactivating}
+                    >
+                      Reactivar
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </ProductFormSection>
 
-        {mode === "create" && alergenos && onAlergenosChange && (
           <ProductFormSection
-            id="insumo-form-alergenos"
-            title="Alérgenos"
-            description="Obligatorio: declara los alérgenos del envase o confirma que no contiene ninguno."
+            id="insumo-form-declarado"
+            title="Información declarada"
+            description="Lo que dice el envase. Es lo que se conserva en cada elaboración."
+            optional
           >
-            {sugerencias && <AvisoAlergenosSugeridos sugerencias={sugerencias} />}
-            <AlergenosSelector
-              value={alergenos}
-              onChange={onAlergenosChange}
+            <Textarea
+              label="Ingredientes declarados"
+              name="ingredientes_declarados"
+              rows={3}
+              placeholder="Azúcar, pasta de cacao, leche en polvo"
+              value={values.ingredientes_declarados}
+              onChange={(e) => update("ingredientes_declarados", e.target.value)}
+              error={errors.ingredientes_declarados}
+              hint="Tal como aparecen en el envase."
               disabled={loading}
-              mostrarError={mostrarErrorAlergenos}
-              origenes={sugerencias?.origenes}
+            />
+            <Textarea
+              label="Advertencias"
+              name="advertencias"
+              rows={2}
+              placeholder="Puede contener trazas de maní"
+              value={values.advertencias}
+              onChange={(e) => update("advertencias", e.target.value)}
+              error={errors.advertencias}
+              disabled={loading}
             />
           </ProductFormSection>
-        )}
 
-        <ProductFormSection
-          id="insumo-form-uso"
-          title="Uso en elaboraciones"
-          optional
-        >
-          <div className="flex items-start gap-3">
-            <input
-              id="insumo-habitual"
-              type="checkbox"
-              name="habitual"
-              checked={values.habitual}
-              onChange={(e) => update("habitual", e.target.checked)}
-              disabled={loading}
-              aria-describedby="insumo-habitual-ayuda"
-              className="mt-1 h-4 w-4 rounded border-border-strong accent-brand-600"
-            />
-            <div className="space-y-0.5">
-              <label
-                htmlFor="insumo-habitual"
-                className="block text-sm font-medium text-text-primary"
-              >
-                Insumo habitual
-              </label>
-              <p id="insumo-habitual-ayuda" className="text-[13px] text-text-secondary">
-                Se preselecciona al registrar una elaboración.
-              </p>
-            </div>
-          </div>
-          {errors.habitual && (
-            <p className="text-[13px] text-error">{errors.habitual}</p>
+          {mode === "create" && alergenos && onAlergenosChange && (
+            <ProductFormSection
+              id="insumo-form-alergenos"
+              title="Alérgenos"
+              description="Obligatorio: declara los alérgenos del envase o confirma que no contiene ninguno."
+            >
+              {sugerencias && <AvisoAlergenosSugeridos sugerencias={sugerencias} />}
+              <AlergenosSelector
+                value={alergenos}
+                onChange={onAlergenosChange}
+                disabled={loading}
+                mostrarError={mostrarErrorAlergenos}
+                origenes={sugerencias?.origenes}
+              />
+            </ProductFormSection>
           )}
-        </ProductFormSection>
-      </div>
 
-      {embedded ? (
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          {actions}
+          <ProductFormSection
+            id="insumo-form-uso"
+            title="Uso en elaboraciones"
+            optional
+          >
+            <div className="flex items-start gap-3">
+              <input
+                id="insumo-habitual"
+                type="checkbox"
+                name="habitual"
+                checked={values.habitual}
+                onChange={(e) => update("habitual", e.target.checked)}
+                disabled={loading}
+                aria-describedby="insumo-habitual-ayuda"
+                className="mt-1 h-4 w-4 rounded border-border-strong accent-brand-600"
+              />
+              <div className="space-y-0.5">
+                <label
+                  htmlFor="insumo-habitual"
+                  className="block text-sm font-medium text-text-primary"
+                >
+                  Insumo habitual
+                </label>
+                <p id="insumo-habitual-ayuda" className="text-[13px] text-text-secondary">
+                  Se preselecciona al registrar una elaboración.
+                </p>
+              </div>
+            </div>
+            {errors.habitual && (
+              <p className="text-[13px] text-error">{errors.habitual}</p>
+            )}
+          </ProductFormSection>
         </div>
-      ) : (
-        <FormActions>{actions}</FormActions>
+
+        {embedded ? (
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {actions}
+          </div>
+        ) : (
+          <FormActions>{actions}</FormActions>
+        )}
+      </form>
+
+      {/* Outside the <form>: the dialog has its own form, and a nested one would submit this one. */}
+      {creandoIngrediente && (
+        <IngredientCreateDialog
+          description="El ingrediente se guardará en tu catálogo y quedará seleccionado en este insumo."
+          onCreated={handleIngredienteCreado}
+          onCancel={cerrarDialogoDeIngrediente}
+        />
       )}
-    </form>
+    </>
   );
 }
 

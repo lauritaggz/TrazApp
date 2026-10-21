@@ -39,6 +39,7 @@ vi.mock("@/services/insumoService", () => ({
 vi.mock("@/services/ingredientService", () => ({
   listIngredients: vi.fn(),
   listAlergenosCatalog: vi.fn(),
+  createIngredient: vi.fn(),
 }));
 
 // --- the counter ---------------------------------------------------------------------------------
@@ -273,6 +274,39 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
 
     await guardadoUnaVez();
     expect(r.total).toBe(5);
+  });
+
+  it("por código, cuyo ingrediente no existe: 8 interacciones (3 campos y 5 clics), sin salir de la página", async () => {
+    vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
+    vi.mocked(ingredientService.createIngredient).mockResolvedValue({
+      ...INGREDIENTE_LECHE,
+      id: 5,
+      codigo_interno: "LEC-005",
+      nombre: "Leche sin lactosa",
+    });
+    const { r } = await abrirNuevoInsumo();
+
+    await r.clic("«Escanear código de barras»", screen.getByRole("button", { name: "Escanear código de barras" }));
+    const escaner = await screen.findByRole("dialog", { name: "Escanear código de barras" });
+    await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
+    await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE));
+    // The ingredient does not exist: it is created from here, with the retrieved data still in the form.
+    await r.clic("«Crear ingrediente»", screen.getByRole("button", { name: "Crear ingrediente" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Nuevo ingrediente" });
+    await r.escribir("Código interno", dialogo.querySelector<HTMLElement>('[name="codigo_interno"]')!, "LEC-005");
+    await r.escribir("Nombre del ingrediente", dialogo.querySelector<HTMLElement>('[name="nombre"]')!, "Leche sin lactosa");
+    await r.clic("«Crear ingrediente» (diálogo)", within(dialogo).getByRole("button", { name: "Crear ingrediente" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nuevo ingrediente" })).not.toBeInTheDocument());
+    expect(screen.getByLabelText("Ingrediente")).toHaveValue("5");
+    expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE);
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+
+    const payload = await guardadoUnaVez();
+    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 5, total: 8 });
+    expect(payload.ingrediente_id).toBe(5);
+    expect(payload.fuente).toBe("open_food_facts");
+    expect(payload.alergenos).toHaveLength(2);
   });
 
   it("el escáner es opcional: el camino a mano no tiene ningún paso más por existir el bloque", async () => {

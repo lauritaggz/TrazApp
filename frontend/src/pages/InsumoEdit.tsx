@@ -126,6 +126,7 @@ function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }
         ingredientesLoading={ingredientes.loading}
         ingredientesError={ingredientes.error}
         onIngredientesRetry={() => void ingredientes.reload()}
+        onIngredienteCreado={ingredientes.agregar}
         ingredienteActual={insumo.ingrediente}
         loading={form.loading}
         errorFocusToken={form.errorFocusToken}

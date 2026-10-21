@@ -134,6 +134,13 @@ describe("Bloque de búsqueda en el diálogo", () => {
     expect(within(dialogo).getByRole("button", { name: "Escanear código de barras" })).not.toHaveFocus();
   });
 
+  it("no ofrece «Crear ingrediente»: el ingrediente de la línea es fijo (T13-09)", () => {
+    const { dialogo } = abrirDialogo();
+
+    expect(within(dialogo).queryByRole("button", { name: "Crear ingrediente" })).not.toBeInTheDocument();
+    expect(campo(dialogo, "Ingrediente")).toBeDisabled();
+  });
+
   it("el bloque está dentro del diálogo, sobre el formulario", () => {
     const { dialogo } = abrirDialogo();
 
