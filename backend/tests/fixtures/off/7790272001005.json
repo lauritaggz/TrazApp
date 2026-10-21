@@ -1,0 +1,29 @@
+{
+  "body": {
+    "code": "7790272001005",
+    "product": {
+      "allergens_tags": [
+        "en:soybeans"
+      ],
+      "brands": "Natura",
+      "code": "7790272001005",
+      "countries_tags": [
+        "en:argentina",
+        "en:chile"
+      ],
+      "ingredients_text": "Aceite de girasol. PUEDE CONTENER SOJA. PUEDE CONTENER CACAHUETE.",
+      "ingredients_text_es": "Aceite de girasol. PUEDE CONTENER SOJA. PUEDE CONTENER CACAHUETE.",
+      "last_modified_t": 1779638716,
+      "product_name": "Aceite de girasol",
+      "product_name_es": "Aceite de girasol",
+      "quantity": "900 ml",
+      "traces_tags": [
+        "en:peanuts",
+        "en:soybeans"
+      ]
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

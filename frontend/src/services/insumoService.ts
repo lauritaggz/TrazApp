@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/apiClient";
+import type { ConsultaCodigo } from "@/types/consultaCodigo";
 import type {
   AlergenoDeclarado,
   AlergenoDeclaradoInput,
@@ -26,6 +27,19 @@ export async function listInsumos(params: ListInsumosParams = {}): Promise<Insum
 
 export async function getInsumo(id: number): Promise<Insumo> {
   return apiRequest<Insumo>(`/gestion/insumos/${id}`, { method: "GET" }, true);
+}
+
+/**
+ * Looks a barcode up in the product source (HU13). It only reads: nothing is registered. 200 with
+ * `encontrado` true or false; 409 if the productor already has the code; 422 if it is not valid;
+ * 503 if the source cannot answer.
+ */
+export async function consultarCodigoBarras(codigo: string): Promise<ConsultaCodigo> {
+  return apiRequest<ConsultaCodigo>(
+    `/gestion/insumos/consulta-codigo/${encodeURIComponent(codigo)}`,
+    { method: "GET" },
+    true,
+  );
 }
 
 export async function createInsumo(payload: InsumoCreatePayload): Promise<Insumo> {

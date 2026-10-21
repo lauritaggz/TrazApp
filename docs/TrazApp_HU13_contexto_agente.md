@@ -4,7 +4,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 
 ---
 
-## 1. Reglas de trabajo (obligatorias, sin cambios)
+## 1. Reglas de trabajo (obligatorias)
 
 1. **Se trabaja tarea por tarea.** Para cada tarea recibirás un prompt específico. No comiences una tarea sin su prompt ni avances a la siguiente.
 2. **Detente al terminar cada tarea** y entrega un reporte: qué hiciste, decisiones que conviene revisar, archivos creados y modificados, y resultado de las pruebas.
@@ -16,6 +16,11 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 8. **Nunca agregues al repositorio** respaldos (`*.sql`) ni certificados o claves (`*.pem`).
 9. **Pruebas de mutación:** antes de modificar un archivo para verificar que una prueba detecta una falla, copia el original y restáuralo desde esa copia. Al terminar, confirma con `git diff` que solo quedan los cambios de la tarea.
 10. **Las pruebas automatizadas nunca consultan servicios externos reales.** Toda llamada a Open Food Facts se simula con respuestas grabadas (ver sección 7). La integración continua se ejecuta sin acceso garantizado a internet y no debe depender de la disponibilidad de terceros.
+11. **Alcance de las pruebas por tarea (regla vigente desde T13-07).**
+    - **Por tarea:** corre solo los archivos de prueba nuevos o modificados y los directamente relacionados. En las pruebas de mutación, máximo 3 o 4 mutaciones: las de mayor riesgo.
+    - **Suites completas locales** (backend en SQLite y PostgreSQL, y frontend con `npm run build`): solo en T13-08, o si la tarea toca algo compartido: modelos, `conftest`, configuración de Vite o Vitest, o el cliente de la API.
+    - **Las suites completas las corre GitHub Actions** en cada push.
+    - Nunca corras dos suites de PostgreSQL a la vez: comparten la base `trazapp_test`.
 
 ---
 
@@ -25,8 +30,9 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 
 - **No hay servidor de producción por ahora.** El proyecto se ejecuta solo en local (Docker Compose con PostgreSQL y el backend; frontend con `npm run dev`). La Definición de Terminado se verifica en local y en la integración continua, sin el paso de despliegue.
 - **Integración continua:** `.github/workflows/ci.yml` ejecuta tres trabajos en cada Pull Request hacia `main`: backend en SQLite, backend en PostgreSQL (con `TEST_DATABASE_URL` a una base `trazapp_test` temporal) y frontend (Vitest y `npm run build`). La variable `UPLOADS_ROOT` se define en el paso de pruebas. Las pruebas nuevas deben pasar en los tres trabajos.
-- **Revisión de la base:** `017_alergenos_revisados_ht06`. La siguiente migración es la 018 (identificador de máximo 32 caracteres).
-- **Línea base de pruebas** (merge de HT06): backend SQLite 896 aprobadas y 147 omitidas; backend PostgreSQL 1043 aprobadas; frontend 553 aprobadas.
+- **Revisión de la base:** `017_alergenos_revisados_ht06`. **La HU13 no agrega ninguna migración** (no existe la 018): las columnas `ficha`, `fuente` y `fecha_recuperacion` ya estaban desde la HU04. La siguiente migración que se necesite sería la 018 (identificador de máximo 32 caracteres).
+- **Línea base de pruebas** (merge de HT06, al empezar la HU13): backend SQLite 896 aprobadas y 147 omitidas; backend PostgreSQL 1043 aprobadas; frontend 555 aprobadas en 23 archivos (553 al cierre de HT06-08 más las 2 pruebas de la prueba intermitente de los recorridos).
+- **Cierre de la HU13 (T13-08):** SQLite 1250 aprobadas y 148 omitidas; PostgreSQL 1398 aprobadas; frontend 898 aprobadas en 39 archivos. Detalle en `docs/hu13-test-results.md`.
 - **Pruebas de recorrido** (`frontend/src/recorridos`): miden los escenarios de uso con un contador de interacciones. HU13 no debe alargar el escenario B; si se agrega el escaneo al flujo de insumos, agrega o ajusta un recorrido que lo mida.
 
 ### Historias del Sprint 2
@@ -39,7 +45,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 | HU04 | Gestión de insumos comerciales | Terminada |
 | HU05 | Registro de elaboración | Terminada |
 | HT06 | Simplificación del flujo de elaboración y revisión de alérgenos | Terminada |
-| **HU13** | **Búsqueda de insumos mediante código de barras** | **En desarrollo** |
+| **HU13** | **Búsqueda de insumos mediante código de barras** | **Implementada y con pruebas automatizadas; probada en Chrome para Android; falta Safari para iOS (CA12 parcialmente verificado)** |
 
 ---
 
@@ -55,7 +61,8 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 
 **Endpoints** bajo `/gestion/insumos`:
 - `POST` acepta `fuente`, `fecha_recuperacion`, `ficha` y **`alergenos: [{alergeno_id, tipo}]`** (HT06), además de los campos del insumo. Con `alergenos` presente (aunque sea `[]`), crea el insumo y sus alérgenos en una transacción y lo deja **revisado**; sin el campo, queda sin revisar. **La HU13 registra los insumos recuperados con este mismo endpoint, enviando siempre `alergenos`.**
-- Código de barras repetido: `409` con `detail: {mensaje, insumo_id, activo}`.
+- Código de barras repetido: `409` con `detail: {mensaje, insumo_id, activo}`. Desde la HU13 el duplicado se detecta también en la otra forma del código (UPC-A de 12 dígitos y EAN-13 con cero inicial), en el `POST`, el `PATCH` y la consulta.
+- **Reglas agregadas por la HU13 (`POST` y `PATCH`),** con `422` y `detail: {mensaje, campo}`: una `fuente` distinta de `manual` exige `fecha_recuperacion` (campo `fecha_recuperacion`; en el `PATCH` se juzga el resultado final y solo cuando el pedido toca `fuente` o `fecha_recuperacion`), y si la `ficha` trae `url`, debe ser una dirección http o https (campo `ficha`).
 - Endpoints de alérgenos del insumo: `/gestion/insumos/{id}/alergenos` (asociar, cambiar tipo, quitar) y `PUT /gestion/insumos/{id}/alergenos` (reemplaza la lista completa y marca revisado; `[]` = revisado sin alérgenos).
 
 **Validación del código de barras:**
@@ -139,6 +146,8 @@ Como productor, quiero escanear con la cámara de mi celular el código de barra
 | T13-07 | Probar el escaneo en Chrome para Android y Safari para iOS con productos del conjunto de validación | 1 h |
 | T13-08 | Ejecutar y documentar pruebas automatizadas | 0,75 h |
 
+**Estado de las tareas:** T13-01 a T13-06 y T13-08 terminadas. T13-07: la preparación (HTTPS de desarrollo y guía) está terminada; la prueba en Chrome para Android se hizo el 20-10-2026 (11 códigos aprobados) y la de **Safari para iOS está pendiente por falta de dispositivo** (tarea «Verificar HU13 en Safari iOS»); los resultados están en `docs/hu13-prueba-celular.md`. **T13-09** (crear un ingrediente sin salir del registro de insumo) y **T13-10** (limpiar el texto de ingredientes recuperado: se corta el fabricante y los datos de contacto, se conserva un aviso de alérgenos posterior; la detección y la ficha usan el texto original) terminadas; ambas nacieron de la prueba en Android. Los resultados de las pruebas están en `docs/hu13-test-results.md`.
+
 ### Plan de pruebas
 
 | ID | Caso de prueba | Resultado esperado |
@@ -167,7 +176,7 @@ Como productor, quiero escanear con la cámara de mi celular el código de barra
 
 ### Lector de códigos (frontend)
 
-- **Detector nativo `BarcodeDetector`** cuando el navegador lo ofrece (Chrome para Android) y **ZBar-WASM (`@undecaf/zbar-wasm`)** como alternativa (Safari para iOS).
+- **Detector nativo `BarcodeDetector`** cuando el navegador lo ofrece (Chrome para Android) y, como alternativa (Safari para iOS), **`@undecaf/barcode-detector-polyfill` 0.9.23** (versión fijada), que usa ZBar-WASM (`@undecaf/zbar-wasm` 0.9.16, LGPL-2.1+) y se carga con `import()` diferido solo cuando hace falta. El polyfill no permite indicar dónde está el `.wasm`: un alias de Vite (`frontend/vite.alias-zbar.ts`) reemplaza la URL fija de la CDN para que `zbar.wasm` se sirva desde la propia aplicación. Licencias en `docs/licencias-terceros.md`.
 - **`html5-qrcode` está descartado:** su decodificador en JavaScript (ZXing-js) no lee códigos EAN en Safari para iOS. Cambiar a `@zxing/browser` tampoco sirve: es el mismo decodificador.
 - **Dynamsoft está descartado:** requiere licencia de pago.
 - Restringir la detección a EAN-13, EAN-8 y UPC-A mejora la velocidad y la exactitud.
@@ -177,8 +186,10 @@ Como productor, quiero escanear con la cámara de mi celular el código de barra
 ### Recuperación de información (backend)
 
 - **La lectura del código ocurre en el frontend; la consulta a las fuentes ocurre en el backend.** El frontend nunca llama a Open Food Facts directamente.
+- **Endpoint de consulta:** `GET /gestion/insumos/consulta-codigo/{codigo}` (declarado antes de `/{insumo_id}`). `200` con `encontrado` verdadero o falso (la propuesta de insumo, `contiene`, `trazas` y `sin_reconocer`, y la `fecha_recuperacion` de la consulta); `401` sin token; `422` con `{mensaje}` si el código es inválido; `409` con `{mensaje, insumo_id, activo}` si el productor ya lo tiene; `503` con `{mensaje, motivo}` si la fuente no está disponible. No escribe nada en la base.
+- Código: paquete `backend/app/services/recuperacion/` (`base.py` con el `Protocol FuenteProducto`, `modelos.py`, `open_food_facts.py`, `alergenos.py`, `service.py`); las tablas de palabras de la detección, en `backend/app/core/alergenos_palabras.py`.
 - **Componente aislado con una interfaz común de fuente y un adaptador por fuente.** La HU07 (Sprint 3) agregará un adaptador de scraping sin modificar el resto.
-- **Open Food Facts exige que cada aplicación se identifique** con el encabezado `User-Agent` (por ejemplo, `TrazApp/0.x (proyecto académico; contacto)`). Respeta sus límites de uso y define un tiempo de espera explícito para cada consulta.
+- **Open Food Facts exige que cada aplicación se identifique** con el encabezado `User-Agent` (el configurado es `TrazApp/2.0 (proyecto academico; https://github.com/lauritaggz/trazapp)`, en ASCII porque `httpx` rechaza otros caracteres en las cabeceras; se define en `Settings`). Respeta sus límites de uso y define un tiempo de espera explícito para cada consulta (`off_timeout_seconds`).
 - **La consulta no registra nada.** Devuelve una propuesta de insumo; el registro ocurre solo cuando el productor confirma, usando el `POST /gestion/insumos` existente.
 - **No usar UPCitemdb** ni otras fuentes comerciales: no son abiertas, su cobertura es principalmente de Estados Unidos y no entregan ingredientes ni alérgenos en el formato necesario.
 
@@ -236,6 +247,8 @@ Estos códigos se escanearon desde envases reales durante la HT04 (todos con dí
 | 7803600002053 | Encontrado, **sin nombre** | Datos mínimos |
 | 7801505000358 | No encontrado | PT13-09 |
 
+**Ya grabado (T13-03):** las respuestas están en `backend/tests/fixtures/off/` (12 archivos: los 11 códigos de la tabla más `0400001143070`, la forma EAN-13 del atún). Hallazgo: Open Food Facts ya resuelve el UPC-A de 12 dígitos por sí solo (las respuestas de `400001143070` y `0400001143070` son idénticas), así que el reintento del adaptador con la forma EAN-13 no se dispara con datos reales; se prueba con fixtures combinadas. Se grabaron con `backend/scripts/grabar_respuesta_off.py`, que solo consulta la red cuando alguien lo ejecuta a mano; las pruebas nunca lo hacen.
+
 Además, cubre con respuestas construidas a mano: tiempo de espera agotado, error del servidor de la fuente, respuesta mal formada y un producto con etiquetas de alérgenos que no existen en el catálogo (PT13-08).
 
 **Cobertura medida en la HT04** (16 insumos reales): 69 % encontrados, 56 % con ingredientes y 12 % con alérgenos etiquetados. El ingreso manual es indispensable.
@@ -248,7 +261,7 @@ Sin servidor de producción, la prueba en el celular se hace desde la red local,
 - La cámara solo funciona en un **contexto seguro**: `localhost` en el computador, o HTTPS desde el celular. Una dirección IP local sin HTTPS no permite usar la cámara.
 - Si el frontend se sirve por HTTPS y el backend por HTTP, el navegador bloquea las llamadas (contenido mixto). La forma más simple es que el servidor de desarrollo de Vite sirva por HTTPS y **reenvíe las llamadas a la API** (proxy), para que el celular solo hable con un origen.
 - Safari para iOS es más estricto con los certificados autofirmados que Chrome.
-- Propón en la T13-07 la configuración concreta antes de aplicarla. Esta configuración es solo para desarrollo y no debe afectar el build de producción.
+- **Implementado en T13-07:** `npm run dev:https` (en `frontend/`) sirve la aplicación por HTTPS con un certificado propio (`@vitejs/plugin-basic-ssl`, versión exacta, solo con `VITE_DEV_HTTPS=1`), la expone en la red local y reenvía `/api/...` al backend local. No afecta a `npm run dev` ni al build. Los pasos y las tablas de resultados están en `docs/hu13-prueba-celular.md`; la prueba con el celular la hace la desarrolladora.
 
 ---
 

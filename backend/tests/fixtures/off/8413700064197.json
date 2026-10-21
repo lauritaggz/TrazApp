@@ -1,0 +1,23 @@
+{
+  "body": {
+    "code": "8413700064197",
+    "product": {
+      "allergens_tags": [],
+      "brands": "Carmencita",
+      "code": "8413700064197",
+      "countries_tags": [
+        "en:spain"
+      ],
+      "ingredients_text": "Bicarbonato sódico (E-500ii).",
+      "ingredients_text_es": "Bicarbonato sódico (E-500ii).",
+      "last_modified_t": 1774645873,
+      "product_name": "Bicarbonato sódico",
+      "product_name_es": "Bicarbonato sódico",
+      "quantity": "200 g",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

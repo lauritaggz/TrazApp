@@ -1,8 +1,16 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, type MutableRefObject } from "react";
+import BuscarPorCodigo from "@/components/insumos/BuscarPorCodigo";
+import ConfirmarReemplazoDatos from "@/components/insumos/ConfirmarReemplazoDatos";
 import InsumoForm from "@/components/insumos/InsumoForm";
 import Alert from "@/components/ui/Alert";
+import {
+  useFormularioDesdeCodigo,
+  usePublicarFormulario,
+  type EstadoDelFormulario,
+} from "@/hooks/useFormularioDesdeCodigo";
+import { useInsumoExistente } from "@/hooks/useInsumoExistente";
 import { useInsumoForm } from "@/hooks/useInsumoForm";
-import { getInsumo } from "@/services/insumoService";
+import type { PrecargaInsumo } from "@/lib/precargaInsumo";
 import type { Insumo } from "@/types/insumo";
 
 interface InsumoCreateDialogProps {
@@ -11,12 +19,6 @@ interface InsumoCreateDialogProps {
   /** Called with the supply that ends up assigned: new, reactivated or an existing one. */
   onAssigned: (insumo: Insumo) => void;
   onCancel: () => void;
-}
-
-const LOOKUP_ERROR = "No pudimos comprobar el insumo existente. Inténtalo nuevamente.";
-
-function otroIngrediente(nombre: string): string {
-  return `Ese insumo está asociado a «${nombre}».`;
 }
 
 /** Mount only while open: each opening starts with an empty form. */
@@ -28,79 +30,22 @@ export default function InsumoCreateDialog({
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  const [aviso, setAviso] = useState("");
-  const [comprobando, setComprobando] = useState(false);
 
-  const form = useInsumoForm({
-    mode: "create",
-    initialValues: { ingrediente_id: String(ingrediente.id) },
-    onSaved: onAssigned,
-    onReactivated: onAssigned,
+  const { busqueda, precarga, formularioRef, porConfirmar, reemplazar, conservar } =
+    useFormularioDesdeCodigo({ ingrediente_id: String(ingrediente.id) });
+  // The supply that already has the scanned code: it can be used (or reactivated) only for this line's ingredient.
+  const existenteDeLaBusqueda = useInsumoExistente({
+    ingredienteId: ingrediente.id,
+    onUsar: onAssigned,
+    onReactivado: onAssigned,
   });
-  const { loading, reactivating } = form;
-  const ocupado = loading || reactivating || comprobando;
 
+  // The initial focus stays on «Nombre»: the lookup block below the title does not take it.
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
     panelRef.current?.querySelector<HTMLElement>('[name="nombre"]')?.focus();
     return () => previousFocus?.focus();
   }, []);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !ocupado) onCancel();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [ocupado, onCancel]);
-
-  function handleCancel() {
-    if (!ocupado) onCancel();
-  }
-
-  /** The repeated barcode belongs to an active supply: use it, if it is for this ingredient. */
-  async function handleUseExisting() {
-    if (!form.duplicate || ocupado) return;
-    setAviso("");
-    setComprobando(true);
-    try {
-      const existente = await getInsumo(form.duplicate.insumoId);
-      if (existente.ingrediente_id !== ingrediente.id) {
-        setAviso(otroIngrediente(existente.ingrediente.nombre));
-        return;
-      }
-      onAssigned(existente);
-    } catch {
-      setAviso(LOOKUP_ERROR);
-    } finally {
-      setComprobando(false);
-    }
-  }
-
-  /**
-   * Reactivating a deactivated supply also assigns it, so it must belong to this ingredient:
-   * check before reactivating anything.
-   */
-  async function handleReactivate() {
-    if (!form.duplicate || ocupado) return;
-    setAviso("");
-    setComprobando(true);
-    try {
-      const existente = await getInsumo(form.duplicate.insumoId);
-      if (existente.ingrediente_id !== ingrediente.id) {
-        setAviso(otroIngrediente(existente.ingrediente.nombre));
-        return;
-      }
-    } catch {
-      setAviso(LOOKUP_ERROR);
-      return;
-    } finally {
-      setComprobando(false);
-    }
-    await form.handleReactivate();
-  }
-
-  const mensaje = aviso || form.globalError;
 
   return (
     <div
@@ -126,35 +71,119 @@ export default function InsumoCreateDialog({
           </p>
         </div>
 
-        {mensaje && <Alert type="error">{mensaje}</Alert>}
-
-        <InsumoForm
-          mode="create"
+        <BuscarPorCodigo
           embedded
-          ingredienteFijo={{ id: ingrediente.id, nombre: ingrediente.nombre }}
-          ingredientes={[]}
-          values={form.values}
-          errors={form.errors}
-          loading={loading}
-          errorFocusToken={form.errorFocusToken}
-          duplicate={form.duplicate}
-          reactivating={reactivating || comprobando}
-          onReactivate={() => void handleReactivate()}
-          onUseExisting={() => void handleUseExisting()}
-          usingExisting={comprobando}
-          alergenos={form.alergenos}
-          onAlergenosChange={form.handleAlergenosChange}
-          mostrarErrorAlergenos={form.mostrarErrorAlergenos}
-          submitLabel="Registrar insumo"
-          loadingLabel="Registrando…"
-          onChange={(values) => {
-            if (aviso) setAviso("");
-            form.handleChange(values);
+          busqueda={busqueda}
+          existente={{
+            onUsar: (duplicado) => void existenteDeLaBusqueda.usar(duplicado.insumoId),
+            onReactivar: (duplicado) => void existenteDeLaBusqueda.reactivar(duplicado.insumoId),
+            ocupado: existenteDeLaBusqueda.ocupado,
+            aviso: existenteDeLaBusqueda.aviso,
           }}
-          onSubmit={() => void form.handleSubmit()}
-          onCancel={handleCancel}
+        />
+
+        <FormularioEnDialogo
+          key={precarga.clave}
+          ingrediente={ingrediente}
+          precarga={precarga}
+          formularioRef={formularioRef}
+          onAssigned={onAssigned}
+          onCancel={onCancel}
+          // Escape belongs to the scanner or to the confirmation while one of them is open.
+          escapeParaOtro={busqueda.escanerAbierto || porConfirmar !== null}
+          ocupadoPorFuera={existenteDeLaBusqueda.ocupado}
         />
       </div>
+
+      <ConfirmarReemplazoDatos
+        open={porConfirmar !== null}
+        onConfirm={reemplazar}
+        onCancel={conservar}
+      />
     </div>
+  );
+}
+
+interface FormularioEnDialogoProps {
+  ingrediente: { id: number; nombre: string };
+  precarga: PrecargaInsumo;
+  formularioRef: MutableRefObject<EstadoDelFormulario>;
+  onAssigned: (insumo: Insumo) => void;
+  onCancel: () => void;
+  escapeParaOtro: boolean;
+  ocupadoPorFuera: boolean;
+}
+
+/** The form of the dialog. Mounted with `key`, so each lookup starts it again from its new data. */
+function FormularioEnDialogo({
+  ingrediente,
+  precarga,
+  formularioRef,
+  onAssigned,
+  onCancel,
+  escapeParaOtro,
+  ocupadoPorFuera,
+}: FormularioEnDialogoProps) {
+  const form = useInsumoForm({
+    mode: "create",
+    initialValues: precarga.valores,
+    initialAlergenos: precarga.alergenos,
+    extraPayload: precarga.extra,
+    onSaved: onAssigned,
+  });
+  usePublicarFormulario(form, precarga, formularioRef);
+
+  // The repeated barcode that the save found (409): use it or reactivate it, for this ingredient only.
+  const existente = useInsumoExistente({
+    ingredienteId: ingrediente.id,
+    onUsar: onAssigned,
+    onReactivado: onAssigned,
+  });
+  const ocupado = form.loading || existente.ocupado || ocupadoPorFuera;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !ocupado && !escapeParaOtro) onCancel();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [ocupado, escapeParaOtro, onCancel]);
+
+  const mensaje = existente.aviso || form.globalError;
+
+  return (
+    <>
+      {mensaje && <Alert type="error">{mensaje}</Alert>}
+
+      <InsumoForm
+        mode="create"
+        embedded
+        ingredienteFijo={{ id: ingrediente.id, nombre: ingrediente.nombre }}
+        ingredientes={[]}
+        values={form.values}
+        errors={form.errors}
+        loading={form.loading}
+        errorFocusToken={form.errorFocusToken}
+        duplicate={form.duplicate}
+        reactivating={existente.ocupado}
+        onReactivate={() => form.duplicate && void existente.reactivar(form.duplicate.insumoId)}
+        onUseExisting={() => form.duplicate && void existente.usar(form.duplicate.insumoId)}
+        usingExisting={existente.ocupado}
+        alergenos={form.alergenos}
+        onAlergenosChange={form.handleAlergenosChange}
+        mostrarErrorAlergenos={form.mostrarErrorAlergenos}
+        sugerencias={precarga.sugerencias}
+        submitLabel="Registrar insumo"
+        loadingLabel="Registrando…"
+        onChange={(values) => {
+          existente.limpiarAviso();
+          form.handleChange(values);
+        }}
+        onSubmit={() => void form.handleSubmit()}
+        onCancel={() => {
+          if (!ocupado) onCancel();
+        }}
+      />
+    </>
   );
 }

@@ -1,0 +1,19 @@
+{
+  "body": {
+    "code": "7801505231950",
+    "product": {
+      "allergens_tags": [],
+      "brands": "IANSA",
+      "code": "7801505231950",
+      "countries_tags": [
+        "en:chile"
+      ],
+      "last_modified_t": 1775567798,
+      "product_name": "azúcar Rubia",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

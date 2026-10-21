@@ -1,0 +1,23 @@
+{
+  "body": {
+    "code": "0400001143070",
+    "product": {
+      "allergens_tags": [],
+      "brands": "Líder",
+      "code": "0400001143070",
+      "countries_tags": [
+        "en:chile"
+      ],
+      "ingredients_text": "No visible",
+      "ingredients_text_es": "No visible",
+      "last_modified_t": 1786801453,
+      "product_name": "ATÚN LOMITOS EN ACEITE",
+      "product_name_es": "ATÚN LOMITOS EN ACEITE",
+      "quantity": "140 g",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

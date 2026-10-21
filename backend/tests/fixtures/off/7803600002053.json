@@ -1,0 +1,19 @@
+{
+  "body": {
+    "code": "7803600002053",
+    "product": {
+      "allergens_tags": [],
+      "code": "7803600002053",
+      "countries_tags": [
+        "en:chile"
+      ],
+      "ingredients_text": "Cloruro de sodio, yodato de potasio y prusiato amarillo de soda como antiaglomerante.",
+      "ingredients_text_es": "Cloruro de sodio, yodato de potasio y prusiato amarillo de soda como antiaglomerante.",
+      "last_modified_t": 1775567639,
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

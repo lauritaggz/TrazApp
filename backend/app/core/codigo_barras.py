@@ -28,6 +28,19 @@ def digito_verificador_valido(codigo: str) -> bool:
     return (10 - suma % 10) % 10 == digito
 
 
+def formas_equivalentes(codigo: str) -> tuple[str, ...]:
+    """Every written form of the same product: a UPC-A (12 digits) is the EAN-13 with a leading 0.
+
+    Readers and sources disagree on which form they report, so duplicates are looked up in both.
+    The check digit is the same in both forms. The code itself comes first. EAN-8 has no twin.
+    """
+    if len(codigo) == 12:
+        return (codigo, "0" + codigo)
+    if len(codigo) == 13 and codigo.startswith("0"):
+        return (codigo, codigo[1:])
+    return (codigo,)
+
+
 def validar_codigo_barras(codigo: str) -> str:
     """Return the code if it is a valid EAN-8, UPC-A or EAN-13; raise ValueError otherwise."""
     if not (codigo.isascii() and codigo.isdigit()) or len(codigo) not in LARGOS_VALIDOS:

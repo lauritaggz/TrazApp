@@ -30,5 +30,15 @@ export function useIngredientesActivos() {
     void load();
   }, [load]);
 
-  return { ingredientes, loading, error, reload: load };
+  /** An ingredient created while this list is on screen: it joins the list without reloading it. */
+  const agregar = useCallback((ingrediente: Ingrediente) => {
+    setIngredientes((actuales) =>
+      [...actuales.filter((item) => item.id !== ingrediente.id), ingrediente].sort((a, b) =>
+        a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
+      ),
+    );
+    setError("");
+  }, []);
+
+  return { ingredientes, loading, error, reload: load, agregar };
 }

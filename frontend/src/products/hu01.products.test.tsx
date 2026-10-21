@@ -365,12 +365,10 @@ describe("Productos HU01 — creación", () => {
       overrides?.codigo ?? "GAL-001",
     );
     await user.clear(screen.getByLabelText(/Nombre/));
-    await user.type(
-      screen.getByLabelText(/^Nombre/),
-      overrides?.nombre ?? "Galleta de chocolate",
-    );
+    await pegar(user, screen.getByLabelText(/^Nombre/), overrides?.nombre ?? "Galleta de chocolate");
     await user.clear(screen.getByLabelText(/Descripción/));
-    await user.type(
+    await pegar(
+      user,
       screen.getByLabelText(/Descripción/),
       overrides?.descripcion ?? "Galleta horneada con chips de chocolate",
     );
@@ -386,17 +384,23 @@ describe("Productos HU01 — creación", () => {
     if (overrides?.presentacion !== undefined) {
       await user.clear(screen.getByLabelText(/^Presentación$/));
       if (overrides.presentacion) {
-        await user.type(
-          screen.getByLabelText(/^Presentación$/),
-          overrides.presentacion,
-        );
+        await pegar(user, screen.getByLabelText(/^Presentación$/), overrides.presentacion);
       }
     } else {
-      await user.type(
-        screen.getByLabelText(/^Presentación$/),
-        "Bolsa de 10 unidades",
-      );
+      await pegar(user, screen.getByLabelText(/^Presentación$/), "Bolsa de 10 unidades");
     }
+  }
+
+  // Los textos largos se pegan en vez de teclearse: cada tecla cuesta ~26 ms (un commit de React por
+  // tecla), así que ~90 teclas por prueba acercaban el total al límite cuando la máquina está ocupada.
+  // El valor y los eventos de cambio que ve el formulario son los mismos.
+  async function pegar(
+    user: ReturnType<typeof userEvent.setup>,
+    campo: HTMLElement,
+    texto: string,
+  ) {
+    await user.click(campo);
+    await user.paste(texto);
   }
 
   it("requiere autenticación para /productos/nuevo", async () => {

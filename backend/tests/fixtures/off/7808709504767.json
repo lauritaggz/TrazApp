@@ -1,0 +1,23 @@
+{
+  "body": {
+    "code": "7808709504767",
+    "product": {
+      "allergens_tags": [],
+      "brands": "Surlat",
+      "code": "7808709504767",
+      "countries_tags": [
+        "en:brazil"
+      ],
+      "ingredients_text": "Leche natural entera, enzima Lactasa y vitamina D3.",
+      "ingredients_text_es": "Leche natural entera, enzima Lactasa y vitamina D3.",
+      "last_modified_t": 1772012475,
+      "product_name": "Balance Perfecto Rica & Natural 100% Auténtica Entera",
+      "product_name_es": "Balance Perfecto Rica & Natural 100% Auténtica Entera",
+      "quantity": "1 Litro",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

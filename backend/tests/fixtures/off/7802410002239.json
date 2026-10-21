@@ -1,0 +1,19 @@
+{
+  "body": {
+    "code": "7802410002239",
+    "product": {
+      "allergens_tags": [],
+      "brands": "gourmet",
+      "code": "7802410002239",
+      "countries_tags": [
+        "en:chile"
+      ],
+      "last_modified_t": 1790343442,
+      "product_name": "Polvos de Hornear",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}

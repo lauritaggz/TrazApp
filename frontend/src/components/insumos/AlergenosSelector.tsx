@@ -6,6 +6,7 @@ import Select from "@/components/ui/Select";
 import { ROTULACION_OBLIGATORIA_AYUDA } from "@/lib/alergenos";
 import { alergenosValidos, MENSAJE_ALERGENOS_INVALIDOS } from "@/lib/alergenosDeclaracion";
 import { listAlergenosCatalog } from "@/services/ingredientService";
+import { ORIGEN_ALERGENO_LABELS, type OrigenAlergeno } from "@/types/consultaCodigo";
 import type { AlergenoCatalogo } from "@/types/ingredient";
 import {
   TIPO_CONTIENE,
@@ -45,6 +46,11 @@ interface AlergenosSelectorProps {
    * productor tried to save, so an untouched form is not born with an error.
    */
   mostrarError?: boolean;
+  /**
+   * HU13, presentation only: where each SUGGESTED allergen comes from, by allergen id. It is shown
+   * next to the allergen while it is declared; it never changes the value or the validation.
+   */
+  origenes?: Record<number, OrigenAlergeno>;
 }
 
 /**
@@ -57,6 +63,7 @@ export default function AlergenosSelector({
   onChange,
   disabled = false,
   mostrarError = false,
+  origenes,
 }: AlergenosSelectorProps) {
   const ayudaId = useId();
   const sinId = useId();
@@ -179,6 +186,11 @@ export default function AlergenosSelector({
                         className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                       >
                         <span className="text-sm font-medium text-text-primary">{item.nombre}</span>
+                        {origenes?.[item.alergeno_id] && (
+                          <span className="text-[12px] text-text-secondary">
+                            ({ORIGEN_ALERGENO_LABELS[origenes[item.alergeno_id]]})
+                          </span>
+                        )}
                         {item.obligatorio && (
                           <Badge
                             variant="warning"

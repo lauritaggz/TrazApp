@@ -1,6 +1,7 @@
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.core.codigo_barras import formas_equivalentes
 from app.models import Alergeno, Ingrediente, InsumoAlergeno, InsumoComercial
 
 
@@ -66,14 +67,25 @@ class InsumoRepository:
         *,
         exclude_id: int | None = None,
     ) -> InsumoComercial | None:
-        """Supply of the productor holding the barcode, active or not."""
-        stmt = select(InsumoComercial).where(
-            InsumoComercial.productor_id == productor_id,
-            InsumoComercial.codigo_barras == codigo_barras,
+        """Supply of the productor holding the barcode in any of its forms, active or not."""
+        stmt = (
+            select(InsumoComercial)
+            .where(
+                InsumoComercial.productor_id == productor_id,
+                InsumoComercial.codigo_barras.in_(formas_equivalentes(codigo_barras)),
+            )
+            .order_by(InsumoComercial.id)
         )
         if exclude_id is not None:
             stmt = stmt.where(InsumoComercial.id != exclude_id)
-        return self.db.scalar(stmt)
+        return self.db.scalars(stmt).first()
+
+    def get_alergenos_por_codigo(self, codigos: list[str]) -> dict[str, Alergeno]:
+        """Catalog allergens by `codigo`."""
+        if not codigos:
+            return {}
+        stmt = select(Alergeno).where(Alergeno.codigo.in_(codigos))
+        return {alergeno.codigo: alergeno for alergeno in self.db.scalars(stmt).all()}
 
     def get_active_ingrediente(
         self,

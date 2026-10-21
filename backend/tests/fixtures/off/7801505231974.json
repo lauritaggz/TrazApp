@@ -1,0 +1,23 @@
+{
+  "body": {
+    "code": "7801505231974",
+    "product": {
+      "allergens_tags": [],
+      "brands": "iansa",
+      "code": "7801505231974",
+      "countries_tags": [
+        "en:chile"
+      ],
+      "ingredients_text": "Azúcar impalpable y almidón de maiz. Elaborado y envasado por-lansagro S.A. Posario Norte 615, piso 23, Las Condes,",
+      "ingredients_text_es": "Azúcar impalpable y almidón de maiz. Elaborado y envasado por-lansagro S.A. Posario Norte 615, piso 23, Las Condes,",
+      "last_modified_t": 1775565893,
+      "product_name": "azúcar flor",
+      "product_name_es": "azúcar flor",
+      "quantity": "500 g",
+      "traces_tags": []
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "http_status": 200
+}
