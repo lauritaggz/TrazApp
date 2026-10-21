@@ -8,7 +8,7 @@ import DashboardProductPreviewCard from "@/components/dashboard/DashboardProduct
 import DashboardRecentIngredients from "@/components/dashboard/DashboardRecentIngredients";
 import DashboardSection from "@/components/dashboard/DashboardSection";
 import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
-import { BoxIcon, FlagIcon, LeafIcon } from "@/components/dashboard/dashboardIcons";
+import { AlertIcon, BoxIcon, FlagIcon } from "@/components/dashboard/dashboardIcons";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
@@ -16,9 +16,11 @@ import { useAppShell } from "@/hooks/useAppShell";
 import { productsWithGaps } from "@/lib/productCompleteness";
 import { listElaboraciones } from "@/services/elaboracionService";
 import { listIngredients } from "@/services/ingredientService";
+import { listInsumos } from "@/services/insumoService";
 import { listProducts } from "@/services/productService";
 import type { ElaboracionResumen } from "@/types/elaboracion";
 import type { Ingrediente } from "@/types/ingredient";
+import type { Insumo } from "@/types/insumo";
 import type { Product } from "@/types/product";
 
 function sortRecentProducts(products: Product[]): Product[] {
@@ -48,8 +50,13 @@ export default function Dashboard() {
   const [loadingIngredients, setLoadingIngredients] = useState(true);
   const [productsError, setProductsError] = useState("");
   const [ingredientsError, setIngredientsError] = useState("");
-  // Drafts in progress (HT06-07). A secondary block: if it fails to load it is simply not shown.
-  const [borradores, setBorradores] = useState<ElaboracionResumen[]>([]);
+  // Elaboraciones (HT06-07): the drafts feed «Elaboraciones en curso» and any of them marks the third step done.
+  // A secondary block: if it fails to load it is simply not shown.
+  const [elaboraciones, setElaboraciones] = useState<ElaboracionResumen[]>([]);
+  // Active supplies, to count the ones with allergens still to review (HT07).
+  const [insumos, setInsumos] = useState<Insumo[]>([]);
+  const [loadingInsumos, setLoadingInsumos] = useState(true);
+  const [insumosError, setInsumosError] = useState(false);
   const [elaboracionDialogOpen, setElaboracionDialogOpen] = useState(false);
 
   const loadProducts = useCallback(async () => {
@@ -78,19 +85,41 @@ export default function Dashboard() {
     }
   }, []);
 
-  const loadBorradores = useCallback(async () => {
+  const loadElaboraciones = useCallback(async () => {
     try {
-      setBorradores(await listElaboraciones({ estado: "borrador" }));
+      setElaboraciones(await listElaboraciones());
     } catch {
-      setBorradores([]);
+      setElaboraciones([]);
+    }
+  }, []);
+
+  const loadInsumos = useCallback(async () => {
+    setLoadingInsumos(true);
+    setInsumosError(false);
+    try {
+      setInsumos(await listInsumos({ activo: true }));
+    } catch {
+      setInsumosError(true);
+    } finally {
+      setLoadingInsumos(false);
     }
   }, []);
 
   useEffect(() => {
     void loadProducts();
     void loadIngredients();
-    void loadBorradores();
-  }, [loadProducts, loadIngredients, loadBorradores]);
+    void loadElaboraciones();
+    void loadInsumos();
+  }, [loadProducts, loadIngredients, loadElaboraciones, loadInsumos]);
+
+  const borradores = useMemo(
+    () => elaboraciones.filter((elaboracion) => elaboracion.estado === "borrador"),
+    [elaboraciones],
+  );
+  const insumosSinRevisar = useMemo(
+    () => insumos.filter((insumo) => !insumo.alergenos_revisados).length,
+    [insumos],
+  );
 
   const firstName = useMemo(() => {
     const trimmed = producerName?.trim();
@@ -138,24 +167,45 @@ export default function Dashboard() {
           onNuevaElaboracion={() => setElaboracionDialogOpen(true)}
         />
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           <DashboardStatCard
             label="Productos registrados"
             value={productsError ? "—" : products.length}
             icon={<BoxIcon />}
             loading={loadingProducts}
+            to="/productos"
           />
-          <DashboardStatCard
-            label="Ingredientes"
-            value={ingredientsError ? "—" : ingredients.length}
-            icon={<LeafIcon />}
-            loading={loadingIngredients}
-          />
+          {/* The number of the week: supplies whose allergens nobody reviewed. At 0 it says so, in a positive tone. */}
+          {!loadingInsumos && !insumosError && insumos.length === 0 ? (
+            <DashboardStatCard
+              label="Insumos registrados"
+              value={0}
+              icon={<AlertIcon />}
+              to="/insumos"
+            />
+          ) : !loadingInsumos && !insumosError && insumosSinRevisar === 0 ? (
+            <DashboardStatCard
+              label="Todos tus insumos tienen los alérgenos revisados"
+              value="Al día"
+              icon={<AlertIcon />}
+              tono="positivo"
+              to="/insumos"
+            />
+          ) : (
+            <DashboardStatCard
+              label="Insumos con alérgenos sin revisar"
+              value={insumosError ? "—" : insumosSinRevisar}
+              icon={<AlertIcon />}
+              loading={loadingInsumos}
+              to="/insumos?alergenos=sin-revisar"
+            />
+          )}
           <DashboardStatCard
             label="Productos por completar"
             value={productsError ? "—" : incompleteProducts.length}
             icon={<FlagIcon />}
             loading={loadingProducts}
+            to="/productos"
           />
         </div>
 
@@ -220,6 +270,7 @@ export default function Dashboard() {
           <DashboardGettingStarted
             hasProducts={hasProducts}
             hasIngredients={hasIngredients}
+            hasElaboraciones={elaboraciones.length > 0}
           />
         </div>
       </div>

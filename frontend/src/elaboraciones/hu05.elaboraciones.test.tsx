@@ -327,19 +327,34 @@ beforeEach(() => {
 // --- acceso desde el producto ---
 
 describe("Detalle del producto: elaboraciones", () => {
-  it("muestra «Registrar elaboración» solo si el producto tiene formulación", async () => {
+  it("muestra «Nueva elaboración» solo si el producto tiene formulación", async () => {
     openPage("/productos/5");
-    expect(await screen.findByRole("button", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Nueva elaboración" })).toBeInTheDocument();
   });
 
-  it("sin formulación no ofrece el botón y lo explica", async () => {
+  it("sin formulación el botón del encabezado queda deshabilitado y lo explica", async () => {
     vi.mocked(formulationService.getProductFormulation).mockResolvedValue({ existe: false, version: null });
     openPage("/productos/5");
 
-    expect(
-      await screen.findByText("Define la formulación del producto para poder registrar elaboraciones."),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Registrar elaboración" })).not.toBeInTheDocument();
+    const explicacion = await screen.findByText(
+      "Define la formulación del producto para poder crear elaboraciones.",
+    );
+    const boton = screen.getByRole("button", { name: "Nueva elaboración" });
+    expect(boton).toBeDisabled();
+    expect(boton).toHaveAccessibleDescription(explicacion.textContent ?? "");
+  });
+
+  it("«Nueva elaboración» es la acción principal del encabezado del producto, junto a «Editar producto» (HT07)", async () => {
+    openPage("/productos/5");
+
+    const nueva = await screen.findByRole("button", { name: "Nueva elaboración" });
+    await waitFor(() => expect(nueva).toBeEnabled());
+    const editar = screen.getByRole("button", { name: "Editar producto" });
+    expect(nueva.parentElement).toBe(editar.parentElement);
+    expect(nueva.compareDocumentPosition(editar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nueva).toHaveClass("bg-brand-600");
+    expect(editar).not.toHaveClass("bg-brand-600");
+    expect(screen.queryByRole("button", { name: "Volver a productos" })).not.toBeInTheDocument();
   });
 
   it("lista las elaboraciones más recientes con código, fecha y estado, y enlaza cada una", async () => {
@@ -388,9 +403,9 @@ describe("Detalle del producto: elaboraciones", () => {
   });
 });
 
-// --- diálogo «Registrar elaboración» ---
+// --- diálogo «Nueva elaboración» ---
 
-describe("Diálogo «Registrar elaboración»", () => {
+describe("Diálogo «Nueva elaboración»", () => {
   beforeEach(() => {
     vi.mocked(elaboracionService.getCodigoSugerido).mockResolvedValue({ codigo: "E-001" });
     vi.mocked(elaboracionService.createElaboracion).mockResolvedValue(BORRADOR);
@@ -398,8 +413,8 @@ describe("Diálogo «Registrar elaboración»", () => {
 
   async function abrirDialogo(user: ReturnType<typeof userEvent.setup>) {
     openPage("/productos/5");
-    await user.click(await screen.findByRole("button", { name: "Registrar elaboración" }));
-    return screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(await screen.findByRole("button", { name: "Nueva elaboración" }));
+    return screen.findByRole("dialog", { name: "Nueva elaboración" });
   }
 
   it("el botón solo abre el diálogo: todavía no se crea nada", async () => {
@@ -451,8 +466,8 @@ describe("Diálogo «Registrar elaboración»", () => {
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
     vi.mocked(elaboracionService.getCodigoSugerido).mockResolvedValue({ codigo: "E-002" });
 
-    await user.click(screen.getByRole("button", { name: "Registrar elaboración" }));
-    dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
+    dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
 
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-002"));
     expect(elaboracionService.getCodigoSugerido).toHaveBeenCalledTimes(2);
@@ -521,7 +536,7 @@ describe("Diálogo «Registrar elaboración»", () => {
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
 
     expect(await within(dialogo).findByText(/Ya existe una elaboración con el código «E-001».*Prueba con E-002\./)).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nueva elaboración" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Elaboración E-001" })).not.toBeInTheDocument();
 
     await user.clear(within(dialogo).getByLabelText("Código de la elaboración"));
@@ -561,7 +576,7 @@ describe("Diálogo «Registrar elaboración»", () => {
 
     expect(await within(dialogo).findByText(/ingredientes desactivados: «Harina»/)).toBeInTheDocument();
     expect(within(dialogo).getByRole("listitem")).toHaveTextContent("Harina");
-    expect(screen.getByRole("dialog", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nueva elaboración" })).toBeInTheDocument();
   });
 
   it("un producto sin formulación se informa dentro del diálogo", async () => {
@@ -2415,10 +2430,14 @@ describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", (
     await openRegistro();
 
     const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
-    expect(within(barra).getAllByRole("button").map((b) => b.textContent)).toEqual([
+    expect(within(barra).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual([
       "Guardar borrador",
       "Finalizar elaboración",
     ]);
+    // En el celular el texto visible es «Finalizar»; el nombre accesible sigue siendo el completo.
+    const finalizar = within(barra).getByRole("button", { name: "Finalizar elaboración" });
+    expect(finalizar.querySelector(".sm\\:hidden")).toHaveTextContent("Finalizar");
+    expect(finalizar.querySelector(".hidden")).toHaveTextContent("Finalizar elaboración");
     expect(within(barra).queryByRole("button", { name: "Eliminar borrador" })).not.toBeInTheDocument();
     expect(within(barra).queryByRole("link", { name: "Volver al producto" })).not.toBeInTheDocument();
     expect(barra).toHaveClass("sticky", "bottom-0", "grid", "grid-cols-2", "sm:flex");

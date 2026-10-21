@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -21,6 +21,7 @@ import {
   DEFAULT_INSUMO_LIST_FILTERS,
   INSUMO_ESTADO_OPTIONS,
   type Insumo,
+  type InsumoAlergenosFilter,
   type InsumoEstadoFilter,
   type InsumoListFilters,
 } from "@/types/insumo";
@@ -34,7 +35,12 @@ export default function Insumos() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filters, setFilters] = useState<InsumoListFilters>(DEFAULT_INSUMO_LIST_FILTERS);
+  // The Dashboard links here with `?alergenos=sin-revisar`.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<InsumoListFilters>(() => ({
+    ...DEFAULT_INSUMO_LIST_FILTERS,
+    alergenos: searchParams.get("alergenos") === "sin-revisar" ? "sin_revisar" : "todos",
+  }));
 
   const activos = filters.estado === "activos";
 
@@ -189,6 +195,13 @@ function InsumoListControls({
       onRemove: () => onChange({ ...filters, ingredienteId: "all" }),
     });
   }
+  if (filters.alergenos === "sin_revisar") {
+    chips.push({
+      key: "alergenos",
+      label: "Alérgenos sin revisar",
+      onRemove: () => onChange({ ...filters, alergenos: "todos" }),
+    });
+  }
   if (filters.estado !== "activos") {
     chips.push({
       key: "estado",
@@ -226,6 +239,16 @@ function InsumoListControls({
                 {item.nombre}
               </option>
             ))}
+          </Select>
+          <Select
+            label="Alérgenos"
+            value={filters.alergenos}
+            onChange={(e) => onChange({ ...filters, alergenos: e.target.value as InsumoAlergenosFilter })}
+            disabled={disabled}
+            aria-label="Filtrar por alérgenos"
+          >
+            <option value="todos">Todos</option>
+            <option value="sin_revisar">Alérgenos sin revisar</option>
           </Select>
           <Select
             label="Estado"

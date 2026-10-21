@@ -594,12 +594,12 @@ describe("Escenario B (HT06-08): segunda elaboración con los mismos insumos y l
     const user = userEvent.setup();
     const r = new Recorrido(user);
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     r.etapa("Dashboard → crear el borrador");
     await waitFor(() => expect(screen.getByRole("button", { name: "Nueva elaboración" })).toBeEnabled());
     await r.clic("«Nueva elaboración»", screen.getByRole("button", { name: "Nueva elaboración" }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await r.elegir("Producto: Queque de vainilla", within(dialogo).getByLabelText("Producto"), "5");
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-002"));
     await r.clic("«Crear borrador» (código y fecha ya sugeridos)", within(dialogo).getByRole("button", { name: "Crear borrador" }));
@@ -702,11 +702,11 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     const user = userEvent.setup();
     const r = new Recorrido(user);
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     // 1. The product.
     r.etapa("Producto nuevo");
-    await r.clic("«+ Nuevo producto»", screen.getByRole("link", { name: "+ Nuevo producto" }));
+    await r.clic("«Nuevo producto»", screen.getByRole("link", { name: "Nuevo producto" }));
     await screen.findByRole("heading", { name: "Nuevo producto", level: 1 });
     await r.escribir("Código interno", screen.getByLabelText(/Código interno/), "QUE-001");
     await r.escribir("Nombre", screen.getByLabelText(/^Nombre/), "Queque de vainilla");
@@ -733,8 +733,11 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
 
     // 3. The borrador.
     r.etapa("Crear el borrador");
-    await r.clic("«Registrar elaboración»", await screen.findByRole("button", { name: "Registrar elaboración" }));
-    const dialogoElaboracion = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    // El botón del encabezado se habilita cuando la pantalla vuelve a leer que el producto ya tiene formulación (no cuenta).
+    const nueva = await screen.findByRole("button", { name: "Nueva elaboración" });
+    await waitFor(() => expect(nueva).toBeEnabled());
+    await r.clic("«Nueva elaboración»", nueva);
+    const dialogoElaboracion = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogoElaboracion).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
     await r.clic("«Crear borrador» (código y fecha ya sugeridos)", within(dialogoElaboracion).getByRole("button", { name: "Crear borrador" }));
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });

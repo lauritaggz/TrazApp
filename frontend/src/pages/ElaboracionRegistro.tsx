@@ -384,8 +384,15 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
             className="w-full min-h-11 sm:w-auto"
             onClick={() => void handleFinalizar()}
             disabled={form.busy}
+            aria-label="Finalizar elaboración"
           >
-            Finalizar elaboración
+            {/* En el celular cabe en una línea; el nombre accesible es el completo. */}
+            <span aria-hidden="true" className="sm:hidden">
+              Finalizar
+            </span>
+            <span aria-hidden="true" className="hidden sm:inline">
+              Finalizar elaboración
+            </span>
           </Button>
         </FormActions>
       </form>

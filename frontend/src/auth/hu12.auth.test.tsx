@@ -148,7 +148,7 @@ describe("Login HU12", () => {
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(
-      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
+      await screen.findByRole("heading", { name: /Hola, Ana/ }),
     ).toBeInTheDocument();
     expect(localStorage.getItem("trazapp_access_token")).toBe("test-token");
   });
@@ -290,7 +290,7 @@ describe("Protección y logout HU12", () => {
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: /Bienvenida/ }),
+      screen.queryByRole("heading", { name: /Hola/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -301,7 +301,7 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
+      await screen.findByRole("heading", { name: /Hola, Ana/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Menú de usuario: Ana Perez" }),
@@ -355,7 +355,7 @@ describe("Protección y logout HU12", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     expect(
-      await screen.findByRole("heading", { name: /Bienvenida, Ana/ }),
+      await screen.findByRole("heading", { name: /Hola, Ana/ }),
     ).toBeInTheDocument();
 
     await user.click(

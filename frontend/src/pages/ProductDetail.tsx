@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
@@ -11,11 +12,14 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
-import { formatProductContent, formatProductMoney } from "@/lib/productListUtils";
+import { formatProductContent, formatProductPrice } from "@/lib/productListUtils";
 import { resolveProductImageUrl } from "@/lib/productImageUpload";
+import { getProductFormulation } from "@/services/formulationService";
 import { getProduct, deleteProduct } from "@/services/productService";
 import { ApiError } from "@/types/auth";
 import type { Product, Categoria } from "@/types/product";
+
+const ID_SIN_FORMULACION = "product-sin-formulacion";
 
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -39,8 +43,10 @@ export default function ProductDetail() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [justUpdated, setJustUpdated] = useState(false);
   const [formulationVersion, setFormulationVersion] = useState(0);
+  // «Nueva elaboración» needs a formulation: true / false / null (not known yet).
+  const [tieneFormulacion, setTieneFormulacion] = useState<boolean | null>(null);
+  const [elaboracionDialogOpen, setElaboracionDialogOpen] = useState(false);
 
   const loadProduct = useCallback(async (id: number) => {
     setLoading(true);
@@ -66,6 +72,22 @@ export default function ProductDetail() {
   }, [loadProduct, productId]);
 
   useEffect(() => {
+    if (productId == null) return;
+    let vigente = true;
+    getProductFormulation(productId).then(
+      (formulacion) => {
+        if (vigente) setTieneFormulacion(formulacion.existe);
+      },
+      () => {
+        if (vigente) setTieneFormulacion(null);
+      },
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [productId, formulationVersion]);
+
+  useEffect(() => {
     const state = location.state as {
       productCreated?: boolean;
       productUpdated?: boolean;
@@ -84,7 +106,6 @@ export default function ProductDetail() {
     }
     if (!state?.productUpdated) return;
     notify("Producto actualizado correctamente.");
-    setJustUpdated(true);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -113,12 +134,6 @@ export default function ProductDetail() {
     }
   }
 
-  function handleBackToProducts() {
-    navigate("/productos", {
-      state: justUpdated ? { productUpdated: true } : undefined,
-    });
-  }
-
   return (
     <AppShell
       activePage="productos"
@@ -127,7 +142,7 @@ export default function ProductDetail() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-2xl space-y-6">
+      <div className="max-w-3xl space-y-6">
         {loading && <ProductDetailLoading />}
 
         {!loading && unavailable && (
@@ -143,14 +158,16 @@ export default function ProductDetail() {
                 <>
                   <Button
                     type="button"
-                    variant="secondary"
                     className="w-full sm:w-auto"
-                    onClick={handleBackToProducts}
+                    disabled={tieneFormulacion !== true}
+                    aria-describedby={tieneFormulacion === false ? ID_SIN_FORMULACION : undefined}
+                    onClick={() => setElaboracionDialogOpen(true)}
                   >
-                    Volver a productos
+                    Nueva elaboración
                   </Button>
                   <Button
                     type="button"
+                    variant="secondary"
                     className="w-full sm:w-auto"
                     onClick={() => navigate(`/productos/${product.id}/editar`)}
                   >
@@ -165,67 +182,23 @@ export default function ProductDetail() {
             />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
-            <ProductDetailSection id="product-detail-image" title="Imagen principal">
-              <ProductMainImage
-                imagenUrl={product.imagen_url}
-                nombre={product.nombre}
-              />
-            </ProductDetailSection>
-
-            <ProductDetailSection
-              id="product-detail-general"
-              title="Información general"
-            >
-              <dl className="grid grid-cols-1 gap-4 sm:gap-5">
-                <DetailField label="Código interno">
-                  {product.codigo_interno ?? "—"}
-                </DetailField>
-                <DetailField label="Descripción">
-                  {product.descripcion?.trim() || "—"}
-                </DetailField>
-                <DetailField label="Contenido neto">
-                  {formatProductContent(
-                    product.contenido_neto,
-                    product.unidad_medida,
-                  )}
-                </DetailField>
-              </dl>
-            </ProductDetailSection>
-
-            <ProductDetailSection
-              id="product-detail-presentation"
-              title="Presentación"
-            >
-              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-                {product.presentacion?.trim()
-                  ? product.presentacion
-                  : "No especificada"}
-              </p>
-            </ProductDetailSection>
-
-            <ProductDetailSection
-              id="product-detail-categories"
-              title="Categorías"
-            >
-              {product.categorias.length > 0 ? (
-                <CategoryBadges categorias={product.categorias} />
-              ) : (
-                <p className="text-sm text-text-secondary">Sin categorías</p>
-              )}
-            </ProductDetailSection>
-
-            <ProductDetailSection
-              id="product-detail-commercial"
-              title="Información comercial"
-            >
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                <DetailField label="Costo de producción">
-                  {formatProductMoney(product.costo_produccion)}
-                </DetailField>
-                <DetailField label="Precio de venta">
-                  {formatProductMoney(product.precio_venta)}
-                </DetailField>
-              </dl>
+            <ProductDetailSection id="product-detail-general" title="Información general">
+              <div
+                className={`grid gap-5 ${resolveProductImageUrl(product.imagen_url) ? "sm:grid-cols-[12rem_1fr]" : ""}`}
+              >
+                <ProductMainImage imagenUrl={product.imagen_url} nombre={product.nombre} />
+                <dl className="grid grid-cols-1 gap-4 sm:gap-5">
+                  <DetailField label="Código interno">
+                    {product.codigo_interno ?? "—"}
+                  </DetailField>
+                  <DetailField label="Descripción">
+                    {product.descripcion?.trim() || "—"}
+                  </DetailField>
+                  <DetailField label="Contenido neto">
+                    {formatProductContent(product.contenido_neto, product.unidad_medida)}
+                  </DetailField>
+                </dl>
+              </div>
             </ProductDetailSection>
 
             <ProductDetailSection id="product-detail-formulation" title="Formulación">
@@ -239,21 +212,48 @@ export default function ProductDetail() {
               <ProductElaboracionesSection
                 productoId={product.id}
                 refreshKey={formulationVersion}
+                tieneFormulacion={tieneFormulacion}
+                idSinFormulacion={ID_SIN_FORMULACION}
               />
             </ProductDetailSection>
 
+            <ProductDetailSection id="product-detail-presentation" title="Presentación">
+              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+                {product.presentacion?.trim() ? product.presentacion : "No especificada"}
+              </p>
+            </ProductDetailSection>
+
+            <ProductDetailSection id="product-detail-categories" title="Categorías">
+              {product.categorias.length > 0 ? (
+                <CategoryBadges categorias={product.categorias} />
+              ) : (
+                <p className="text-sm text-text-secondary">Sin categorías</p>
+              )}
+            </ProductDetailSection>
+
+            <ProductDetailSection id="product-detail-commercial" title="Información comercial">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <DetailField label="Costo de producción">
+                  {formatProductPrice(product.costo_produccion)}
+                </DetailField>
+                <DetailField label="Precio de venta">
+                  {formatProductPrice(product.precio_venta)}
+                </DetailField>
+              </dl>
+            </ProductDetailSection>
+
             <section
-              aria-label="Eliminar producto"
+              aria-labelledby="product-delete-title"
               className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
             >
               <div className="space-y-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-text-primary">
+                  <h2 id="product-delete-title" className="text-sm font-semibold text-text-primary">
                     Eliminar producto
                   </h2>
-                  <p className="text-sm text-text-secondary leading-relaxed mt-1">
-                    Al eliminar, el producto dejará de aparecer en tu catálogo.
-                    La información histórica de trazabilidad se conservará.
+                  <p id="product-delete-help" className="text-sm text-text-secondary leading-relaxed mt-1">
+                    Al eliminar, el producto dejará de aparecer en tu catálogo. La trazabilidad
+                    histórica se conserva.
                   </p>
                 </div>
                 <Button
@@ -267,15 +267,19 @@ export default function ProductDetail() {
                 >
                   {deleting ? "Eliminando…" : "Eliminar producto"}
                 </Button>
-                <p id="product-delete-help" className="sr-only">
-                  Acción irreversible para el catálogo. La trazabilidad histórica
-                  se mantiene.
-                </p>
               </div>
             </section>
           </>
         )}
       </div>
+
+      {elaboracionDialogOpen && product && (
+        <ElaboracionCreateDialog
+          productoId={product.id}
+          onCreated={(creada) => navigate(`/elaboraciones/${creada.id}/registro`)}
+          onCancel={() => setElaboracionDialogOpen(false)}
+        />
+      )}
 
       <ConfirmDialog
         open={showDeleteConfirm}
@@ -336,20 +340,23 @@ function ProductMainImage({
 }) {
   const src = resolveProductImageUrl(imagenUrl);
 
+  // Without an image: a low strip, not a square that pushes the information down.
+  if (!src) {
+    return (
+      <div
+        role="img"
+        aria-label="Sin imagen principal"
+        className="flex h-12 items-center justify-center rounded-lg border border-dashed border-border bg-surface px-4 text-sm text-text-secondary"
+      >
+        Sin imagen
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-xs">
-      <div className="aspect-square rounded-xl border border-border bg-surface overflow-hidden flex items-center justify-center">
-        {src ? (
-          <img
-            src={src}
-            alt={`Imagen de ${nombre}`}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="text-center px-4 text-sm text-text-secondary">
-            Sin imagen principal
-          </div>
-        )}
+    <div className="w-full max-w-[12rem]">
+      <div className="aspect-square overflow-hidden rounded-xl border border-border bg-surface">
+        <img src={src} alt={`Imagen de ${nombre}`} className="h-full w-full object-cover" />
       </div>
     </div>
   );

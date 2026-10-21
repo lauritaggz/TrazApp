@@ -120,8 +120,12 @@ export const EMPTY_INSUMO_FORM_VALUES: InsumoFormValues = {
 
 export type InsumoEstadoFilter = "activos" | "inactivos";
 
+export type InsumoAlergenosFilter = "todos" | "sin_revisar";
+
 export interface InsumoListFilters {
   search: string;
+  /** HT07: only the supplies whose allergens nobody reviewed (also the Dashboard's link). */
+  alergenos: InsumoAlergenosFilter;
   /** "all" or the ingredient id as text. */
   ingredienteId: string;
   estado: InsumoEstadoFilter;
@@ -129,6 +133,7 @@ export interface InsumoListFilters {
 
 export const DEFAULT_INSUMO_LIST_FILTERS: InsumoListFilters = {
   search: "",
+  alergenos: "todos",
   ingredienteId: "all",
   estado: "activos",
 };

@@ -113,7 +113,7 @@ describe("Productos HU01 — listado y navegación", () => {
 
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
     expect(
-      await screen.findByRole("heading", { name: /Bienvenida/ }),
+      await screen.findByRole("heading", { name: /Hola/ }),
     ).toBeInTheDocument();
 
     const productsLink = screen.getByRole("link", { name: "Productos" });
@@ -1026,8 +1026,9 @@ describe("Productos HU01 — detalle y edición", () => {
         level: 1,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("12,5")).toBeInTheDocument();
-    expect(screen.getByText("25")).toBeInTheDocument();
+    // HT07: con formato de moneda, como en el formulario.
+    expect(screen.getByText("$12,5")).toBeInTheDocument();
+    expect(screen.getByText("$25")).toBeInTheDocument();
   });
 
   it("muestra placeholder cuando el producto no tiene imagen", async () => {
@@ -1041,7 +1042,8 @@ describe("Productos HU01 — detalle y edición", () => {
         level: 1,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Sin imagen principal")).toBeInTheDocument();
+    // HT07: una franja baja con «Sin imagen», no un recuadro grande.
+    expect(screen.getByRole("img", { name: "Sin imagen principal" })).toHaveTextContent("Sin imagen");
   });
 
   it("muestra la imagen principal cuando existe imagen_url", async () => {
@@ -1354,12 +1356,13 @@ describe("Productos HU01 — detalle y edición", () => {
       }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Volver a productos" }));
+    // HT07: «Volver» son las migas; el aviso de «Producto actualizado» sale al llegar al detalle.
+    expect(await screen.findByText("Producto actualizado correctamente.")).toBeInTheDocument();
+    await user.click(
+      within(screen.getByRole("navigation", { name: "Ruta de navegación" })).getByRole("link", { name: "Productos" }),
+    );
     expect(
       await screen.findByRole("heading", { name: "Productos", level: 1 }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText("Producto actualizado correctamente."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Galleta premium listado").length).toBeGreaterThan(
       0,

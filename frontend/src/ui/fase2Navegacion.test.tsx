@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
@@ -68,13 +68,17 @@ describe("Menú de usuario del header", () => {
 });
 
 describe("Menú lateral", () => {
-  it("anticipa Trazabilidad sin enlaces ni foco en lo que aún no existe", () => {
+  it("no muestra lo que aún no existe: ni «Elaboraciones» ni «Elaboraciones relacionadas» ni «Pronto» (HT07)", () => {
     renderShell();
 
-    expect(screen.getByText("Trazabilidad")).toBeInTheDocument();
-    expect(screen.getByText("Elaboraciones")).toBeInTheDocument();
-    expect(screen.getByText("Elaboraciones relacionadas")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Elaboraciones/ })).not.toBeInTheDocument();
+    // Se reactivan con HU06 y HU08.
+    expect(screen.queryByText("Trazabilidad")).not.toBeInTheDocument();
+    expect(screen.queryByText("Elaboraciones")).not.toBeInTheDocument();
+    expect(screen.queryByText("Elaboraciones relacionadas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pronto")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link").map((l) => l.textContent),
+    ).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos"]);
     // Los términos del modelo anterior ya no aparecen en el menú.
     expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
     expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();

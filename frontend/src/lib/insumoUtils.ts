@@ -43,6 +43,7 @@ export function ingredienteFilterOptions(insumos: Insumo[]): IngredienteResumen[
 export function filterInsumos(insumos: Insumo[], filters: InsumoListFilters): Insumo[] {
   const search = filters.search.trim().toLowerCase();
   return insumos.filter((insumo) => {
+    if (filters.alergenos === "sin_revisar" && insumo.alergenos_revisados) return false;
     if (
       filters.ingredienteId !== "all" &&
       String(insumo.ingrediente_id) !== filters.ingredienteId
@@ -62,6 +63,7 @@ export function filterInsumos(insumos: Insumo[], filters: InsumoListFilters): In
 export function hasActiveInsumoFilters(filters: InsumoListFilters): boolean {
   return (
     filters.search.trim() !== "" ||
+    filters.alergenos !== "todos" ||
     filters.ingredienteId !== "all" ||
     filters.estado !== "activos"
   );

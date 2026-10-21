@@ -652,6 +652,43 @@ describe("Sección de alérgenos del detalle: estado y confirmación (HT06)", ()
   });
 });
 
+// --- filtro «Alérgenos sin revisar» (HT07) ---
+
+describe("Listado de insumos: filtro «Alérgenos sin revisar» (HT07)", () => {
+  const filas = () => screen.getAllByRole("row").slice(1);
+
+  it("deja solo los insumos con los alérgenos sin revisar, con su chip, y se quita", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos");
+    await screen.findAllByText("Chocolate sin revisar");
+    const todas = filas().length;
+    expect(todas).toBeGreaterThan(1);
+
+    await user.selectOptions(screen.getByLabelText("Filtrar por alérgenos"), "sin_revisar");
+
+    expect(filas()).toHaveLength(1);
+    expect(within(filas()[0]).getByText("Chocolate sin revisar")).toBeInTheDocument();
+    const chip = screen.getByRole("button", { name: /Quitar.*Alérgenos sin revisar|Alérgenos sin revisar.*Quitar/ });
+    await user.click(chip);
+    expect(filas()).toHaveLength(todas);
+  });
+
+  it("el enlace del Dashboard (?alergenos=sin-revisar) abre el listado ya filtrado", async () => {
+    openPage("/insumos?alergenos=sin-revisar");
+    await screen.findAllByText("Chocolate sin revisar");
+
+    expect(screen.getByLabelText("Filtrar por alérgenos")).toHaveValue("sin_revisar");
+    expect(filas()).toHaveLength(1);
+  });
+
+  it("sin el parámetro el listado muestra todos", async () => {
+    openPage("/insumos");
+    await screen.findAllByText("Chocolate sin revisar");
+
+    expect(screen.getByLabelText("Filtrar por alérgenos")).toHaveValue("todos");
+  });
+});
+
 // --- la marca en el listado ---
 
 describe("Listado de insumos: marca «Alérgenos sin revisar» (HT06)", () => {
@@ -680,8 +717,9 @@ describe("Listado de insumos: marca «Alérgenos sin revisar» (HT06)", () => {
     openPage("/insumos");
     await screen.findAllByText("Chocolate sin revisar");
 
-    // One in the table and one in the card of the unreviewed supply: the other two have none.
-    expect(screen.getAllByText("Alérgenos sin revisar")).toHaveLength(2);
+    // One in the table and one in the card of the unreviewed supply: the other two have none. (The filter
+    // «Alérgenos sin revisar» of HT07 is an <option>, not a badge.)
+    expect(screen.getAllByText("Alérgenos sin revisar", { selector: "span" })).toHaveLength(2);
     const tarjetas = screen.getAllByRole("article");
     const marcadas = tarjetas.filter((tarjeta) => within(tarjeta).queryByText("Alérgenos sin revisar"));
     expect(marcadas).toHaveLength(1);
