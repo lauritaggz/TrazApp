@@ -743,9 +743,9 @@ describe("Registro: encabezado y líneas", () => {
     await openRegistro();
 
     expect(within(linea("Harina")).getByText("500 g")).toBeInTheDocument();
-    expect(within(linea("Harina")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Falta el insumo")).toBeInTheDocument();
     // La leche tiene insumo pero aún no lote.
-    expect(within(linea("Leche")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Falta el lote")).toBeInTheDocument();
   });
 
   it("si el ingrediente no tiene insumos activos, lo indica", async () => {
@@ -857,7 +857,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await openRegistro();
 
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
-    expect(within(linea("Leche")).getByText("Completo")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
 
     await waitFor(() =>
@@ -876,7 +876,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "11");
 
     expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).not.toBeChecked();
-    expect(within(linea("Leche")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Falta el lote")).toBeInTheDocument();
   });
 
   it("un lote nuevo sin código no se envía y se marca en su línea", async () => {
@@ -1055,7 +1055,7 @@ describe("Registro: cambios sin guardar", () => {
     await openRegistro();
 
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
-    await user.click(screen.getByRole("button", { name: "Volver al producto" }));
+    await user.click(screen.getByRole("link", { name: "Volver al producto" }));
     expect(await screen.findByRole("alertdialog", { name: "Salir sin guardar" })).toBeInTheDocument();
   });
 
@@ -1063,7 +1063,7 @@ describe("Registro: cambios sin guardar", () => {
     const user = userEvent.setup();
     await openRegistro();
 
-    await user.click(screen.getByRole("button", { name: "Volver al producto" }));
+    await user.click(screen.getByRole("link", { name: "Volver al producto" }));
 
     expect(await screen.findByRole("heading", { name: "Queque de vainilla", level: 1 })).toBeInTheDocument();
   });
@@ -2332,6 +2332,262 @@ describe("Registro: el 409 «alergenos_sin_revisar» (HT06-06)", () => {
     expect(within(linea("Leche")).queryByText("Alérgenos del insumo sin revisar.")).not.toBeInTheDocument();
     expect(linea("Leche")).not.toHaveClass("border-error-border");
     expect(screen.queryByText("No se puede finalizar todavía: revisa las líneas marcadas.")).not.toBeInTheDocument();
+  });
+
+  it("la línea dice «Falta revisar alérgenos», no «Lista», y el progreso la cuenta (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+    // Antes del 409 la pantalla cree que está revisado: lista.
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
+
+    await finalizarYRecibirElProblema(user);
+
+    expect(within(linea("Leche")).getByText("Falta revisar alérgenos")).toBeInTheDocument();
+    expect(within(linea("Leche")).queryByText("Lista")).not.toBeInTheDocument();
+    expect(screen.getByText("Falta 1 de 2 ingredientes")).toBeInTheDocument();
+  });
+
+  it("lleva a la primera línea con problema: se desplaza hasta ella y el foco queda en ella (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await finalizarYRecibirElProblema(user);
+
+    await waitFor(() => expect(linea("Leche")).toHaveFocus());
+    const desplazar = vi.mocked(Element.prototype.scrollIntoView);
+    expect(desplazar).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+    expect(desplazar.mock.contexts.at(-1)).toBe(linea("Leche"));
+  });
+
+  it("con prefers-reduced-motion el desplazamiento no es suave (HT07)", async () => {
+    conProblema();
+    const original = window.matchMedia;
+    window.matchMedia = ((consulta: string) => ({
+      matches: consulta.includes("prefers-reduced-motion"),
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const user = userEvent.setup();
+      await openRegistro();
+
+      await finalizarYRecibirElProblema(user);
+
+      await waitFor(() =>
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "center" }),
+      );
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("tras un error sin línea que señalar, al cerrar la confirmación el foco vuelve a «Finalizar» (HT07)", async () => {
+    conProblema();
+    vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Finalizar" }));
+    await screen.findByText("No pudimos finalizar la elaboración. Inténtalo nuevamente.");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Finalizar elaboración" })).toHaveFocus());
+  });
+
+  it("«Seguir editando» devuelve el foco al botón que abrió la confirmación (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Seguir editando" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Finalizar elaboración" })).toHaveFocus();
+  });
+});
+
+describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", () => {
+  it("la barra solo tiene «Guardar borrador» y «Finalizar elaboración», en dos columnas en el celular", async () => {
+    await openRegistro();
+
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(within(barra).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Guardar borrador",
+      "Finalizar elaboración",
+    ]);
+    expect(within(barra).queryByRole("button", { name: "Eliminar borrador" })).not.toBeInTheDocument();
+    expect(within(barra).queryByRole("link", { name: "Volver al producto" })).not.toBeInTheDocument();
+    expect(barra).toHaveClass("sticky", "bottom-0", "grid", "grid-cols-2", "sm:flex");
+  });
+
+  it("«Eliminar borrador» va al final, en una sección aparte con color de error, y sigue confirmando", async () => {
+    vi.mocked(elaboracionService.deleteElaboracion).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await openRegistro();
+
+    const seccion = screen.getByRole("region", { name: "Eliminar borrador" });
+    expect(seccion).toHaveClass("border-error-border");
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(seccion.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    await user.click(within(seccion).getByRole("button", { name: "Eliminar borrador" }));
+
+    expect(await screen.findByRole("alertdialog", { name: "Eliminar borrador" })).toBeInTheDocument();
+    expect(elaboracionService.deleteElaboracion).not.toHaveBeenCalled();
+  });
+
+  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboración»", async () => {
+    await openRegistro();
+
+    const migas = screen.getByRole("navigation", { name: "Ruta de navegación" });
+    expect(within(migas).getByText("Elaboración")).toBeInTheDocument();
+    expect(within(migas).queryByText("Registro de elaboración")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver al producto" })).toHaveAttribute("href", "/productos/5");
+  });
+
+  it("bajo «Ingredientes» dice cuántos faltan y se actualiza, con aria-live", async () => {
+    const user = userEvent.setup();
+    await openRegistro();
+
+    const progreso = screen.getByText("Faltan 2 de 2 ingredientes");
+    expect(progreso).toHaveAttribute("aria-live", "polite");
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+    expect(screen.getByText("Falta 1 de 2 ingredientes")).toBeInTheDocument();
+  });
+
+  it("con todo listo dice «Todos los ingredientes están listos»", async () => {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, INS_HARINA]);
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () => BORRADOR_COMPLETO);
+    await openRegistro();
+
+    expect(screen.getByText("Todos los ingredientes están listos")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Lista")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
+  });
+
+  it("al fallar la finalización en la pantalla, lleva a la primera línea pendiente (Harina)", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockResolvedValue(BORRADOR);
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+
+    await waitFor(() => expect(linea("Harina")).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(linea("Harina"));
+  });
+
+  it("va primero a la línea con alérgenos sin revisar si está antes de otra pendiente, sin pedir confirmación", async () => {
+    // Orden de la formulación: Harina (sin insumo) y Leche (insumo con alérgenos sin revisar). Para que la de
+    // alérgenos quede ANTES, se asigna el insumo sin revisar a Harina y se deja Leche sin insumo.
+    const harinaSinRevisar = insumo({
+      id: 21,
+      ingrediente_id: HARINA,
+      nombre: "Harina Sin Revisar",
+      alergenos_revisados: false,
+      alergenos_revisados_at: null,
+    });
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, harinaSinRevisar]);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.selectOptions(screen.getByLabelText("Insumo de Harina"), "21");
+    await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+
+    expect(await screen.findByText("No se puede finalizar todavía: revisa las líneas marcadas.")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Alérgenos del insumo sin revisar.")).toBeInTheDocument();
+    await waitFor(() => expect(linea("Harina")).toHaveFocus());
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  describe("«Guardar borrador»: lleva al problema o devuelve el foco al botón", () => {
+    it("con un error en una línea, se desplaza a ella y el foco queda en ella", async () => {
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Lote nuevo" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await within(linea("Leche")).findByText("Ingresa el código del lote.");
+      await waitFor(() => expect(linea("Leche")).toHaveFocus());
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+      expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(linea("Leche"));
+    });
+
+    it("con un error en el encabezado, se desplaza al campo y el foco queda en él", async () => {
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.clear(screen.getByLabelText("Código de la elaboración"));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await screen.findByText("El código de la elaboración es obligatorio.");
+      await waitFor(() => expect(screen.getByLabelText("Código de la elaboración")).toHaveFocus());
+      expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(
+        screen.getByLabelText("Código de la elaboración"),
+      );
+    });
+
+    it("con un error sin línea que señalar, el foco vuelve a «Guardar borrador»", async () => {
+      vi.mocked(elaboracionService.replaceUsos).mockRejectedValue(new ApiError("falla", 500));
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await screen.findByText("No pudimos guardar el borrador. Inténtalo nuevamente.");
+      await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toHaveFocus());
+    });
+
+    it("si se guarda, el foco también vuelve a «Guardar borrador» (el botón estuvo deshabilitado)", async () => {
+      const original = vi.mocked(elaboracionService.replaceUsos).getMockImplementation();
+      let terminar: () => void = () => {};
+      const espera = new Promise<void>((resolver) => (terminar = resolver));
+      vi.mocked(elaboracionService.replaceUsos).mockImplementation(async (...argumentos) => {
+        await espera;
+        return original ? original(...argumentos) : (undefined as never);
+      });
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+      // Mientras guarda el botón está deshabilitado y un navegador le quita el foco (jsdom no lo suelta): se
+      // comprueba que, al terminar, la pantalla lo pide de nuevo para ese botón.
+      await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeDisabled());
+      const enfocar = vi.spyOn(HTMLElement.prototype, "focus");
+      terminar();
+
+      await screen.findByText("Borrador guardado.");
+      await waitFor(() =>
+        expect(enfocar.mock.contexts).toContain(screen.getByRole("button", { name: "Guardar borrador" })),
+      );
+      enfocar.mockRestore();
+    });
+  });
+
+  it("los radios del lote van en una fila que pasa a la siguiente si no caben", async () => {
+    await openRegistro();
+
+    const radio = within(linea("Leche")).getByRole("radio", { name: "Lote nuevo" });
+    const grupo = radio.closest("div") as HTMLElement;
+    expect(grupo).toHaveClass("flex", "flex-row", "flex-wrap");
+    expect(grupo).not.toHaveClass("flex-col");
+  });
+});
+
+describe("El contenedor principal no es un contenedor de scroll (HT07, Bloque 1)", () => {
+  it("«main» no lleva overflow propio: la ventana scrollea y la barra pegajosa se pega a ella", async () => {
+    await openRegistro();
+
+    const main = screen.getByRole("main");
+    expect(main.className).not.toMatch(/overflow/);
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(main.contains(barra)).toBe(true);
   });
 });
 

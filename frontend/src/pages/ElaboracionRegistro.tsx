@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import ElaboracionLinea from "@/components/elaboraciones/ElaboracionLinea";
 import RevisarAlergenosDialog from "@/components/elaboraciones/RevisarAlergenosDialog";
 import InsumoCreateDialog from "@/components/insumos/InsumoCreateDialog";
@@ -15,7 +15,12 @@ import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
 import { useElaboracionRegistro } from "@/hooks/useElaboracionRegistro";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { hoyChile, TEXTO_CONFIRMAR_FINALIZACION } from "@/lib/elaboracionUtils";
+import {
+  estadoDeLinea,
+  hoyChile,
+  TEXTO_CONFIRMAR_FINALIZACION,
+  textoProgreso,
+} from "@/lib/elaboracionUtils";
 import { getElaboracion } from "@/services/elaboracionService";
 import type { Elaboracion } from "@/types/elaboracion";
 import type { Insumo } from "@/types/insumo";
@@ -66,7 +71,7 @@ export default function ElaboracionRegistro() {
   return (
     <AppShell
       activePage="productos"
-      pageTitle="Registro de elaboración"
+      pageTitle="Elaboración"
       onLogout={handleLogout}
       producerName={producerName}
       businessName={businessName}
@@ -101,6 +106,14 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
   const [confirmarSalir, setConfirmarSalir] = useState(false);
   const [insumoNuevoPara, setInsumoNuevoPara] = useState<{ id: number; nombre: string } | null>(null);
   const [insumoARevisar, setInsumoARevisar] = useState<Insumo | null>(null);
+  // Bumped when the screen has to take the user to what is wrong. `focoDestino` says which button the focus
+  // goes back to when there is nothing to point at (the button that was working is disabled meanwhile).
+  const [focoToken, setFocoToken] = useState(0);
+  const focoDestino = useRef<"guardar" | "finalizar">("finalizar");
+  // Saved or confirmation closed without a problem: go straight back to the button, do not look for anything.
+  const soloElBoton = useRef(false);
+  const guardarRef = useRef<HTMLButtonElement>(null);
+  const finalizarRef = useRef<HTMLButtonElement>(null);
 
   const form = useElaboracionRegistro({
     elaboracion,
@@ -115,39 +128,67 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
   const producto = form.servidor.producto;
   // Lines that can take the lot suggested from the last finalized elaboración.
   const lotesElegibles = form.lineas.filter((linea) => form.loteSugeridoDe(linea) !== null).length;
+  const estados = form.lineas.map((linea) =>
+    estadoDeLinea(linea, form.insumoSeleccionado(linea), form.problemas[linea.ingrediente_id]),
+  );
+  const faltan = estados.filter((estado) => estado !== "lista").length;
 
-  // After a rejected save, send the focus to the first field that needs attention.
-  const { errorFocusToken } = form;
+  // Saving or finalizing failed: scroll to the first thing that needs attention (a field marked invalid, or a
+  // line with a problem) and leave the focus on it. With nothing to point at (a generic error, or the
+  // confirmation closed) the focus goes back to the button that was working, which was disabled meanwhile and
+  // let the focus fall to BODY.
   useEffect(() => {
-    if (errorFocusToken === 0) return;
-    document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-  }, [errorFocusToken]);
+    if (focoToken === 0) return;
+    const boton = (focoDestino.current === "guardar" ? guardarRef : finalizarRef).current;
+    if (soloElBoton.current) {
+      soloElBoton.current = false;
+      boton?.focus();
+      return;
+    }
+    let objetivo = document.querySelector<HTMLElement>('[aria-invalid="true"], [data-problema="true"]');
+    // A line with a marked field inside: the field is what needs the attention.
+    objetivo = objetivo?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? objetivo;
+    if (!objetivo) {
+      boton?.focus();
+      return;
+    }
+    const sinMovimiento =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    objetivo.focus({ preventScroll: true });
+    objetivo.scrollIntoView({ behavior: sinMovimiento ? "auto" : "smooth", block: "center" });
+  }, [focoToken]);
+
+  function irAlProblema(destino: "guardar" | "finalizar") {
+    focoDestino.current = destino;
+    setFocoToken((token) => token + 1);
+  }
 
   async function handleGuardar() {
-    if (await form.guardar()) notify("Borrador guardado.");
+    if (await form.guardar()) {
+      notify("Borrador guardado.");
+      // Saved: nothing to point at, the focus returns to the button that was disabled while saving.
+      soloElBoton.current = true;
+      irAlProblema("guardar");
+    } else {
+      irAlProblema("guardar");
+    }
   }
 
   async function handleFinalizar() {
     if (await form.prepararFinalizacion()) setConfirmarFinalizar(true);
+    else irAlProblema("finalizar");
   }
 
   async function handleConfirmarFinalizar() {
     await form.finalizar();
     setConfirmarFinalizar(false);
+    irAlProblema("finalizar");
   }
 
   async function handleConfirmarEliminar() {
     await form.eliminar();
     setConfirmarEliminar(false);
-  }
-
-  function handleVolver() {
-    if (form.busy) return;
-    if (form.dirty) {
-      setConfirmarSalir(true);
-      return;
-    }
-    navigate(`/productos/${producto.id}`);
   }
 
   return (
@@ -159,8 +200,16 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
         breadcrumbs={[
           { label: "Productos", to: "/productos" },
           { label: producto.nombre, to: `/productos/${producto.id}` },
-          { label: "Registro de elaboración" },
+          { label: "Elaboración" },
         ]}
+        actions={
+          <Link
+            to={`/productos/${producto.id}`}
+            className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-accent-strong underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Volver al producto
+          </Link>
+        }
       />
 
       {form.globalError && <Alert type="error">{form.globalError}</Alert>}
@@ -230,6 +279,16 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
               <p className="text-sm text-text-secondary">
                 Una línea por cada ingrediente de la formulación.
               </p>
+              <p
+                role="status"
+                aria-live="polite"
+                data-progreso={faltan === 0 ? "listo" : "faltan"}
+                className={`text-sm font-medium ${faltan === 0 ? "text-success" : "text-warning"}`}
+              >
+                {!form.insumosLoading && !form.insumosError
+                  ? textoProgreso(faltan, form.lineas.length)
+                  : ""}
+              </p>
             </div>
             {lotesElegibles > 0 && (
               <Button
@@ -269,12 +328,13 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
 
           {!form.insumosLoading &&
             !form.insumosError &&
-            form.lineas.map((linea) => {
+            form.lineas.map((linea, indice) => {
               const insumoId = linea.insumoId ? Number(linea.insumoId) : null;
               return (
                 <ElaboracionLinea
                   key={linea.ingrediente_id}
                   linea={linea}
+                  estado={estados[indice]}
                   insumos={form.insumosPorIngrediente[linea.ingrediente_id] ?? []}
                   uso={form.servidor.usos.find((u) => u.ingrediente_id === linea.ingrediente_id)}
                   lotes={insumoId !== null ? form.lotes[insumoId] : undefined}
@@ -301,29 +361,15 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
 
         <FormActions>
           {form.dirty && (
-            <p role="status" className="self-center text-sm text-text-secondary sm:mr-auto">
+            <p
+              role="status"
+              className="col-span-2 self-center text-sm text-text-secondary sm:mr-auto"
+            >
               Tienes cambios sin guardar.
             </p>
           )}
           <Button
-            type="button"
-            variant="secondary"
-            className="w-full min-h-11 text-error sm:w-auto"
-            onClick={() => setConfirmarEliminar(true)}
-            disabled={form.busy}
-          >
-            Eliminar borrador
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full min-h-11 sm:w-auto"
-            onClick={handleVolver}
-            disabled={form.busy}
-          >
-            Volver al producto
-          </Button>
-          <Button
+            ref={guardarRef}
             type="submit"
             variant="secondary"
             className="w-full min-h-11 sm:w-auto"
@@ -333,6 +379,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
             Guardar borrador
           </Button>
           <Button
+            ref={finalizarRef}
             type="button"
             className="w-full min-h-11 sm:w-auto"
             onClick={() => void handleFinalizar()}
@@ -342,6 +389,29 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
           </Button>
         </FormActions>
       </form>
+
+      <section
+        aria-label="Eliminar borrador"
+        className="rounded-xl border border-error-border bg-card p-5 sm:p-6"
+      >
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">Eliminar borrador</h2>
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+              Se perderá lo que ya registraste en este borrador. No se puede deshacer.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full border-error/30 text-error hover:bg-error-bg sm:w-auto"
+            onClick={() => setConfirmarEliminar(true)}
+            disabled={form.busy}
+          >
+            Eliminar borrador
+          </Button>
+        </div>
+      </section>
 
       {insumoNuevoPara && (
         <InsumoCreateDialog

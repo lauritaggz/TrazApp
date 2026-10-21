@@ -423,6 +423,11 @@ export function useElaboracionRegistro({ elaboracion, onFinalizada, onEliminada 
       if (linea.ingredienteDesactivado) motivos.push("ingrediente_desactivado");
       if (!linea.insumoId) motivos.push("insumo");
       else if (lineaPendiente(linea)) motivos.push("lote");
+      // The screen already knows the supply was never reviewed: say so here (the server would say it too), so
+      // the first line to look at is the first one in the list and not the first one that lacks a field.
+      if (linea.insumoId && insumoSeleccionado(linea)?.alergenos_revisados === false) {
+        motivos.push("alergenos_sin_revisar");
+      }
       if (motivos.length > 0) locales[linea.ingrediente_id] = motivos;
     }
     if (Object.keys(locales).length > 0) {

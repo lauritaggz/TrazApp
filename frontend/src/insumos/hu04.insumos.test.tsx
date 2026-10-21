@@ -1278,7 +1278,8 @@ describe("PT04-13: adaptación a dispositivos móviles (verificación estructura
     for (const boton of [guardar, cancelar]) {
       expect(boton).toHaveClass("w-full", "sm:w-auto", "min-h-11");
     }
-    expect(guardar.parentElement).toHaveClass("flex-col-reverse", "sm:flex-row");
+    // HT07: Cancelar y Guardar van lado a lado también en el celular (dos columnas), en fila desde sm.
+    expect(guardar.parentElement).toHaveClass("grid", "grid-cols-2", "sm:flex", "sm:flex-row");
     expect(guardar.closest("form")).toHaveClass("max-w-2xl");
   });
 
