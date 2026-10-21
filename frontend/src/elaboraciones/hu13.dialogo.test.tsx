@@ -111,7 +111,7 @@ function abrirDialogo() {
       <InsumoCreateDialog ingrediente={{ id: 1, nombre: "Leche" }} onAssigned={onAssigned} onCancel={onCancel} />
     </MemoryRouter>,
   );
-  return { onAssigned, onCancel, dialogo: screen.getByRole("dialog", { name: "Registrar insumo nuevo" }) };
+  return { onAssigned, onCancel, dialogo: screen.getByRole("dialog", { name: "Crear insumo" }) };
 }
 
 /** Opens the scanner of the block and delivers a code through its field to type the number. */
@@ -132,6 +132,19 @@ describe("Bloque de búsqueda en el diálogo", () => {
 
     expect(campo(dialogo, "Nombre")).toHaveFocus();
     expect(within(dialogo).getByRole("button", { name: "Escanear código de barras" })).not.toHaveFocus();
+  });
+
+  it("se llama «Crear insumo» y aclara que el insumo se crea al instante y su asignación se guarda con el borrador (HT07)", () => {
+    const { dialogo } = abrirDialogo();
+
+    expect(within(dialogo).getByRole("heading", { name: "Crear insumo" })).toBeInTheDocument();
+    expect(
+      within(dialogo).getByText(
+        "Para el ingrediente Leche. El insumo se crea al instante; su asignación a esta línea se guarda con el borrador.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialogo).getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
+    expect(within(dialogo).queryByText(/Registrar insumo/)).not.toBeInTheDocument();
   });
 
   it("no ofrece «Crear ingrediente»: el ingrediente de la línea es fijo (T13-09)", () => {
@@ -164,7 +177,7 @@ describe("Bloque de búsqueda en el diálogo", () => {
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
     expect(onAssigned).not.toHaveBeenCalled();
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(onAssigned).toHaveBeenCalledWith(expect.objectContaining({ id: 50 })));
     expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -272,7 +285,7 @@ describe("El código ya está registrado: usarlo o reactivarlo solo para el ingr
     expect(within(dialogo).queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
     expect(within(dialogo).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
     expect(onAssigned).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Crear insumo" })).toBeInTheDocument();
   });
 
   it("en el diálogo no hay enlace a otra pantalla: solo usar o reactivar", async () => {
@@ -409,7 +422,7 @@ describe("Escape en el diálogo con el escáner", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Escanear código de barras" })).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Crear insumo" })).toBeInTheDocument();
     expect(onCancel).not.toHaveBeenCalled();
 
     await user.keyboard("{Escape}");

@@ -37,7 +37,7 @@ export default function OrigenInformacion({ fuente, fechaRecuperacion, ficha }: 
         </a>
       )}
       <p className="text-[13px] text-text-secondary">
-        Los datos se completaron desde esa fuente y el productor los confirmó al registrar el insumo.
+        Los datos se completaron desde esa fuente y confirmaste estos datos al crear el insumo.
       </p>
     </div>
   );

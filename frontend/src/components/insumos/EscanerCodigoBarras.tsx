@@ -16,7 +16,7 @@ interface EscanerCodigoBarrasProps {
 const MENSAJES: Record<Exclude<EstadoEscaner, "error">, string> = {
   iniciando: "Iniciando la cámara…",
   escaneando:
-    "Apunta al código de barras. Acércalo a unos 10 o 15 cm, con buena luz y sin reflejos.",
+    "Apunta al código de barras. Acércalo a unos 10 o 15 cm, con buena luz y sin reflejos. Si no lo lee, escribe el número abajo.",
   reconocido: "Código reconocido.",
   detenido: "Cámara detenida.",
 };

@@ -208,16 +208,6 @@ export default function InsumoDetail() {
               />
             </ProductDetailSection>
 
-            <ProductDetailSection id="insumo-detail-estado" title="Estado">
-              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <DetailField label="Estado">
-                  <Badge variant={insumo.activo ? "success" : "neutral"}>
-                    {insumo.activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </DetailField>
-              </dl>
-            </ProductDetailSection>
-
             <ProductDetailSection id="insumo-detail-alergenos" title="Alérgenos declarados">
               <InsumoAllergensSection insumoId={insumo.id} revisado={insumo.alergenos_revisados} />
             </ProductDetailSection>

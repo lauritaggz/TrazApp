@@ -188,9 +188,9 @@ export default function ElaboracionLinea({
         onClick={onRegistrarInsumo}
         data-destacado={sinInsumosActivos}
         disabled={disabled}
-        aria-label={`Registrar insumo nuevo para ${linea.ingrediente_nombre}`}
+        aria-label={`Crear insumo para ${linea.ingrediente_nombre}`}
       >
-        Registrar insumo nuevo
+        Crear insumo
       </Button>
 
       {linea.insumoId && (

@@ -186,7 +186,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.escribir("Marca u origen", screen.getByLabelText("Marca u origen"), MARCA);
     await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
     await r.clic("«Este insumo no contiene alérgenos»", screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 2, total: 5 });
@@ -215,7 +215,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.elegir("Alérgeno: Maní", within(grupo).getByLabelText("Alérgeno del catálogo"), "2");
     await r.elegir("Tipo: puede contener", within(grupo).getByLabelText("Tipo de declaración"), "trazas");
     await r.clic("Agregar", within(grupo).getByRole("button", { name: "Agregar" }));
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 9, clics: 5, total: 14 });
@@ -235,7 +235,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
     await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE));
     await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 2, clics: 3, total: 5 });
@@ -270,7 +270,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE));
     // The ingredient chosen before the lookup stays: it is not asked again.
     expect(screen.getByLabelText("Ingrediente")).toHaveValue("1");
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
 
     await guardadoUnaVez();
     expect(r.total).toBe(5);
@@ -300,7 +300,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nuevo ingrediente" })).not.toBeInTheDocument());
     expect(screen.getByLabelText("Ingrediente")).toHaveValue("5");
     expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE);
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Guardar insumo" }));
+    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 5, total: 8 });

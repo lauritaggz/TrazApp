@@ -168,8 +168,30 @@ describe("AlergenosSelector: los tres estados", () => {
     const casilla = within(grupo()).getByLabelText("Este insumo no contiene alérgenos");
     expect(casilla).not.toBeChecked();
     expect(casilla).toBeEnabled();
-    expect(screen.getByText("No hay alérgenos declarados como «Contiene».")).toBeInTheDocument();
+    // HT07: una sola frase, no dos grupos vacíos con «No hay alérgenos declarados como …».
+    expect(screen.getByText("Aún no declaraste alérgenos.")).toBeInTheDocument();
+    expect(screen.queryByText(/No hay alérgenos declarados como/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Contiene" })).not.toBeInTheDocument();
     expect(screen.queryByText(MENSAJE_ALERGENOS_INVALIDOS)).not.toBeInTheDocument();
+  });
+
+  it("con alérgenos de un solo tipo, el otro grupo dice que no hay (y la frase única desaparece) (HT07)", async () => {
+    render(<Controlado inicial={{ items: [{ alergeno_id: 1, tipo: "contiene" }], sinAlergenos: false }} />);
+
+    expect(await screen.findByRole("region", { name: "Contiene" })).toBeInTheDocument();
+    expect(screen.getByText("No hay alérgenos declarados como «Puede contener».")).toBeInTheDocument();
+    expect(screen.queryByText("Aún no declaraste alérgenos.")).not.toBeInTheDocument();
+  });
+
+  it("las áreas táctiles son de 44 px: la casilla (toda la fila) y los botones de cada alérgeno (HT07)", async () => {
+    render(<Controlado inicial={{ items: [{ alergeno_id: 1, tipo: "contiene" }], sinAlergenos: false }} />);
+    await screen.findByRole("region", { name: "Contiene" });
+
+    expect(screen.getByLabelText("Este insumo no contiene alérgenos").closest("label")).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: /Cambiar .* a Puede contener/ })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: /Quitar alérgeno/ })).toHaveClass("h-11", "w-11");
+    // No quedan pegados: separados por un espacio y con salto de línea si no caben.
+    expect(screen.getByRole("button", { name: /Quitar alérgeno/ }).parentElement).toHaveClass("gap-2", "flex-wrap");
   });
 
   it("con alérgenos: los muestra por tipo, con la marca de rotulación obligatoria, y la casilla no se puede marcar", async () => {
@@ -387,7 +409,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
     openPage("/insumos/nuevo");
     await llenarDatos(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText(MENSAJE_ALERGENOS_INVALIDOS)).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
@@ -402,7 +424,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
     await declarar(user, grupo(), "1");
     await declarar(user, grupo(), "2", "trazas");
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -414,7 +436,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
         ],
       }),
     );
-    expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
   });
 
   it("con «Este insumo no contiene alérgenos» envía una lista vacía", async () => {
@@ -424,7 +446,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(expect.objectContaining({ alergenos: [] })),
@@ -439,9 +461,9 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
-    expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
 
@@ -478,7 +500,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
 
 // --- el diálogo de la elaboración ---
 
-describe("Diálogo «Registrar insumo nuevo» de la elaboración: alérgenos (HT06)", () => {
+describe("Diálogo «Crear insumo» de la elaboración: alérgenos (HT06)", () => {
   function abrirDialogo() {
     const onAssigned = vi.fn();
     const onCancel = vi.fn();
@@ -487,7 +509,7 @@ describe("Diálogo «Registrar insumo nuevo» de la elaboración: alérgenos (HT
         <InsumoCreateDialog ingrediente={{ id: 1, nombre: "Leche" }} onAssigned={onAssigned} onCancel={onCancel} />
       </MemoryRouter>,
     );
-    return { onAssigned, onCancel, dialogo: screen.getByRole("dialog", { name: "Registrar insumo nuevo" }) };
+    return { onAssigned, onCancel, dialogo: screen.getByRole("dialog", { name: "Crear insumo" }) };
   }
 
   async function llenar(user: Usuario, dialogo: HTMLElement) {
@@ -502,7 +524,7 @@ describe("Diálogo «Registrar insumo nuevo» de la elaboración: alérgenos (HT
     await llenar(user, dialogo);
     await declarar(user, dialogo, "1");
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(onAssigned).toHaveBeenCalledWith(expect.objectContaining({ id: 40 })));
     expect(insumoService.createInsumo).toHaveBeenCalledTimes(1);
@@ -524,7 +546,7 @@ describe("Diálogo «Registrar insumo nuevo» de la elaboración: alérgenos (HT
     await llenar(user, dialogo);
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(onAssigned).toHaveBeenCalled());
     expect(insumoService.createInsumo).toHaveBeenCalledWith(expect.objectContaining({ alergenos: [] }));
@@ -535,7 +557,7 @@ describe("Diálogo «Registrar insumo nuevo» de la elaboración: alérgenos (HT
     const { dialogo, onAssigned } = abrirDialogo();
     await llenar(user, dialogo);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByText(MENSAJE_ALERGENOS_INVALIDOS)).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();

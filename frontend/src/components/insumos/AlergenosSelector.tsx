@@ -164,8 +164,13 @@ export default function AlergenosSelector({
         {AYUDA}
       </p>
 
+      {/* Nothing declared yet: one sentence (and the button below), not two empty groups. */}
+      {!hayAlergenos && (
+        <p className="text-sm text-text-secondary">Aún no declaraste alérgenos.</p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
-        {GRUPOS.map((grupo) => {
+        {hayAlergenos && GRUPOS.map((grupo) => {
           const items = value.items.filter((item) => item.tipo === grupo.tipo).map(detalle);
           return (
             <section
@@ -201,10 +206,10 @@ export default function AlergenosSelector({
                             <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>
                           </Badge>
                         )}
-                        <span className="ml-auto flex items-center gap-1">
+                        <span className="ml-auto flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            className="rounded px-2 py-1 text-[13px] font-medium text-accent-strong hover:underline disabled:opacity-50"
+                            className="inline-flex min-h-11 items-center rounded-lg px-3 text-[13px] font-medium text-accent-strong hover:underline disabled:opacity-50"
                             aria-label={`Cambiar ${item.nombre} a ${destino}`}
                             disabled={disabled}
                             onClick={() => handleChangeTipo(item.alergeno_id)}
@@ -213,7 +218,7 @@ export default function AlergenosSelector({
                           </button>
                           <button
                             type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-text-primary/10 hover:text-error disabled:opacity-50"
+                            className="flex h-11 w-11 items-center justify-center rounded-full text-text-secondary hover:bg-text-primary/10 hover:text-error disabled:opacity-50"
                             aria-label={`Quitar alérgeno ${item.nombre}`}
                             disabled={disabled}
                             onClick={() => handleRemove(item.alergeno_id)}
@@ -306,22 +311,26 @@ export default function AlergenosSelector({
       )}
 
       <div className="space-y-2">
-        <div className="flex items-start gap-3">
-          <input
-            id={sinId}
-            type="checkbox"
-            name="sin_alergenos"
-            checked={value.sinAlergenos}
-            disabled={disabled || hayAlergenos}
-            onChange={(e) => handleSinAlergenos(e.target.checked)}
-            aria-describedby={sinDescribedBy}
-            aria-invalid={invalido || undefined}
-            className="mt-1 h-4 w-4 rounded border-border-strong accent-brand-600"
-          />
-          <div className="space-y-0.5">
-            <label htmlFor={sinId} className="block text-sm font-medium text-text-primary">
-              Este insumo no contiene alérgenos
-            </label>
+        <div className="space-y-0.5">
+          {/* The whole row is the tap target (44 px), not only the 16 px box. */}
+          <label
+            htmlFor={sinId}
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium text-text-primary"
+          >
+            <input
+              id={sinId}
+              type="checkbox"
+              name="sin_alergenos"
+              checked={value.sinAlergenos}
+              disabled={disabled || hayAlergenos}
+              onChange={(e) => handleSinAlergenos(e.target.checked)}
+              aria-describedby={sinDescribedBy}
+              aria-invalid={invalido || undefined}
+              className="h-5 w-5 shrink-0 rounded border-border-strong accent-brand-600"
+            />
+            Este insumo no contiene alérgenos
+          </label>
+          <div className="pl-8">
             <p id={sinAyudaId} className="text-[13px] text-text-secondary">
               {hayAlergenos
                 ? "Quita los alérgenos declarados para poder marcar esta opción."

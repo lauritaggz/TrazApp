@@ -490,12 +490,12 @@ describe("Formulario de insumo", () => {
     }
     expect(screen.getByRole("checkbox", { name: "Insumo habitual" })).not.toBeChecked();
     expect(screen.getByText("Por ejemplo, la marca del producto o 'Feria local'.")).toBeInTheDocument();
-    expect(screen.getByText("Se preselecciona al registrar una elaboración.")).toBeInTheDocument();
+    expect(screen.getByText("Se preselecciona al crear una elaboración.")).toBeInTheDocument();
     expect(screen.getByLabelText("Marca u origen")).toHaveAccessibleDescription(
       "Por ejemplo, la marca del producto o 'Feria local'.",
     );
     expect(screen.getByRole("checkbox", { name: "Insumo habitual" })).toHaveAccessibleDescription(
-      "Se preselecciona al registrar una elaboración.",
+      "Se preselecciona al crear una elaboración.",
     );
     const opciones = within(screen.getByLabelText("Ingrediente"))
       .getAllByRole("option")
@@ -508,7 +508,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo");
     await screen.findByRole("option", { name: "Leche" });
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("El nombre es obligatorio.")).toBeInTheDocument();
     expect(screen.getByText("La marca u origen es obligatoria.")).toBeInTheDocument();
@@ -523,7 +523,7 @@ describe("Formulario de insumo", () => {
     await fillValidForm(user);
 
     await user.type(screen.getByLabelText("Código de barras"), "7802910000972");
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(
       await screen.findByText("El dígito verificador del código de barras no es válido."),
@@ -541,7 +541,7 @@ describe("Formulario de insumo", () => {
     await user.type(screen.getByLabelText("Advertencias"), "Contiene leche");
     await user.click(screen.getByRole("checkbox", { name: "Insumo habitual" }));
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith({
@@ -557,7 +557,7 @@ describe("Formulario de insumo", () => {
       }),
     );
     expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
     // HT06: the allergens were declared in the form itself, so there is nothing left to declare.
     expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
@@ -572,7 +572,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("Revisa la marca u origen.")).toBeInTheDocument();
     expect(screen.getByLabelText("Marca u origen")).toHaveAttribute("aria-invalid", "true");
@@ -587,7 +587,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("Ingrediente no válido")).toBeInTheDocument();
     expect(screen.getByLabelText("Ingrediente")).toHaveAttribute("aria-invalid", "true");
@@ -599,7 +599,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(
       await screen.findByText("No pudimos guardar el insumo. Inténtalo nuevamente."),
@@ -655,7 +655,7 @@ describe("Código de barras repetido (409)", () => {
     openPage("/insumos/nuevo");
     await fillValidForm(user);
     await user.type(screen.getByLabelText("Código de barras"), EAN_13);
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
   }
 
   it("si el existente está activo muestra el mensaje con un enlace a ese insumo", async () => {
@@ -815,8 +815,9 @@ describe("Detalle de insumo", () => {
     const declarado = screen.getByRole("region", { name: "Información declarada" });
     expect(within(declarado).getByText("Leche semidescremada")).toBeInTheDocument();
     expect(within(declarado).getByText("Puede contener trazas de maní")).toBeInTheDocument();
-    const estado = screen.getByRole("region", { name: "Estado" });
-    expect(within(estado).getByText("Activo")).toBeInTheDocument();
+    // HT07: la sección «Estado» solo repetía la insignia del título; ya no existe.
+    expect(screen.queryByRole("region", { name: "Estado" })).not.toBeInTheDocument();
+    expect(screen.getByText("Activo")).toBeInTheDocument();
     // HU13 (T13-06): the source and when it was retrieved have their own block, with the date only.
     const origen = screen.getByRole("region", { name: "Origen de la información" });
     expect(within(origen).getByText("Obtenido de Open Food Facts el 04-10-2026")).toBeInTheDocument();
@@ -898,8 +899,9 @@ describe("Detalle de insumo", () => {
     openPage("/insumos/12");
 
     const boton = await screen.findByRole("button", { name: "Reactivar insumo" });
-    const estado = screen.getByRole("region", { name: "Estado" });
-    expect(within(estado).getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Estado" })).not.toBeInTheDocument();
+    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.getByText(/Este insumo está desactivado/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desactivar insumo" })).not.toBeInTheDocument();
 
     await user.click(boton);
@@ -1171,7 +1173,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     await user.type(screen.getByLabelText("Marca u origen"), "Feria local");
     await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1183,7 +1185,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
         }),
       ),
     );
-    expect(await screen.findByText("Insumo creado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
   });
 
   it("PT04-07: varios insumos de un mismo ingrediente se listan y el filtro por ingrediente los muestra todos", async () => {
@@ -1216,7 +1218,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     openPage("/insumos/nuevo");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1273,7 +1275,7 @@ describe("PT04-13: adaptación a dispositivos móviles (verificación estructura
     for (const label of ["Nombre", "Marca u origen", "Ingrediente", "Código de barras", "Advertencias"]) {
       expect(screen.getByLabelText(label)).toHaveClass("w-full");
     }
-    const guardar = screen.getByRole("button", { name: "Guardar insumo" });
+    const guardar = screen.getByRole("button", { name: "Crear insumo" });
     const cancelar = screen.getByRole("button", { name: "Cancelar" });
     for (const boton of [guardar, cancelar]) {
       expect(boton).toHaveClass("w-full", "sm:w-auto", "min-h-11");
@@ -1338,7 +1340,7 @@ describe("PT04-13: adaptación a dispositivos móviles (verificación estructura
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: "Guardar insumo" })).toHaveClass("w-full", "sm:w-auto");
+    expect(screen.getByRole("button", { name: "Crear insumo" })).toHaveClass("w-full", "sm:w-auto");
   });
 });
 
@@ -1375,7 +1377,7 @@ describe("Formulario reutilizable", () => {
     );
 
     expect(container.querySelector("[data-floating]")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Guardar insumo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
   });
 
   it("el hook admite precarga y campos de una fuente externa para HU13", async () => {

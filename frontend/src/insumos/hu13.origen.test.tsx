@@ -155,11 +155,20 @@ describe("Origen de la información en el detalle del insumo", () => {
     expect(within(general).getByText("7802910000971")).toBeInTheDocument();
   });
 
-  it("el estado queda en su propia sección", async () => {
+  it("el estado lo dice la insignia del título: ya no hay una sección «Estado» que la repita (HT07)", async () => {
     await abrirDetalle(insumo({ activo: false }));
 
-    const estado = screen.getByRole("region", { name: "Estado" });
-    expect(within(estado).getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Estado" })).not.toBeInTheDocument();
+    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+  });
+
+  it("habla en segunda persona: «confirmaste estos datos al crear el insumo» (HT07)", async () => {
+    await abrirDetalle(insumo({ fuente: "open_food_facts", fecha_recuperacion: "2026-10-19T15:00:00Z" }));
+
+    expect(
+      screen.getByText("Los datos se completaron desde esa fuente y confirmaste estos datos al crear el insumo."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/el productor/)).not.toBeInTheDocument();
   });
 });
 

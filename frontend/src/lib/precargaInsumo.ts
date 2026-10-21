@@ -20,6 +20,8 @@ export interface PrecargaInsumo {
   extra?: Partial<InsumoCreatePayload>;
   /** The allergens that were suggested, for presentation only. */
   sugerencias?: SugerenciasAlergenos;
+  /** «Encontrado: … · sugerimos …»: a line next to the form that says what was found (HT07). */
+  resumen?: string;
   /**
    * The productor had typed things that this load keeps in the form: the form is "clean" against
    * its new starting point, but leaving the page must still warn.
@@ -52,6 +54,16 @@ export function sugerenciasDeConsulta(consulta: ConsultaCodigo): SugerenciasAler
   return { origenes, sinReconocer };
 }
 
+/** «Encontrado: LONCO LECHE SIN LACTOSA · sugerimos Leche, Maní» (or «sin alérgenos sugeridos»). */
+export function resumenDeConsulta(consulta: ConsultaCodigo): string {
+  const nombre = consulta.producto?.nombre?.trim() || "producto sin nombre";
+  const nombres = [...consulta.alergenos.contiene, ...consulta.alergenos.trazas].map((a) => a.nombre);
+  const sugeridos = [...new Set(nombres)];
+  return `Encontrado: ${nombre} · ${
+    sugeridos.length > 0 ? `sugerimos ${sugeridos.join(", ")}` : "sin alérgenos sugeridos"
+  }`;
+}
+
 /**
  * A product that was found: its data, the suggested allergens and the retrieval record. The
  * ingredient the productor had already chosen stays (CA07); everything else comes from the source.
@@ -74,6 +86,7 @@ export function precargaDeProducto(consulta: ConsultaCodigo, ingredienteId: stri
       ficha: consulta.ficha,
     },
     sugerencias: sugerenciasDeConsulta(consulta),
+    resumen: resumenDeConsulta(consulta),
   };
 }
 

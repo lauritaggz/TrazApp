@@ -201,7 +201,7 @@ async function esperarFormularioConProducto() {
 }
 
 const MENSAJE_ENCONTRADO =
-  "Encontramos este producto en Open Food Facts. Revisa los datos antes de registrar.";
+  "Encontramos este producto en Open Food Facts. Revisa los datos antes de crear el insumo.";
 const MENSAJE_NO_ENCONTRADO = "No encontramos este código. Completa los datos manualmente.";
 const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
@@ -297,7 +297,7 @@ describe("Estados de la búsqueda", () => {
     await user.selectOptions(campo("Ingrediente"), "1");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(insumoService.createInsumo).mock.calls[0][0];
@@ -430,7 +430,7 @@ describe("Precarga del formulario", () => {
     await entregarCodigo(user, CODIGO);
     await esperarFormularioConProducto();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("Selecciona el ingrediente que abastece este insumo.")).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
@@ -582,16 +582,16 @@ describe("Alérgenos sugeridos", () => {
     await waitFor(() => expect(campo("Nombre")).toHaveValue("Bicarbonato sódico"));
     expect(screen.queryByText(AVISO_SUGERIDOS)).not.toBeInTheDocument();
     expect(screen.queryByText("No pudimos asociar:")).not.toBeInTheDocument();
-    expect(screen.getByText("No hay alérgenos declarados como «Contiene».")).toBeInTheDocument();
+    expect(screen.getByText("Aún no declaraste alérgenos.")).toBeInTheDocument();
     expect(screen.getByLabelText("Este insumo no contiene alérgenos")).not.toBeChecked();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText(MENSAJE_ALERGENOS_INVALIDOS)).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
 
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(vi.mocked(insumoService.createInsumo).mock.calls[0][0].alergenos).toEqual([]);
@@ -608,7 +608,97 @@ describe("Alérgenos sugeridos", () => {
 
     expect(await screen.findByText("en:novel-food")).toBeInTheDocument();
     expect(screen.queryByText(AVISO_SUGERIDOS)).not.toBeInTheDocument();
-    expect(screen.getByText("No hay alérgenos declarados como «Contiene».")).toBeInTheDocument();
+    expect(screen.getByText("Aún no declaraste alérgenos.")).toBeInTheDocument();
+  });
+});
+
+// =============================================================================================
+
+describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloque 3)", () => {
+  const resumen = () => document.querySelector<HTMLElement>("[data-resumen-producto-encontrado]");
+
+  it("con el formulario vacío, «Escanear código de barras» es el botón principal y ocupa todo el ancho en el celular", async () => {
+    await abrirPagina();
+
+    const boton = botonEscanear();
+    expect(boton).toHaveClass("bg-brand-600", "w-full");
+    expect(
+      screen.getByText(/si no lo lee, puedes escribir el número/i),
+    ).toBeInTheDocument();
+  });
+
+  it("después de encontrar el producto pasa a ser secundario, y muestra el resumen junto al formulario", async () => {
+    const user = await abrirPagina();
+
+    await entregarCodigo(user, CODIGO);
+
+    await waitFor(() => expect(resumen()).not.toBeNull());
+    expect(resumen()).toHaveTextContent("Encontrado: LONCO LECHE SIN LACTOSA · sugerimos Leche, Maní");
+    expect(botonEscanear()).not.toHaveClass("bg-brand-600");
+    // El resumen va antes del formulario.
+    const formulario = document.querySelector("form") as HTMLElement;
+    expect(resumen()!.compareDocumentPosition(formulario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("la vista se desplaza al inicio del formulario precargado, suave salvo con prefers-reduced-motion", async () => {
+    const user = await abrirPagina();
+
+    await entregarCodigo(user, CODIGO);
+
+    await waitFor(() => expect(resumen()).not.toBeNull());
+    const desplazar = vi.mocked(Element.prototype.scrollIntoView);
+    expect(desplazar).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(desplazar.mock.contexts.at(-1)).toBe(resumen());
+  });
+
+  it("con prefers-reduced-motion el desplazamiento no es suave", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((consulta: string) => ({
+      matches: consulta.includes("prefers-reduced-motion"),
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const user = await abrirPagina();
+
+      await entregarCodigo(user, CODIGO);
+
+      await waitFor(() =>
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" }),
+      );
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("un producto sin alérgenos sugeridos lo dice en el resumen", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
+    const user = await abrirPagina();
+
+    await entregarCodigo(user, OTRO_CODIGO);
+
+    await waitFor(() => expect(resumen()).toHaveTextContent("Encontrado: Bicarbonato sódico · sin alérgenos sugeridos"));
+  });
+
+  it("si no lo encuentra, no hay resumen ni desplazamiento, y el botón sigue siendo secundario", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
+    const user = await abrirPagina();
+    vi.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    await entregarCodigo(user, CODIGO);
+
+    await screen.findByText(MENSAJE_NO_ENCONTRADO);
+    expect(resumen()).toBeNull();
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(botonEscanear()).not.toHaveClass("bg-brand-600");
+  });
+
+  it("el formulario dice «Crear insumo» al crear (y «Guardar cambios» al editar)", async () => {
+    await abrirPagina();
+
+    expect(screen.getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar insumo" })).not.toBeInTheDocument();
   });
 });
 
@@ -646,7 +736,7 @@ describe("El insumo se registra solo al guardar", () => {
   it("al guardar envía el insumo con alérgenos, fuente, fecha de recuperación y ficha", async () => {
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith({
@@ -676,7 +766,7 @@ describe("El insumo se registra solo al guardar", () => {
     await user.clear(campo("Nombre"));
     await user.type(campo("Nombre"), "Leche sin lactosa 1 L");
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(insumoService.createInsumo).mock.calls[0][0];
@@ -701,7 +791,7 @@ describe("El insumo se registra solo al guardar", () => {
   it("al guardar con éxito vuelve al listado", async () => {
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
   });
@@ -710,7 +800,7 @@ describe("El insumo se registra solo al guardar", () => {
     vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(10, true));
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toHaveAttribute("href", "/insumos/10");
   });

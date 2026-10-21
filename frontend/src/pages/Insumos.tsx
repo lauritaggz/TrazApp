@@ -64,7 +64,7 @@ export default function Insumos() {
     // The allergens are declared in the creation form itself (HT06): nothing is left to do afterwards.
     const state = location.state as { insumoCreated?: boolean } | null;
     if (!state?.insumoCreated) return;
-    notify("Insumo creado correctamente.", "success");
+    notify("Insumo creado.", "success");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -101,7 +101,7 @@ export default function Insumos() {
           title="Insumos"
           description={
             <>
-              Administra los productos comerciales que usas como insumos.
+              Administra los insumos que usas en tus elaboraciones.
               {!loading && !error && (
                 <span className="mt-2 block">{insumoCountLabel(totalCount, activos)}</span>
               )}

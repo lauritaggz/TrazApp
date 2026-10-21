@@ -9,7 +9,7 @@ import type { InsumoDuplicateInfo } from "@/types/insumo";
 
 export const MENSAJE_BUSCANDO = "Buscando el producto…";
 export const mensajeEncontrado = (fuente: string) =>
-  `Encontramos este producto en ${nombreFuente(fuente)}. Revisa los datos antes de registrar.`;
+  `Encontramos este producto en ${nombreFuente(fuente)}. Revisa los datos antes de crear el insumo.`;
 export const MENSAJE_NO_ENCONTRADO = "No encontramos este código. Completa los datos manualmente.";
 export const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
@@ -49,6 +49,9 @@ interface BuscarPorCodigoProps {
   /** Inside a dialog: tighter spacing, no card. */
   embedded?: boolean;
 }
+
+/** Without a lookup that ended in a result yet, scanning is THE action of the block (HT07). */
+const SIN_RESULTADO: EstadoBusqueda[] = ["inactivo", "escaneando", "invalido", "error"];
 
 const NOTA = "rounded-lg border px-3.5 py-3 text-sm leading-relaxed";
 
@@ -92,14 +95,14 @@ export default function BuscarPorCodigo({ busqueda, existente, embedded = false 
       <div className="space-y-1">
         <h2 className="text-sm font-semibold text-text-primary">Completar con el código de barras</h2>
         <p className="text-[13px] leading-relaxed text-text-secondary">
-          Escanea el envase con la cámara o escribe el número del código. Buscamos el producto y
-          completamos el formulario; tú revisas y confirmas antes de registrar.
+          Escanea el código del envase con la cámara; si no lo lee, puedes escribir el número. Buscamos
+          el producto y completamos el formulario; tú lo revisas antes de crear el insumo.
         </p>
       </div>
 
       <Button
         type="button"
-        variant="secondary"
+        variant={SIN_RESULTADO.includes(estado) ? "primary" : "secondary"}
         className="w-full sm:w-auto"
         disabled={estado === "buscando"}
         onClick={busqueda.abrirEscaner}

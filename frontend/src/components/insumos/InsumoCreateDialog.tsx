@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type MutableRefObject } from "react";
 import BuscarPorCodigo from "@/components/insumos/BuscarPorCodigo";
 import ConfirmarReemplazoDatos from "@/components/insumos/ConfirmarReemplazoDatos";
 import InsumoForm from "@/components/insumos/InsumoForm";
+import ResumenProductoEncontrado from "@/components/insumos/ResumenProductoEncontrado";
 import Alert from "@/components/ui/Alert";
 import {
   useFormularioDesdeCodigo,
@@ -64,11 +65,11 @@ export default function InsumoCreateDialog({
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">
-            Registrar insumo nuevo
+            Crear insumo
           </h2>
           <p id={descriptionId} className="text-sm text-text-secondary leading-relaxed">
-            Para el ingrediente {ingrediente.nombre}. Quedará asignado a esta línea; se guarda en
-            la elaboración cuando guardes el borrador.
+            Para el ingrediente {ingrediente.nombre}. El insumo se crea al instante; su asignación a
+            esta línea se guarda con el borrador.
           </p>
         </div>
 
@@ -157,6 +158,8 @@ function FormularioEnDialogo({
     <>
       {mensaje && <Alert type="error">{mensaje}</Alert>}
 
+      <ResumenProductoEncontrado resumen={precarga.resumen} />
+
       <InsumoForm
         mode="create"
         embedded
@@ -175,8 +178,8 @@ function FormularioEnDialogo({
         onAlergenosChange={form.handleAlergenosChange}
         mostrarErrorAlergenos={form.mostrarErrorAlergenos}
         sugerencias={precarga.sugerencias}
-        submitLabel="Registrar insumo"
-        loadingLabel="Registrando…"
+        submitLabel="Crear insumo"
+        loadingLabel="Creando…"
         onChange={(values) => {
           existente.limpiarAviso();
           form.handleChange(values);

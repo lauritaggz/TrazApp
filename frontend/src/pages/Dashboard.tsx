@@ -85,6 +85,10 @@ export default function Dashboard() {
     }
   }, []);
 
+  // TECHNICAL DEBT (HT07): this downloads every elaboración only to know whether there is at least one (step 3 of
+  // «Primeros pasos») and to pick the drafts. GET /gestion/elaboraciones takes `producto_id` and `estado` but no
+  // limit or pagination, so a `limit=1` existence check is not possible without changing the backend. When it
+  // accepts one: ask for the drafts as before and for any elaboración with a limit of 1.
   const loadElaboraciones = useCallback(async () => {
     try {
       setElaboraciones(await listElaboraciones());

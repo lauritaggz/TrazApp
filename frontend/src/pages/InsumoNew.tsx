@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import BuscarPorCodigo from "@/components/insumos/BuscarPorCodigo";
 import ConfirmarReemplazoDatos from "@/components/insumos/ConfirmarReemplazoDatos";
 import InsumoForm from "@/components/insumos/InsumoForm";
+import ResumenProductoEncontrado from "@/components/insumos/ResumenProductoEncontrado";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -41,7 +42,7 @@ export default function InsumoNew() {
       <div className="mx-auto max-w-3xl space-y-6">
         <PageHeader
           title="Nuevo insumo"
-          description="Registra un producto comercial que usas como insumo."
+          description="Crea un insumo: un producto que compras y usas en tus elaboraciones."
           breadcrumbs={[{ label: "Insumos", to: "/insumos" }, { label: "Nuevo insumo" }]}
         />
 
@@ -108,6 +109,8 @@ function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef }: Formul
   return (
     <>
       {form.globalError && <Alert type="error">{form.globalError}</Alert>}
+
+      <ResumenProductoEncontrado resumen={precarga.resumen} />
 
       <InsumoForm
         mode="create"

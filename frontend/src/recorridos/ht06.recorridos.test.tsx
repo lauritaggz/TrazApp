@@ -745,12 +745,12 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     // 4. Each line: a new supply (with its allergens confirmed) and a new lot.
     r.etapa("Insumos y lotes (5 líneas)");
     for (const [, nombre] of INGREDIENTES) {
-      await r.clic(`${nombre}: «Registrar insumo nuevo»`, within(await waitForLinea(nombre)).getByRole("button", { name: /Registrar insumo nuevo/ }));
-      const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+      await r.clic(`${nombre}: «Crear insumo»`, within(await waitForLinea(nombre)).getByRole("button", { name: /Crear insumo/ }));
+      const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
       await r.escribir(`${nombre}: nombre del insumo`, within(dialogo).getByLabelText("Nombre"), `${nombre} Selecta`);
       await r.escribir(`${nombre}: marca u origen`, within(dialogo).getByLabelText("Marca u origen"), "Selecta");
       await r.clic(`${nombre}: «Este insumo no contiene alérgenos»`, within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
-      await r.clic(`${nombre}: «Registrar insumo»`, within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+      await r.clic(`${nombre}: «Registrar insumo»`, within(dialogo).getByRole("button", { name: "Crear insumo" }));
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       await r.clic(`${nombre}: «Lote nuevo»`, await within(linea(nombre)).findByRole("radio", { name: "Lote nuevo" }));
       await r.escribir(`${nombre}: código del lote`, within(linea(nombre)).getByLabelText("Código del lote"), `L-${nombre.slice(0, 3).toUpperCase()}`);

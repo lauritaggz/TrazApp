@@ -1365,8 +1365,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
   async function abrirDialogoHarina(user: ReturnType<typeof userEvent.setup>) {
     await openRegistro();
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    return screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    return screen.findByRole("dialog", { name: "Crear insumo" });
   }
 
   async function llenar(dialogo: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
@@ -1380,11 +1380,11 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     vi.mocked(insumoService.createInsumo).mockResolvedValue(NUEVO_HARINA);
   });
 
-  it("cada línea ofrece «Registrar insumo nuevo», destacada solo si no hay insumos activos", async () => {
+  it("cada línea ofrece «Crear insumo», destacada solo si no hay insumos activos", async () => {
     await openRegistro();
 
-    const harina = within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ });
-    const leche = within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ });
+    const harina = within(linea("Harina")).getByRole("button", { name: /Crear insumo/ });
+    const leche = within(linea("Leche")).getByRole("button", { name: /Crear insumo/ });
     expect(harina).toHaveAttribute("data-destacado", "true");
     expect(leche).toHaveAttribute("data-destacado", "false");
     expect(harina.className).not.toBe(leche.className);
@@ -1401,7 +1401,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     expect(within(ingrediente).getAllByRole("option").map((o) => o.textContent)).toEqual(["Harina"]);
     expect(within(dialogo).getByText(/Para el ingrediente Harina/)).toBeInTheDocument();
     expect(within(dialogo).getByLabelText("Nombre")).toBeInTheDocument();
-    expect(within(dialogo).getByRole("button", { name: "Registrar insumo" })).toBeInTheDocument();
+    expect(within(dialogo).getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
   });
 
   it("PT05-18: el insumo creado queda registrado, en las opciones y asignado a la línea, sin salir del registro", async () => {
@@ -1409,7 +1409,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1431,7 +1431,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
@@ -1449,7 +1449,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     const leche = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
@@ -1462,13 +1462,13 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     );
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Leche")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await user.type(within(dialogo).getByLabelText("Nombre"), "Leche Nueva 1 L");
     await user.type(within(dialogo).getByLabelText("Marca u origen"), "Nueva");
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(screen.getByLabelText("Insumo de Leche")).toHaveValue("40"));
     const opciones = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
@@ -1485,8 +1485,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
 
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -1504,10 +1504,10 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
 
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("LOTE-9");
@@ -1521,7 +1521,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     expect(screen.queryByText("Tienes cambios sin guardar.")).not.toBeInTheDocument();
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("Tienes cambios sin guardar.")).toBeInTheDocument();
     const evento = new Event("beforeunload", { cancelable: true });
@@ -1539,7 +1539,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByRole("button", { name: "Usar este insumo" })).toBeInTheDocument();
     expect(within(dialogo).queryByRole("link", { name: "Ver insumo existente" })).not.toBeInTheDocument();
@@ -1551,7 +1551,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
@@ -1570,12 +1570,12 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
     expect(await within(dialogo).findByText("Ese insumo está asociado a «Leche».")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Crear insumo" })).toBeInTheDocument();
     expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
   });
 
@@ -1585,7 +1585,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
@@ -1601,7 +1601,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
 
@@ -1620,7 +1620,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
 
@@ -1638,8 +1638,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     // Cada apertura empieza con el formulario vacío.
     expect(within(dialogo).getByLabelText("Nombre")).toHaveValue("");
     await user.keyboard("{Escape}");
@@ -1653,7 +1653,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByText("El nombre es obligatorio.")).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
@@ -1665,7 +1665,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByText("No pudimos guardar el insumo. Inténtalo nuevamente.")).toBeInTheDocument();
     expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
@@ -1677,10 +1677,10 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
     expect(dialogo).toHaveClass("w-full", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
-    for (const nombre of ["Cancelar", "Registrar insumo"]) {
+    for (const nombre of ["Cancelar", "Crear insumo"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
     }
-    expect(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
+    expect(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
   });
 });
 
@@ -1750,7 +1750,7 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
     await user.type(screen.getByLabelText("Marca u origen"), "Selecta");
     await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();

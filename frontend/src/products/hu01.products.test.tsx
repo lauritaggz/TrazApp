@@ -650,8 +650,11 @@ describe("Productos HU01 — creación", () => {
 
     await openNewProductPage();
 
-    expect(productService.listCategories).toHaveBeenCalled();
+    // Primero se espera a que aparezcan las categorías: la pantalla las pide en un efecto que corre después de
+    // pintar el título, así que comprobar la llamada justo al ver el título era una carrera (falló 2 de 30 corridas
+    // a los ~50 ms, siempre en esta línea). Las etiquetas solo existen si `listCategories` ya respondió.
     expect(await screen.findByLabelText("Pastelería")).toBeInTheDocument();
+    expect(productService.listCategories).toHaveBeenCalled();
     expect(screen.getByLabelText("Dulce")).toBeInTheDocument();
 
     await fillValidProductForm(user);
