@@ -14,6 +14,49 @@ interface PageHeaderProps {
   titleSuffix?: ReactNode;
 }
 
+/** The path of a page; its links and the current page are 44 px tall. */
+export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
+  if (items.length === 0) return null;
+  const breadcrumbs = items;
+  return (
+    <nav aria-label="Ruta de navegación">
+      {/* Los enlaces miden 44 px; el margen negativo conserva el ritmo vertical de la página. */}
+      <ol className="-my-3 flex flex-wrap items-center gap-1.5 text-sm text-text-secondary">
+        {breadcrumbs.map((item, index) => {
+          const last = index === breadcrumbs.length - 1;
+          return (
+            <li
+              key={`${item.label}-${index}`}
+              className="flex items-center gap-1.5"
+            >
+              {item.to && !last ? (
+                <Link
+                  to={item.to}
+                  className="inline-flex min-h-11 items-center rounded font-medium text-accent-strong underline-offset-2 hover:underline"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  aria-current={last ? "page" : undefined}
+                  className={`inline-flex min-h-11 items-center ${last ? "text-text-primary" : ""}`}
+                >
+                  {item.label}
+                </span>
+              )}
+              {!last && (
+                <span aria-hidden="true" className="text-text-muted">
+                  /
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 export default function PageHeader({
   title,
   description,
@@ -23,43 +66,7 @@ export default function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className="space-y-3">
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav aria-label="Ruta de navegación">
-          {/* Los enlaces miden 44 px; el margen negativo conserva el ritmo vertical de la página. */}
-          <ol className="-my-3 flex flex-wrap items-center gap-1.5 text-sm text-text-secondary">
-            {breadcrumbs.map((item, index) => {
-              const last = index === breadcrumbs.length - 1;
-              return (
-                <li
-                  key={`${item.label}-${index}`}
-                  className="flex items-center gap-1.5"
-                >
-                  {item.to && !last ? (
-                    <Link
-                      to={item.to}
-                      className="inline-flex min-h-11 items-center rounded font-medium text-accent-strong underline-offset-2 hover:underline"
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span
-                      aria-current={last ? "page" : undefined}
-                      className={`inline-flex min-h-11 items-center ${last ? "text-text-primary" : ""}`}
-                    >
-                      {item.label}
-                    </span>
-                  )}
-                  {!last && (
-                    <span aria-hidden="true" className="text-text-muted">
-                      /
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-      )}
+      {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">

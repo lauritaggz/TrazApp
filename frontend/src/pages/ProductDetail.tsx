@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
-import PageHeader from "@/components/ui/PageHeader";
+import ComingSoonCard from "@/components/detail/ComingSoonCard";
+import DetailHero from "@/components/detail/DetailHero";
+import FactTile from "@/components/detail/FactTile";
+import { EtiquetaIcon, ProductoIcon, QrIcon, TrazabilidadIcon } from "@/components/detail/icons";
+import Badge from "@/components/ui/Badge";
+import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
@@ -142,7 +147,7 @@ export default function ProductDetail() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-6xl space-y-6">
         {loading && <ProductDetailLoading />}
 
         {!loading && unavailable && (
@@ -151,9 +156,21 @@ export default function ProductDetail() {
 
         {!loading && product && (
           <>
-            <PageHeader
+            <Breadcrumbs
+              items={[{ label: "Productos", to: "/productos" }, { label: product.nombre }]}
+            />
+            <DetailHero
+              kind="Producto"
+              icon={<ProductoIcon size={30} />}
               title={product.nombre}
-              description={product.codigo_interno ?? "—"}
+              subtitle={product.codigo_interno ?? "—"}
+              badges={
+                tieneFormulacion === null ? undefined : (
+                  <Badge variant={tieneFormulacion ? "success" : "warning"}>
+                    {tieneFormulacion ? "Lista para elaborar" : "Falta la formulación"}
+                  </Badge>
+                )
+              }
               actions={
                 <>
                   <Button
@@ -173,102 +190,120 @@ export default function ProductDetail() {
                   >
                     Editar producto
                   </Button>
+                  {/* Maqueta: el código QR del producto es trabajo futuro. */}
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" disabled>
+                    <QrIcon size={18} />
+                    Ver QR (próximamente)
+                  </Button>
                 </>
               }
-              breadcrumbs={[
-                { label: "Productos", to: "/productos" },
-                { label: product.nombre },
-              ]}
             />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
-            <ProductDetailSection id="product-detail-general" title="Información general">
-              <div
-                className={`grid gap-5 ${resolveProductImageUrl(product.imagen_url) ? "sm:grid-cols-[12rem_1fr]" : ""}`}
-              >
-                <ProductMainImage imagenUrl={product.imagen_url} nombre={product.nombre} />
-                <dl className="grid grid-cols-1 gap-4 sm:gap-5">
-                  <DetailField label="Código interno">
-                    {product.codigo_interno ?? "—"}
-                  </DetailField>
-                  <DetailField label="Descripción">
-                    {product.descripcion?.trim() || "—"}
-                  </DetailField>
-                  <DetailField label="Contenido neto">
-                    {formatProductContent(product.contenido_neto, product.unidad_medida)}
-                  </DetailField>
-                </dl>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+              <div className="min-w-0 space-y-6">
+                <ProductDetailSection id="product-detail-general" title="Información general">
+                  <div className="space-y-4">
+                    <ProductMainImage imagenUrl={product.imagen_url} nombre={product.nombre} />
+                    <dl className="grid grid-cols-2 gap-3">
+                      <DetailField label="Descripción" className="col-span-2">
+                        {product.descripcion?.trim() || "—"}
+                      </DetailField>
+                      <FactTile label="Código interno">{product.codigo_interno ?? "—"}</FactTile>
+                      <FactTile label="Contenido neto">
+                        {formatProductContent(product.contenido_neto, product.unidad_medida)}
+                      </FactTile>
+                    </dl>
+                  </div>
+                </ProductDetailSection>
+
+                <ProductDetailSection id="product-detail-formulation" title="Formulación">
+                  <ProductFormulationSection
+                    productoId={product.id}
+                    onSaved={() => setFormulationVersion((key) => key + 1)}
+                  />
+                </ProductDetailSection>
+
+                <ProductDetailSection id="product-detail-elaboraciones" title="Elaboraciones">
+                  <ProductElaboracionesSection
+                    productoId={product.id}
+                    refreshKey={formulationVersion}
+                    tieneFormulacion={tieneFormulacion}
+                    idSinFormulacion={ID_SIN_FORMULACION}
+                  />
+                </ProductDetailSection>
               </div>
-            </ProductDetailSection>
 
-            <ProductDetailSection id="product-detail-formulation" title="Formulación">
-              <ProductFormulationSection
-                productoId={product.id}
-                onSaved={() => setFormulationVersion((key) => key + 1)}
-              />
-            </ProductDetailSection>
+              <aside className="min-w-0 space-y-6">
+                <ProductDetailSection id="product-detail-categories" title="Categorías">
+                  {product.categorias.length > 0 ? (
+                    <CategoryBadges categorias={product.categorias} />
+                  ) : (
+                    <p className="text-sm text-text-secondary">Sin categorías</p>
+                  )}
+                </ProductDetailSection>
 
-            <ProductDetailSection id="product-detail-elaboraciones" title="Elaboraciones">
-              <ProductElaboracionesSection
-                productoId={product.id}
-                refreshKey={formulationVersion}
-                tieneFormulacion={tieneFormulacion}
-                idSinFormulacion={ID_SIN_FORMULACION}
-              />
-            </ProductDetailSection>
-
-            <ProductDetailSection id="product-detail-presentation" title="Presentación">
-              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-                {product.presentacion?.trim() ? product.presentacion : "No especificada"}
-              </p>
-            </ProductDetailSection>
-
-            <ProductDetailSection id="product-detail-categories" title="Categorías">
-              {product.categorias.length > 0 ? (
-                <CategoryBadges categorias={product.categorias} />
-              ) : (
-                <p className="text-sm text-text-secondary">Sin categorías</p>
-              )}
-            </ProductDetailSection>
-
-            <ProductDetailSection id="product-detail-commercial" title="Información comercial">
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                <DetailField label="Costo de producción">
-                  {formatProductPrice(product.costo_produccion)}
-                </DetailField>
-                <DetailField label="Precio de venta">
-                  {formatProductPrice(product.precio_venta)}
-                </DetailField>
-              </dl>
-            </ProductDetailSection>
-
-            <section
-              aria-labelledby="product-delete-title"
-              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
-            >
-              <div className="space-y-3">
-                <div>
-                  <h2 id="product-delete-title" className="text-sm font-semibold text-text-primary">
-                    Eliminar producto
-                  </h2>
-                  <p id="product-delete-help" className="text-sm text-text-secondary leading-relaxed mt-1">
-                    Al eliminar, el producto dejará de aparecer en tu catálogo. La trazabilidad
-                    histórica se conserva.
+                <ProductDetailSection id="product-detail-presentation" title="Presentación">
+                  <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+                    {product.presentacion?.trim() ? product.presentacion : "No especificada"}
                   </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
-                  onClick={handleDeleteRequest}
-                  loading={deleting}
-                  disabled={deleting}
-                  aria-describedby="product-delete-help"
+                </ProductDetailSection>
+
+                <ProductDetailSection id="product-detail-commercial" title="Información comercial">
+                  <dl className="grid grid-cols-2 gap-3">
+                    <FactTile label="Costo de producción">
+                      {formatProductPrice(product.costo_produccion)}
+                    </FactTile>
+                    <FactTile label="Precio de venta">
+                      {formatProductPrice(product.precio_venta)}
+                    </FactTile>
+                  </dl>
+                </ProductDetailSection>
+
+                <ComingSoonCard
+                  id="product-soon-trazabilidad"
+                  title="Trazabilidad de ingredientes"
+                  description="Verás cuántos ingredientes del producto tienen su información completa."
+                  icon={<TrazabilidadIcon size={20} />}
+                  rows={1}
+                />
+                <ComingSoonCard
+                  id="product-soon-adicional"
+                  title="Información adicional"
+                  description="Lote, vigencia y sellos como «Sin TACC» o «Sin conservantes»."
+                  icon={<EtiquetaIcon size={20} />}
+                  rows={0}
+                />
+
+                <section
+                  aria-labelledby="product-delete-title"
+                  className="bg-card border border-error-border rounded-2xl p-5 sm:p-6"
                 >
-                  {deleting ? "Eliminando…" : "Eliminar producto"}
-                </Button>
-              </div>
-            </section>
+                  <div className="space-y-3">
+                    <div>
+                      <h2 id="product-delete-title" className="text-sm font-semibold text-text-primary">
+                        Eliminar producto
+                      </h2>
+                      <p id="product-delete-help" className="text-sm text-text-secondary leading-relaxed mt-1">
+                        Al eliminar, el producto dejará de aparecer en tu catálogo. La trazabilidad
+                        histórica se conserva.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full sm:w-auto text-error border-error/30 hover:bg-error-bg"
+                      onClick={handleDeleteRequest}
+                      loading={deleting}
+                      disabled={deleting}
+                      aria-describedby="product-delete-help"
+                    >
+                      {deleting ? "Eliminando…" : "Eliminar producto"}
+                    </Button>
+                  </div>
+                </section>
+              </aside>
+            </div>
           </>
         )}
       </div>
@@ -303,12 +338,14 @@ export default function ProductDetail() {
 function DetailField({
   label,
   children,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="space-y-1">
+    <div className={`space-y-1 ${className}`}>
       <dt className="text-xs font-medium text-text-secondary">
         {label}
       </dt>
@@ -346,7 +383,7 @@ function ProductMainImage({
       <div
         role="img"
         aria-label="Sin imagen principal"
-        className="flex h-12 items-center justify-center rounded-lg border border-dashed border-border bg-surface px-4 text-sm text-text-secondary"
+        className="flex h-12 items-center justify-center rounded-xl border border-dashed border-border bg-surface px-4 text-sm text-text-secondary"
       >
         Sin imagen
       </div>
@@ -354,10 +391,8 @@ function ProductMainImage({
   }
 
   return (
-    <div className="w-full max-w-[12rem]">
-      <div className="aspect-square overflow-hidden rounded-xl border border-border bg-surface">
-        <img src={src} alt={`Imagen de ${nombre}`} className="h-full w-full object-cover" />
-      </div>
+    <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-surface sm:max-w-sm">
+      <img src={src} alt={`Imagen de ${nombre}`} className="h-full w-full object-cover" />
     </div>
   );
 }
@@ -368,7 +403,7 @@ function CategoryBadges({ categorias }: { categorias: Categoria[] }) {
       {categorias.map((categoria) => (
         <span
           key={categoria.id}
-          className="inline-flex items-center rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-2.5 py-0.5 text-xs font-medium"
+          className="inline-flex items-center rounded-full bg-brand-50 text-accent-strong border border-brand-100 px-3 py-1 text-sm font-medium"
         >
           {categoria.nombre}
         </span>
