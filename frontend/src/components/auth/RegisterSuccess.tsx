@@ -50,7 +50,7 @@ export default function RegisterSuccess({ name }: RegisterSuccessProps) {
             Cuenta creada exitosamente
           </h2>
           <p className="text-sm text-text-secondary mb-8">
-            Bienvenido a TrazApp,{" "}
+            Te damos la bienvenida a TrazApp,{" "}
             <strong className="text-text-primary">{name}</strong>. Ya puedes
             iniciar sesión con tu correo y contraseña.
           </p>

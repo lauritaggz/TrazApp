@@ -204,10 +204,10 @@ describe("Crear ingrediente: próximos pasos", () => {
     await user.click(
       screen.getByRole("button", { name: "Usar sugerencia: AZU-001" }),
     );
-    await user.click(screen.getByRole("button", { name: "Guardar ingrediente" }));
+    await user.click(screen.getByRole("button", { name: "Crear ingrediente" }));
 
     expect(
-      await screen.findByText("Ingrediente creado correctamente."),
+      await screen.findByText("Ingrediente creado."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Declarar alérgenos y composición" }),
@@ -255,7 +255,7 @@ describe("Estados vacíos", () => {
       screen.getByText("Escribe su nombre, código y contenido."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Registrar primer producto" }),
+      screen.getByRole("button", { name: "Crear tu primer producto" }),
     ).toBeInTheDocument();
   });
 
@@ -266,7 +266,9 @@ describe("Estados vacíos", () => {
       await screen.findByRole("heading", { name: "Aún no tienes ingredientes" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Declara sus alérgenos desde el detalle."),
+      screen.getByText(
+        "Los alérgenos que importan se declaran en tus insumos; los del ingrediente son solo de referencia.",
+      ),
     ).toBeInTheDocument();
   });
 });

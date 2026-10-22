@@ -55,7 +55,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end"
+        // pb-24: la barra de acciones de los formularios queda fija al borde inferior (70 a 86 px); el aviso va encima.
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-4 pt-4 pb-24 sm:items-end"
         role="region"
         aria-label="Notificaciones"
       >

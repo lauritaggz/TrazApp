@@ -138,7 +138,9 @@ export default function AppShell({
         <main
           id="contenido-principal"
           tabIndex={-1}
-          className="flex-1 overflow-y-auto p-5 outline-none lg:p-8"
+          // Sin `overflow` propio: la que scrollea es la ventana. Con `overflow-y-auto` el `sticky` de
+          // FormActions se ataba a este contenedor, que nunca scrollea, y la barra no se quedaba fija.
+          className="flex-1 p-5 outline-none lg:p-8"
         >
           <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>

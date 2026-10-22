@@ -327,19 +327,34 @@ beforeEach(() => {
 // --- acceso desde el producto ---
 
 describe("Detalle del producto: elaboraciones", () => {
-  it("muestra «Registrar elaboración» solo si el producto tiene formulación", async () => {
+  it("muestra «Nueva elaboración» solo si el producto tiene formulación", async () => {
     openPage("/productos/5");
-    expect(await screen.findByRole("button", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Nueva elaboración" })).toBeInTheDocument();
   });
 
-  it("sin formulación no ofrece el botón y lo explica", async () => {
+  it("sin formulación el botón del encabezado queda deshabilitado y lo explica", async () => {
     vi.mocked(formulationService.getProductFormulation).mockResolvedValue({ existe: false, version: null });
     openPage("/productos/5");
 
-    expect(
-      await screen.findByText("Define la formulación del producto para poder registrar elaboraciones."),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Registrar elaboración" })).not.toBeInTheDocument();
+    const explicacion = await screen.findByText(
+      "Define la formulación del producto para poder crear elaboraciones.",
+    );
+    const boton = screen.getByRole("button", { name: "Nueva elaboración" });
+    expect(boton).toBeDisabled();
+    expect(boton).toHaveAccessibleDescription(explicacion.textContent ?? "");
+  });
+
+  it("«Nueva elaboración» es la acción principal del encabezado del producto, junto a «Editar producto» (HT07)", async () => {
+    openPage("/productos/5");
+
+    const nueva = await screen.findByRole("button", { name: "Nueva elaboración" });
+    await waitFor(() => expect(nueva).toBeEnabled());
+    const editar = screen.getByRole("button", { name: "Editar producto" });
+    expect(nueva.parentElement).toBe(editar.parentElement);
+    expect(nueva.compareDocumentPosition(editar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nueva).toHaveClass("bg-brand-600");
+    expect(editar).not.toHaveClass("bg-brand-600");
+    expect(screen.queryByRole("button", { name: "Volver a productos" })).not.toBeInTheDocument();
   });
 
   it("lista las elaboraciones más recientes con código, fecha y estado, y enlaza cada una", async () => {
@@ -388,9 +403,9 @@ describe("Detalle del producto: elaboraciones", () => {
   });
 });
 
-// --- diálogo «Registrar elaboración» ---
+// --- diálogo «Nueva elaboración» ---
 
-describe("Diálogo «Registrar elaboración»", () => {
+describe("Diálogo «Nueva elaboración»", () => {
   beforeEach(() => {
     vi.mocked(elaboracionService.getCodigoSugerido).mockResolvedValue({ codigo: "E-001" });
     vi.mocked(elaboracionService.createElaboracion).mockResolvedValue(BORRADOR);
@@ -398,8 +413,8 @@ describe("Diálogo «Registrar elaboración»", () => {
 
   async function abrirDialogo(user: ReturnType<typeof userEvent.setup>) {
     openPage("/productos/5");
-    await user.click(await screen.findByRole("button", { name: "Registrar elaboración" }));
-    return screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(await screen.findByRole("button", { name: "Nueva elaboración" }));
+    return screen.findByRole("dialog", { name: "Nueva elaboración" });
   }
 
   it("el botón solo abre el diálogo: todavía no se crea nada", async () => {
@@ -451,8 +466,8 @@ describe("Diálogo «Registrar elaboración»", () => {
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
     vi.mocked(elaboracionService.getCodigoSugerido).mockResolvedValue({ codigo: "E-002" });
 
-    await user.click(screen.getByRole("button", { name: "Registrar elaboración" }));
-    dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
+    dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
 
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-002"));
     expect(elaboracionService.getCodigoSugerido).toHaveBeenCalledTimes(2);
@@ -521,7 +536,7 @@ describe("Diálogo «Registrar elaboración»", () => {
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
 
     expect(await within(dialogo).findByText(/Ya existe una elaboración con el código «E-001».*Prueba con E-002\./)).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nueva elaboración" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Elaboración E-001" })).not.toBeInTheDocument();
 
     await user.clear(within(dialogo).getByLabelText("Código de la elaboración"));
@@ -561,7 +576,7 @@ describe("Diálogo «Registrar elaboración»", () => {
 
     expect(await within(dialogo).findByText(/ingredientes desactivados: «Harina»/)).toBeInTheDocument();
     expect(within(dialogo).getByRole("listitem")).toHaveTextContent("Harina");
-    expect(screen.getByRole("dialog", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nueva elaboración" })).toBeInTheDocument();
   });
 
   it("un producto sin formulación se informa dentro del diálogo", async () => {
@@ -584,7 +599,7 @@ describe("Diálogo «Registrar elaboración»", () => {
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
 
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
-    expect(await within(dialogo).findByText("No pudimos crear la elaboración. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await within(dialogo).findByText("No pudimos crear la elaboración. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
 
     expect(await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
@@ -743,9 +758,9 @@ describe("Registro: encabezado y líneas", () => {
     await openRegistro();
 
     expect(within(linea("Harina")).getByText("500 g")).toBeInTheDocument();
-    expect(within(linea("Harina")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Falta el insumo")).toBeInTheDocument();
     // La leche tiene insumo pero aún no lote.
-    expect(within(linea("Leche")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Falta el lote")).toBeInTheDocument();
   });
 
   it("si el ingrediente no tiene insumos activos, lo indica", async () => {
@@ -829,7 +844,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await openRegistro();
 
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Lote existente" }));
-    const lista = await within(linea("Leche")).findByLabelText("Lote registrado");
+    const lista = await within(linea("Leche")).findByLabelText("Elige el lote");
     expect(within(lista).getByRole("option", { name: "X123 · vence 15-10-2026" })).toBeInTheDocument();
     await user.selectOptions(lista, "50");
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
@@ -849,7 +864,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "11");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Lote existente" }));
 
-    expect(await within(linea("Leche")).findByText(/aún no tiene lotes registrados/)).toBeInTheDocument();
+    expect(await within(linea("Leche")).findByText(/aún no tiene lotes cargados/)).toBeInTheDocument();
   });
 
   it("sin lote: guarda el indicador y la línea queda completa", async () => {
@@ -857,7 +872,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await openRegistro();
 
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
-    expect(within(linea("Leche")).getByText("Completo")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
 
     await waitFor(() =>
@@ -876,7 +891,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await user.selectOptions(screen.getByLabelText("Insumo de Leche"), "11");
 
     expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).not.toBeChecked();
-    expect(within(linea("Leche")).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Falta el lote")).toBeInTheDocument();
   });
 
   it("un lote nuevo sin código no se envía y se marca en su línea", async () => {
@@ -958,7 +973,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
 
-    expect(await screen.findByText("No pudimos guardar el borrador. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos guardar el borrador. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
   });
 
   it("«Usar este lote»: el lote nuevo ya existe, así que la línea pasa a ese lote existente", async () => {
@@ -979,7 +994,7 @@ describe("Registro: lotes y «Guardar borrador»", () => {
 
     expect(within(linea("Leche")).getByRole("radio", { name: "Lote existente" })).toBeChecked();
     expect(within(linea("Leche")).queryByRole("button", { name: "Usar este lote" })).not.toBeInTheDocument();
-    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(await within(linea("Leche")).findByLabelText("Elige el lote")).toHaveValue("50");
 
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
     await waitFor(() =>
@@ -1055,7 +1070,7 @@ describe("Registro: cambios sin guardar", () => {
     await openRegistro();
 
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
-    await user.click(screen.getByRole("button", { name: "Volver al producto" }));
+    await user.click(screen.getByRole("link", { name: "Volver al producto" }));
     expect(await screen.findByRole("alertdialog", { name: "Salir sin guardar" })).toBeInTheDocument();
   });
 
@@ -1063,7 +1078,7 @@ describe("Registro: cambios sin guardar", () => {
     const user = userEvent.setup();
     await openRegistro();
 
-    await user.click(screen.getByRole("button", { name: "Volver al producto" }));
+    await user.click(screen.getByRole("link", { name: "Volver al producto" }));
 
     expect(await screen.findByRole("heading", { name: "Queque de vainilla", level: 1 })).toBeInTheDocument();
   });
@@ -1106,7 +1121,7 @@ describe("Registro: eliminar el borrador", () => {
     const dialogo = await screen.findByRole("alertdialog", { name: "Eliminar borrador" });
     await user.click(within(dialogo).getByRole("button", { name: "Eliminar borrador" }));
 
-    expect(await screen.findByText("No pudimos eliminar el borrador. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos eliminar el borrador. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Elaboración E-001", level: 1 })).toBeInTheDocument();
   });
 });
@@ -1158,7 +1173,7 @@ describe("Registro: finalización", () => {
 
     await waitFor(() => expect(elaboracionService.finalizarElaboracion).toHaveBeenCalledWith(30));
     expect(await screen.findByText("Finalizada")).toBeInTheDocument();
-    expect(await screen.findByText("Elaboración finalizada correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Elaboración finalizada.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Guardar borrador" })).not.toBeInTheDocument();
   });
 
@@ -1186,7 +1201,7 @@ describe("Registro: finalización", () => {
 
     await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
 
-    expect(await screen.findByText("No pudimos guardar el borrador. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos guardar el borrador. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(elaboracionService.finalizarElaboracion).not.toHaveBeenCalled();
   });
@@ -1326,7 +1341,7 @@ describe("Registro: finalización", () => {
     await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
     await user.click(await screen.findByRole("button", { name: "Finalizar" }));
 
-    expect(await screen.findByText("No pudimos finalizar la elaboración. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos finalizar la elaboración. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeInTheDocument();
   });
 });
@@ -1350,8 +1365,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
   async function abrirDialogoHarina(user: ReturnType<typeof userEvent.setup>) {
     await openRegistro();
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    return screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    return screen.findByRole("dialog", { name: "Crear insumo" });
   }
 
   async function llenar(dialogo: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
@@ -1365,15 +1380,15 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     vi.mocked(insumoService.createInsumo).mockResolvedValue(NUEVO_HARINA);
   });
 
-  it("cada línea ofrece «Registrar insumo nuevo», destacada solo si no hay insumos activos", async () => {
+  it("cada línea ofrece «Crear insumo», destacada solo si no hay insumos activos", async () => {
     await openRegistro();
 
-    const harina = within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ });
-    const leche = within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ });
+    const harina = within(linea("Harina")).getByRole("button", { name: /Crear insumo/ });
+    const leche = within(linea("Leche")).getByRole("button", { name: /Crear insumo/ });
     expect(harina).toHaveAttribute("data-destacado", "true");
     expect(leche).toHaveAttribute("data-destacado", "false");
     expect(harina.className).not.toBe(leche.className);
-    expect(within(linea("Harina")).getByText(/Registra uno nuevo para poder asignarlo/)).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText(/Crea uno para poder asignarlo/)).toBeInTheDocument();
   });
 
   it("abre el formulario de insumos con el ingrediente de la línea preseleccionado y bloqueado", async () => {
@@ -1386,7 +1401,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     expect(within(ingrediente).getAllByRole("option").map((o) => o.textContent)).toEqual(["Harina"]);
     expect(within(dialogo).getByText(/Para el ingrediente Harina/)).toBeInTheDocument();
     expect(within(dialogo).getByLabelText("Nombre")).toBeInTheDocument();
-    expect(within(dialogo).getByRole("button", { name: "Registrar insumo" })).toBeInTheDocument();
+    expect(within(dialogo).getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
   });
 
   it("PT05-18: el insumo creado queda registrado, en las opciones y asignado a la línea, sin salir del registro", async () => {
@@ -1394,7 +1409,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1416,7 +1431,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
@@ -1434,7 +1449,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     const leche = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
@@ -1447,13 +1462,13 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     );
     const user = userEvent.setup();
     await openRegistro();
-    await user.click(within(linea("Leche")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Leche")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await user.type(within(dialogo).getByLabelText("Nombre"), "Leche Nueva 1 L");
     await user.type(within(dialogo).getByLabelText("Marca u origen"), "Nueva");
     await user.click(within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(screen.getByLabelText("Insumo de Leche")).toHaveValue("40"));
     const opciones = within(screen.getByLabelText("Insumo de Leche")).getAllByRole("option").map((o) => o.textContent);
@@ -1470,8 +1485,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
 
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -1489,10 +1504,10 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     await user.type(screen.getByLabelText("Código de la elaboración"), "LOTE-9");
     await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
 
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("LOTE-9");
@@ -1506,7 +1521,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     expect(screen.queryByText("Tienes cambios sin guardar.")).not.toBeInTheDocument();
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByText("Tienes cambios sin guardar.")).toBeInTheDocument();
     const evento = new Event("beforeunload", { cancelable: true });
@@ -1524,7 +1539,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByRole("button", { name: "Usar este insumo" })).toBeInTheDocument();
     expect(within(dialogo).queryByRole("link", { name: "Ver insumo existente" })).not.toBeInTheDocument();
@@ -1536,7 +1551,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
@@ -1555,12 +1570,12 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
     expect(await within(dialogo).findByText("Ese insumo está asociado a «Leche».")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Registrar insumo nuevo" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Crear insumo" })).toBeInTheDocument();
     expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
   });
 
@@ -1570,7 +1585,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Usar este insumo" }));
 
@@ -1586,7 +1601,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
 
@@ -1605,7 +1620,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     await user.click(await within(dialogo).findByRole("button", { name: "Reactivar" }));
 
@@ -1623,8 +1638,8 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await user.click(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ }));
-    dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+    await user.click(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ }));
+    dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
     // Cada apertura empieza con el formulario vacío.
     expect(within(dialogo).getByLabelText("Nombre")).toHaveValue("");
     await user.keyboard("{Escape}");
@@ -1638,7 +1653,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const user = userEvent.setup();
     const dialogo = await abrirDialogoHarina(user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
     expect(await within(dialogo).findByText("El nombre es obligatorio.")).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
@@ -1650,9 +1665,9 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
     await llenar(dialogo, user);
 
-    await user.click(within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Crear insumo" }));
 
-    expect(await within(dialogo).findByText("No pudimos guardar el insumo. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await within(dialogo).findByText("No pudimos guardar el insumo. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(screen.getByLabelText("Insumo de Harina")).toHaveValue("");
   });
 
@@ -1662,10 +1677,10 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
     expect(dialogo).toHaveClass("w-full", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
-    for (const nombre of ["Cancelar", "Registrar insumo"]) {
+    for (const nombre of ["Cancelar", "Crear insumo"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
     }
-    expect(within(linea("Harina")).getByRole("button", { name: /Registrar insumo nuevo/ })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
+    expect(within(linea("Harina")).getByRole("button", { name: /Crear insumo/ })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
   });
 });
 
@@ -1735,7 +1750,7 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
     await user.type(screen.getByLabelText("Marca u origen"), "Selecta");
     await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();
@@ -1954,7 +1969,7 @@ describe("Detalle de la elaboración (T05-07)", () => {
       within(resumen).getByText("No hay alérgenos declarados en los insumos de esta elaboración."),
     ).toBeInTheDocument();
     // HT06-06: "reviewed, no allergens" says so with the date, instead of the old blank wording.
-    expect(within(tarjeta("Leche")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("Sin alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
     expect(screen.queryByText("Sin alérgenos declarados.")).not.toBeInTheDocument();
   });
 
@@ -2255,7 +2270,7 @@ describe("Registro: alérgenos sin revisar por línea (HT06-06)", () => {
 
     await user.click(within(dialogo).getByRole("button", { name: "Guardar alérgenos" }));
 
-    expect(await within(dialogo).findByText("No pudimos guardar los alérgenos. Inténtalo nuevamente.")).toBeInTheDocument();
+    expect(await within(dialogo).findByText("No pudimos guardar los alérgenos. Revisa tu conexión e inténtalo de nuevo.")).toBeInTheDocument();
     expect(within(linea("Leche")).getByText("Alérgenos sin revisar")).toBeInTheDocument();
   });
 
@@ -2333,6 +2348,266 @@ describe("Registro: el 409 «alergenos_sin_revisar» (HT06-06)", () => {
     expect(linea("Leche")).not.toHaveClass("border-error-border");
     expect(screen.queryByText("No se puede finalizar todavía: revisa las líneas marcadas.")).not.toBeInTheDocument();
   });
+
+  it("la línea dice «Falta revisar alérgenos», no «Lista», y el progreso la cuenta (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+    // Antes del 409 la pantalla cree que está revisado: lista.
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
+
+    await finalizarYRecibirElProblema(user);
+
+    expect(within(linea("Leche")).getByText("Falta revisar alérgenos")).toBeInTheDocument();
+    expect(within(linea("Leche")).queryByText("Lista")).not.toBeInTheDocument();
+    expect(screen.getByText("Falta 1 de 2 ingredientes")).toBeInTheDocument();
+  });
+
+  it("lleva a la primera línea con problema: se desplaza hasta ella y el foco queda en ella (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await finalizarYRecibirElProblema(user);
+
+    await waitFor(() => expect(linea("Leche")).toHaveFocus());
+    const desplazar = vi.mocked(Element.prototype.scrollIntoView);
+    expect(desplazar).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+    expect(desplazar.mock.contexts.at(-1)).toBe(linea("Leche"));
+  });
+
+  it("con prefers-reduced-motion el desplazamiento no es suave (HT07)", async () => {
+    conProblema();
+    const original = window.matchMedia;
+    window.matchMedia = ((consulta: string) => ({
+      matches: consulta.includes("prefers-reduced-motion"),
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const user = userEvent.setup();
+      await openRegistro();
+
+      await finalizarYRecibirElProblema(user);
+
+      await waitFor(() =>
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "center" }),
+      );
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("tras un error sin línea que señalar, al cerrar la confirmación el foco vuelve a «Finalizar» (HT07)", async () => {
+    conProblema();
+    vi.mocked(elaboracionService.finalizarElaboracion).mockRejectedValue(new ApiError("falla", 500));
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Finalizar" }));
+    await screen.findByText("No pudimos finalizar la elaboración. Revisa tu conexión e inténtalo de nuevo.");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Finalizar elaboración" })).toHaveFocus());
+  });
+
+  it("«Seguir editando» devuelve el foco al botón que abrió la confirmación (HT07)", async () => {
+    conProblema();
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+    await user.click(await screen.findByRole("button", { name: "Seguir editando" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Finalizar elaboración" })).toHaveFocus();
+  });
+});
+
+describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", () => {
+  it("la barra solo tiene «Guardar borrador» y «Finalizar elaboración», en dos columnas en el celular", async () => {
+    await openRegistro();
+
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(within(barra).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual([
+      "Guardar borrador",
+      "Finalizar elaboración",
+    ]);
+    // En el celular el texto visible es «Finalizar»; el nombre accesible sigue siendo el completo.
+    const finalizar = within(barra).getByRole("button", { name: "Finalizar elaboración" });
+    expect(finalizar.querySelector(".sm\\:hidden")).toHaveTextContent("Finalizar");
+    expect(finalizar.querySelector(".hidden")).toHaveTextContent("Finalizar elaboración");
+    expect(within(barra).queryByRole("button", { name: "Eliminar borrador" })).not.toBeInTheDocument();
+    expect(within(barra).queryByRole("link", { name: "Volver al producto" })).not.toBeInTheDocument();
+    expect(barra).toHaveClass("sticky", "bottom-0", "grid", "grid-cols-2", "sm:flex");
+  });
+
+  it("«Eliminar borrador» va al final, en una sección aparte con color de error, y sigue confirmando", async () => {
+    vi.mocked(elaboracionService.deleteElaboracion).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await openRegistro();
+
+    const seccion = screen.getByRole("region", { name: "Eliminar borrador" });
+    expect(seccion).toHaveClass("border-error-border");
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(seccion.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    await user.click(within(seccion).getByRole("button", { name: "Eliminar borrador" }));
+
+    expect(await screen.findByRole("alertdialog", { name: "Eliminar borrador" })).toBeInTheDocument();
+    expect(elaboracionService.deleteElaboracion).not.toHaveBeenCalled();
+  });
+
+  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboración»", async () => {
+    await openRegistro();
+
+    const migas = screen.getByRole("navigation", { name: "Ruta de navegación" });
+    expect(within(migas).getByText("Elaboración")).toBeInTheDocument();
+    expect(within(migas).queryByText("Registro de elaboración")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver al producto" })).toHaveAttribute("href", "/productos/5");
+  });
+
+  it("bajo «Ingredientes» dice cuántos faltan y se actualiza, con aria-live", async () => {
+    const user = userEvent.setup();
+    await openRegistro();
+
+    const progreso = screen.getByText("Faltan 2 de 2 ingredientes");
+    expect(progreso).toHaveAttribute("aria-live", "polite");
+    await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+    expect(screen.getByText("Falta 1 de 2 ingredientes")).toBeInTheDocument();
+  });
+
+  it("con todo listo dice «Todos los ingredientes están listos»", async () => {
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, INS_HARINA]);
+    vi.mocked(elaboracionService.getElaboracion).mockImplementation(async () => BORRADOR_COMPLETO);
+    await openRegistro();
+
+    expect(screen.getByText("Todos los ingredientes están listos")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Lista")).toBeInTheDocument();
+    expect(within(linea("Leche")).getByText("Lista")).toBeInTheDocument();
+  });
+
+  it("al fallar la finalización en la pantalla, lleva a la primera línea pendiente (Harina)", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockResolvedValue(BORRADOR);
+    const user = userEvent.setup();
+    await openRegistro();
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+
+    await waitFor(() => expect(linea("Harina")).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(linea("Harina"));
+  });
+
+  it("va primero a la línea con alérgenos sin revisar si está antes de otra pendiente, sin pedir confirmación", async () => {
+    // Orden de la formulación: Harina (sin insumo) y Leche (insumo con alérgenos sin revisar). Para que la de
+    // alérgenos quede ANTES, se asigna el insumo sin revisar a Harina y se deja Leche sin insumo.
+    const harinaSinRevisar = insumo({
+      id: 21,
+      ingrediente_id: HARINA,
+      nombre: "Harina Sin Revisar",
+      alergenos_revisados: false,
+      alergenos_revisados_at: null,
+    });
+    vi.mocked(insumoService.listInsumos).mockResolvedValue([...INSUMOS_ACTIVOS, harinaSinRevisar]);
+    const user = userEvent.setup();
+    await openRegistro();
+    await user.selectOptions(screen.getByLabelText("Insumo de Harina"), "21");
+    await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
+
+    await user.click(screen.getByRole("button", { name: "Finalizar elaboración" }));
+
+    expect(await screen.findByText("No se puede finalizar todavía: revisa las líneas marcadas.")).toBeInTheDocument();
+    expect(within(linea("Harina")).getByText("Alérgenos del insumo sin revisar.")).toBeInTheDocument();
+    await waitFor(() => expect(linea("Harina")).toHaveFocus());
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  describe("«Guardar borrador»: lleva al problema o devuelve el foco al botón", () => {
+    it("con un error en una línea, se desplaza a ella y el foco queda en ella", async () => {
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Lote nuevo" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await within(linea("Leche")).findByText("Ingresa el código del lote.");
+      await waitFor(() => expect(linea("Leche")).toHaveFocus());
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+      expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(linea("Leche"));
+    });
+
+    it("con un error en el encabezado, se desplaza al campo y el foco queda en él", async () => {
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.clear(screen.getByLabelText("Código de la elaboración"));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await screen.findByText("El código de la elaboración es obligatorio.");
+      await waitFor(() => expect(screen.getByLabelText("Código de la elaboración")).toHaveFocus());
+      expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(
+        screen.getByLabelText("Código de la elaboración"),
+      );
+    });
+
+    it("con un error sin línea que señalar, el foco vuelve a «Guardar borrador»", async () => {
+      vi.mocked(elaboracionService.replaceUsos).mockRejectedValue(new ApiError("falla", 500));
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+      await screen.findByText("No pudimos guardar el borrador. Revisa tu conexión e inténtalo de nuevo.");
+      await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toHaveFocus());
+    });
+
+    it("si se guarda, el foco también vuelve a «Guardar borrador» (el botón estuvo deshabilitado)", async () => {
+      const original = vi.mocked(elaboracionService.replaceUsos).getMockImplementation();
+      let terminar: () => void = () => {};
+      const espera = new Promise<void>((resolver) => (terminar = resolver));
+      vi.mocked(elaboracionService.replaceUsos).mockImplementation(async (...argumentos) => {
+        await espera;
+        return original ? original(...argumentos) : (undefined as never);
+      });
+      const user = userEvent.setup();
+      await openRegistro();
+      await user.click(within(linea("Leche")).getByRole("radio", { name: "Sin lote" }));
+
+      await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
+      // Mientras guarda el botón está deshabilitado y un navegador le quita el foco (jsdom no lo suelta): se
+      // comprueba que, al terminar, la pantalla lo pide de nuevo para ese botón.
+      await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeDisabled());
+      const enfocar = vi.spyOn(HTMLElement.prototype, "focus");
+      terminar();
+
+      await screen.findByText("Borrador guardado.");
+      await waitFor(() =>
+        expect(enfocar.mock.contexts).toContain(screen.getByRole("button", { name: "Guardar borrador" })),
+      );
+      enfocar.mockRestore();
+    });
+  });
+
+  it("los radios del lote van en una fila que pasa a la siguiente si no caben", async () => {
+    await openRegistro();
+
+    const radio = within(linea("Leche")).getByRole("radio", { name: "Lote nuevo" });
+    const grupo = radio.closest("div") as HTMLElement;
+    expect(grupo).toHaveClass("flex", "flex-row", "flex-wrap");
+    expect(grupo).not.toHaveClass("flex-col");
+  });
+});
+
+describe("El contenedor principal no es un contenedor de scroll (HT07, Bloque 1)", () => {
+  it("«main» no lleva overflow propio: la ventana scrollea y la barra pegajosa se pega a ella", async () => {
+    await openRegistro();
+
+    const main = screen.getByRole("main");
+    expect(main.className).not.toMatch(/overflow/);
+    const barra = document.querySelector<HTMLElement>("[data-floating]") as HTMLElement;
+    expect(main.contains(barra)).toBe(true);
+  });
 });
 
 describe("Registro: lote sugerido por línea (HT06-06)", () => {
@@ -2375,7 +2650,7 @@ describe("Registro: lote sugerido por línea (HT06-06)", () => {
     await user.click(botonLeche()!);
 
     expect(within(linea("Leche")).getByRole("radio", { name: "Lote existente" })).toBeChecked();
-    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(await within(linea("Leche")).findByLabelText("Elige el lote")).toHaveValue("50");
     expect(botonLeche()).not.toBeInTheDocument(); // it has a lot now
     await user.click(within(linea("Harina")).getByRole("radio", { name: "Sin lote" }));
     await user.click(screen.getByRole("button", { name: "Guardar borrador" }));
@@ -2470,8 +2745,8 @@ describe("Registro: «Usar los mismos lotes» (HT06-06)", () => {
 
     await user.click(botonTodos()!);
 
-    expect(await within(linea("Harina")).findByLabelText("Lote registrado")).toHaveValue("60");
-    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(await within(linea("Harina")).findByLabelText("Elige el lote")).toHaveValue("60");
+    expect(await within(linea("Leche")).findByLabelText("Elige el lote")).toHaveValue("50");
     const anuncio = screen.getByText("Se asignaron 2 lotes.");
     expect(anuncio).toHaveAttribute("aria-live", "polite");
     expect(anuncio).toHaveAttribute("role", "status");
@@ -2485,8 +2760,8 @@ describe("Registro: «Usar los mismos lotes» (HT06-06)", () => {
 
     await user.click(botonTodos()!);
 
-    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
-    expect(within(linea("Harina")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+    expect(await within(linea("Leche")).findByLabelText("Elige el lote")).toHaveValue("50");
+    expect(within(linea("Harina")).queryByLabelText("Elige el lote")).not.toBeInTheDocument();
     expect(within(linea("Harina")).queryByRole("radio", { checked: true })).not.toBeInTheDocument();
     expect(screen.getByText("Se asignó 1 lote. 1 línea no tiene lote sugerido.")).toBeInTheDocument();
   });
@@ -2499,9 +2774,9 @@ describe("Registro: «Usar los mismos lotes» (HT06-06)", () => {
 
     await user.click(botonTodos()!);
 
-    expect(await within(linea("Harina")).findByLabelText("Lote registrado")).toHaveValue("60");
+    expect(await within(linea("Harina")).findByLabelText("Elige el lote")).toHaveValue("60");
     expect(within(linea("Leche")).getByRole("radio", { name: "Sin lote" })).toBeChecked();
-    expect(within(linea("Leche")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+    expect(within(linea("Leche")).queryByLabelText("Elige el lote")).not.toBeInTheDocument();
     expect(screen.getByText("Se asignó 1 lote.")).toBeInTheDocument();
   });
 
@@ -2514,10 +2789,10 @@ describe("Registro: «Usar los mismos lotes» (HT06-06)", () => {
 
     await user.click(botonTodos()!);
 
-    expect(await within(linea("Leche")).findByLabelText("Lote registrado")).toHaveValue("50");
+    expect(await within(linea("Leche")).findByLabelText("Elige el lote")).toHaveValue("50");
     expect(within(linea("Harina")).getByRole("radio", { name: "Lote nuevo" })).toBeChecked();
     expect(within(linea("Harina")).getByLabelText("Código del lote")).toHaveValue("MIO-1");
-    expect(within(linea("Harina")).queryByLabelText("Lote registrado")).not.toBeInTheDocument();
+    expect(within(linea("Harina")).queryByLabelText("Elige el lote")).not.toBeInTheDocument();
   });
 
   it("se guarda por el camino existente: PUT /usos con «lote existente»", async () => {
@@ -2576,13 +2851,13 @@ describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => 
     });
   }
 
-  it("revisado y sin alérgenos: «No contiene alérgenos (revisado el …)», con la fecha en hora de Santiago", async () => {
+  it("revisado y sin alérgenos: «Sin alérgenos (revisado el …)», con la fecha en hora de Santiago", async () => {
     // 01:30 UTC of the 2nd is the evening of the 1st in Chile (UTC-3 in October).
     conUsos(usoFinalizado(HARINA, true, "2026-10-02T01:30:00Z"), usoFinalizado(LECHE, true, "2026-10-02T01:30:00Z"));
     await abrir();
 
-    expect(within(tarjeta("Harina")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
-    expect(within(tarjeta("Leche")).getByText("No contiene alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).getByText("Sin alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("Sin alérgenos (revisado el 01-10-2026)")).toBeInTheDocument();
     expect(screen.queryByText("Sin alérgenos declarados.")).not.toBeInTheDocument();
     expect(
       within(screen.getByRole("region", { name: "Alérgenos de la elaboración" })).getByText(

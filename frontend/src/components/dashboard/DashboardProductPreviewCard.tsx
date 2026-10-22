@@ -38,7 +38,7 @@ export default function DashboardProductPreviewCard({
             </p>
             <p className="mt-0.5 text-xs text-text-secondary">{categoryLabel}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-success-bg px-2 py-0.5 text-[10px] font-semibold text-success">
+          <span className="shrink-0 rounded-full bg-success-bg px-2 py-0.5 text-xs font-semibold text-success">
             Activo
           </span>
         </div>

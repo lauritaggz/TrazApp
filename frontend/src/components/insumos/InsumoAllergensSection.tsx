@@ -220,7 +220,7 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
                 data-estado-revision="revisado-sin-alergenos"
                 className="rounded-lg border border-success-border bg-success-bg px-4 py-3 text-sm font-medium text-success"
               >
-                Revisado: no contiene alérgenos
+                Sin alérgenos (revisado)
               </p>
             ) : (
               <div
@@ -243,8 +243,9 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
               </div>
             ))}
 
+          {/* With nothing declared the status block above is the one sentence; the groups wait for the first allergen. */}
           <div className="grid gap-4 sm:grid-cols-2">
-            {GROUPS.map((group) => (
+            {declarados.length > 0 && GROUPS.map((group) => (
               <section
                 key={group.tipo}
                 aria-label={group.titulo}
@@ -270,16 +271,16 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
                             <Badge
                               variant="warning"
                               title={ROTULACION_OBLIGATORIA_AYUDA}
-                              className="text-[10px] font-semibold uppercase tracking-wide"
+                              className="text-xs font-semibold"
                             >
                               Rotulación obligatoria
                               <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>
                             </Badge>
                           )}
-                          <span className="ml-auto flex items-center gap-1">
+                          <span className="ml-auto flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              className="rounded px-2 py-1 text-[13px] font-medium text-accent-strong hover:underline disabled:opacity-50"
+                              className="inline-flex min-h-11 items-center rounded-lg px-3 text-[13px] font-medium text-accent-strong hover:underline disabled:opacity-50"
                               aria-label={`Cambiar ${item.nombre} a ${destino}`}
                               disabled={changingId === item.alergeno_id}
                               onClick={() => void handleChangeTipo(item)}
@@ -288,7 +289,7 @@ export default function InsumoAllergensSection({ insumoId, revisado: revisadoIni
                             </button>
                             <button
                               type="button"
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-text-primary/10 hover:text-error"
+                              className="flex h-11 w-11 items-center justify-center rounded-full text-text-secondary hover:bg-text-primary/10 hover:text-error"
                               aria-label={`Quitar alérgeno ${item.nombre}`}
                               onClick={() => setDeleteTarget(item)}
                             >

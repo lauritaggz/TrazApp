@@ -90,8 +90,8 @@ export default function InsumoForm({
   duplicate = null,
   reactivating = false,
   onReactivate,
-  submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar insumo",
-  loadingLabel = "Guardando…",
+  submitLabel = mode === "edit" ? "Guardar cambios" : "Crear insumo",
+  loadingLabel = mode === "edit" ? "Guardando…" : "Creando…",
   embedded = false,
   ingredienteFijo = null,
   onUseExisting,
@@ -196,7 +196,7 @@ export default function InsumoForm({
           <ProductFormSection
             id="insumo-form-general"
             title="Información general"
-            description="Qué producto comercial es y a qué ingrediente abastece."
+            description="Qué insumo es y a qué ingrediente abastece."
           >
             <Input
               label="Nombre"
@@ -233,7 +233,7 @@ export default function InsumoForm({
                 error={errors.ingrediente_id}
                 hint={
                   ingredienteFijo
-                    ? "Este insumo se registra para el ingrediente de la línea."
+                    ? "Este insumo se crea para el ingrediente de la línea."
                     : "El ingrediente genérico al que abastece este insumo."
                 }
                 disabled={
@@ -400,28 +400,26 @@ export default function InsumoForm({
             title="Uso en elaboraciones"
             optional
           >
-            <div className="flex items-start gap-3">
-              <input
-                id="insumo-habitual"
-                type="checkbox"
-                name="habitual"
-                checked={values.habitual}
-                onChange={(e) => update("habitual", e.target.checked)}
-                disabled={loading}
-                aria-describedby="insumo-habitual-ayuda"
-                className="mt-1 h-4 w-4 rounded border-border-strong accent-brand-600"
-              />
-              <div className="space-y-0.5">
-                <label
-                  htmlFor="insumo-habitual"
-                  className="block text-sm font-medium text-text-primary"
-                >
-                  Insumo habitual
-                </label>
-                <p id="insumo-habitual-ayuda" className="text-[13px] text-text-secondary">
-                  Se preselecciona al registrar una elaboración.
-                </p>
-              </div>
+            <div className="space-y-0.5">
+              <label
+                htmlFor="insumo-habitual"
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium text-text-primary"
+              >
+                <input
+                  id="insumo-habitual"
+                  type="checkbox"
+                  name="habitual"
+                  checked={values.habitual}
+                  onChange={(e) => update("habitual", e.target.checked)}
+                  disabled={loading}
+                  aria-describedby="insumo-habitual-ayuda"
+                  className="h-5 w-5 shrink-0 rounded border-border-strong accent-brand-600"
+                />
+                Insumo habitual
+              </label>
+              <p id="insumo-habitual-ayuda" className="pl-8 text-[13px] text-text-secondary">
+                Se preselecciona al crear una elaboración.
+              </p>
             </div>
             {errors.habitual && (
               <p className="text-[13px] text-error">{errors.habitual}</p>
@@ -451,7 +449,7 @@ export default function InsumoForm({
 }
 
 export const AVISO_ALERGENOS_SUGERIDOS =
-  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de registrar.";
+  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de crear el insumo.";
 
 function AvisoAlergenosSugeridos({ sugerencias }: { sugerencias: SugerenciasAlergenos }) {
   const haySugeridos = Object.keys(sugerencias.origenes).length > 0;

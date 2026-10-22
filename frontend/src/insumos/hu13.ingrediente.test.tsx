@@ -220,7 +220,7 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
     expect(screen.getByText("harina")).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Guardar insumo" }));
+    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith({

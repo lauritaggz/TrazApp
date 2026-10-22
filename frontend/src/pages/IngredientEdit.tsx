@@ -25,7 +25,7 @@ import {
 const DUPLICATE_CODE_MESSAGE =
   "Ya existe un ingrediente con este código interno.";
 const SAVE_ERROR_MESSAGE =
-  "No pudimos guardar los cambios. Inténtalo nuevamente.";
+  "No pudimos guardar los cambios. Revisa tu conexión e inténtalo de nuevo.";
 
 function parseIngredientId(raw: string | undefined): number | null {
   if (!raw) return null;

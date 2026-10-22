@@ -21,7 +21,7 @@ const VISUAL_FIELD_ORDER: (keyof IngredienteFormValues)[] = [
 const NEXT_STEPS = [
   {
     title: "Alérgenos",
-    text: "Declara cuáles contiene. Los de rotulación obligatoria se destacan.",
+    text: "Opcional y de referencia: los alérgenos de cada elaboración salen de los insumos que uses.",
   },
   {
     title: "Composición",
@@ -50,7 +50,7 @@ export default function IngredientForm({
   mode = "create",
   loading = false,
   errorFocusToken = 0,
-  submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar ingrediente",
+  submitLabel = mode === "edit" ? "Guardar cambios" : "Crear ingrediente",
   loadingLabel = "Guardando…",
   embedded = false,
   onChange,

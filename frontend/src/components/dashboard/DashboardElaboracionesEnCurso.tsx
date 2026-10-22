@@ -43,24 +43,24 @@ export default function DashboardElaboracionesEnCurso({
 
       <ul className="divide-y divide-border">
         {visibles.map((borrador) => (
-          <li
-            key={borrador.id}
-            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-text-primary">
-                {borrador.producto.nombre}
-              </p>
-              <p className="mt-0.5 text-[13px] text-text-secondary">
-                {borrador.codigo} · {formatFecha(borrador.fecha)}
-              </p>
-            </div>
+          <li key={borrador.id}>
+            {/* La fila completa es el enlace: más de 44 px de alto en cualquier pantalla. */}
             <Link
               to={`/elaboraciones/${borrador.id}/registro`}
               aria-label={`Continuar elaboración ${borrador.codigo} de ${borrador.producto.nombre}`}
-              className="shrink-0 self-start rounded text-sm font-medium text-accent-strong underline-offset-2 hover:underline sm:self-center"
+              className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              Continuar
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-text-primary">
+                  {borrador.producto.nombre}
+                </span>
+                <span className="mt-0.5 block text-[13px] text-text-secondary">
+                  {borrador.codigo} · {formatFecha(borrador.fecha)}
+                </span>
+              </span>
+              <span aria-hidden="true" className="shrink-0 text-sm font-medium text-accent-strong">
+                Continuar
+              </span>
             </Link>
           </li>
         ))}

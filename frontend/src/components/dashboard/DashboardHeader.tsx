@@ -11,7 +11,7 @@ interface DashboardHeaderProps {
   onNuevaElaboracion?: () => void;
 }
 
-const SIN_FORMULACION = "Define la formulación de un producto para registrar elaboraciones";
+const SIN_FORMULACION = "Define la formulación de un producto para crear elaboraciones";
 
 export default function DashboardHeader({
   firstName,
@@ -19,11 +19,13 @@ export default function DashboardHeader({
   puedeRegistrarElaboracion = null,
   onNuevaElaboracion,
 }: DashboardHeaderProps) {
-  const today = new Date().toLocaleDateString("es-CL", {
+  const fecha = new Date().toLocaleDateString("es-CL", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+  // «Miércoles, 21 de octubre»: solo la primera letra en mayúscula (`capitalize` pondría «De Octubre»).
+  const today = fecha.charAt(0).toUpperCase() + fecha.slice(1);
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-7 py-6">
@@ -40,41 +42,41 @@ export default function DashboardHeader({
         <line x1="200" y1="30" x2="240" y2="100" stroke="white" strokeWidth="2" />
         <line x1="200" y1="30" x2="130" y2="80" stroke="white" strokeWidth="2" />
       </svg>
-      <p className="mb-1 text-xs font-medium capitalize text-panel-muted">{today}</p>
+      <p className="mb-1 text-xs font-medium text-panel-muted">{today}</p>
       <h1 className="mb-1 text-2xl font-semibold text-white">
-        Bienvenida, {firstName}
+        Hola, {firstName}
       </h1>
       {businessName?.trim() ? (
         <p className="mb-1 text-sm font-medium text-panel-soft">{businessName.trim()}</p>
       ) : null}
       <p className="max-w-2xl text-sm text-panel-soft">
-        Desde aquí puedes gestionar la información base de tus productos e
-        ingredientes y mantenerla actualizada.
+        Registra tus elaboraciones, insumos y alérgenos, y mantén tu catálogo al día.
       </p>
       <div className="mt-5 flex flex-wrap gap-3">
-        <Link
-          to="/productos/nuevo"
-          className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-white/90 focus-visible:outline-white"
-        >
-          + Nuevo producto
-        </Link>
-        <Link
-          to="/ingredientes/nuevo"
-          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
-        >
-          + Nuevo ingrediente
-        </Link>
+        {/* La acción de cada semana va primero y es la única rellena. */}
         {onNuevaElaboracion && (
           <button
             type="button"
             onClick={onNuevaElaboracion}
             disabled={puedeRegistrarElaboracion !== true}
             aria-describedby={puedeRegistrarElaboracion === false ? "dashboard-sin-formulacion" : undefined}
-            className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+            className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-white/90 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
           >
             Nueva elaboración
           </button>
         )}
+        <Link
+          to="/insumos/nuevo"
+          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
+        >
+          Nuevo insumo
+        </Link>
+        <Link
+          to="/productos/nuevo"
+          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
+        >
+          Nuevo producto
+        </Link>
       </div>
       {onNuevaElaboracion && puedeRegistrarElaboracion === false && (
         <p id="dashboard-sin-formulacion" className="mt-3 max-w-2xl text-sm text-panel-soft">

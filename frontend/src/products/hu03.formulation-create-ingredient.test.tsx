@@ -141,7 +141,8 @@ describe("HU03 — crear un ingrediente desde la formulación", () => {
 
     const dialog = await openDialog(user);
     expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(within(dialog).getByRole("textbox", { name: /Código interno/ })).toHaveFocus();
+    // HT07: el foco inicial es el primer campo visible («Nombre»).
+    expect(within(dialog).getByRole("textbox", { name: /^Nombre/ })).toHaveFocus();
 
     await user.click(within(dialog).getByRole("button", { name: "Crear ingrediente" }));
 
@@ -248,7 +249,7 @@ describe("HU03 — crear un ingrediente desde la formulación", () => {
     await user.click(within(dialog).getByRole("button", { name: "Crear ingrediente" }));
 
     expect(
-      await within(dialog).findByText("No pudimos guardar el ingrediente. Inténtalo nuevamente."),
+      await within(dialog).findByText("No pudimos guardar el ingrediente. Revisa tu conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(draftNames()).toEqual(["Quitar Harina", "Quitar Agua"]);

@@ -63,7 +63,7 @@ export default function ProductPreviewCard({
       </div>
 
       <div className="space-y-2 border-t border-border pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+        <p className="text-xs font-semibold text-text-secondary">
           Así se verá en tu catálogo
         </p>
         <p

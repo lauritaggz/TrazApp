@@ -6,6 +6,7 @@ import type {
   RegistroEncabezado,
   UsoPayload,
 } from "@/types/elaboracion";
+import type { Insumo } from "@/types/insumo";
 
 export const MAX_CODIGO_ELABORACION = 100;
 
@@ -107,6 +108,48 @@ export function lineaPendiente(linea: LineaRegistro): boolean {
     default:
       return true;
   }
+}
+
+/** What a line of the registro still lacks (HT07). A line with allergens to review is NOT ready. */
+export type EstadoLinea = "lista" | "falta_insumo" | "falta_lote" | "falta_alergenos";
+
+export const ETIQUETA_ESTADO_LINEA: Record<EstadoLinea, string> = {
+  lista: "Lista",
+  falta_insumo: "Falta el insumo",
+  falta_lote: "Falta el lote",
+  falta_alergenos: "Falta revisar alérgenos",
+};
+
+/** The selected supply has its allergens unreviewed, or the server said so when finalizing. */
+export function alergenosSinRevisarDe(
+  insumoSeleccionado: Insumo | null,
+  problemas: readonly string[] | undefined,
+): boolean {
+  return (
+    insumoSeleccionado !== null &&
+    (!insumoSeleccionado.alergenos_revisados || Boolean(problemas?.includes("alergenos_sin_revisar")))
+  );
+}
+
+/**
+ * `insumoSeleccionado` is the assigned supply when it is one of the active options; an assigned supply that
+ * is no longer an option (deactivated) counts as «falta el insumo», because another one has to be chosen.
+ */
+export function estadoDeLinea(
+  linea: LineaRegistro,
+  insumoSeleccionado: Insumo | null,
+  problemas?: readonly string[],
+): EstadoLinea {
+  if (!linea.insumoId || insumoSeleccionado === null) return "falta_insumo";
+  if (lineaPendiente(linea)) return "falta_lote";
+  if (alergenosSinRevisarDe(insumoSeleccionado, problemas)) return "falta_alergenos";
+  return "lista";
+}
+
+/** «Faltan 3 de 5 ingredientes» / «Todos los ingredientes están listos». */
+export function textoProgreso(faltan: number, total: number): string {
+  if (faltan === 0) return "Todos los ingredientes están listos";
+  return `${faltan === 1 ? "Falta" : "Faltan"} ${faltan} de ${total} ingredientes`;
 }
 
 export interface EncabezadoErrors {

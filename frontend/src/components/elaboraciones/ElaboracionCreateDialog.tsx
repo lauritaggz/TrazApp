@@ -26,7 +26,7 @@ interface ElaboracionCreateDialogProps {
 
 const PRODUCTO_REQUERIDO = "Elige el producto.";
 
-const CREATE_ERROR = "No pudimos crear la elaboración. Inténtalo nuevamente.";
+const CREATE_ERROR = "No pudimos crear la elaboración. Revisa tu conexión e inténtalo de nuevo.";
 
 function detalleObjeto(error: ApiError): Record<string, unknown> | null {
   const detail = error.detail;
@@ -181,7 +181,7 @@ export default function ElaboracionCreateDialog({
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">
-            Registrar elaboración
+            Nueva elaboración
           </h2>
           <p id={descriptionId} className="text-sm text-text-secondary leading-relaxed">
             Se creará un borrador con los ingredientes de la formulación vigente. Después podrás

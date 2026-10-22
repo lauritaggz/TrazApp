@@ -78,10 +78,10 @@ async function abrirDetalle(datos: Insumo) {
 // =============================================================================================
 
 describe("Origen de la información en el detalle del insumo", () => {
-  it("un insumo manual dice «Registrado manualmente» y no ofrece ninguna ficha", async () => {
+  it("un insumo manual dice «Creado manualmente» y no ofrece ninguna ficha", async () => {
     const origen = await abrirDetalle(insumo());
 
-    expect(within(origen).getByText("Registrado manualmente")).toBeInTheDocument();
+    expect(within(origen).getByText("Creado manualmente")).toBeInTheDocument();
     expect(within(origen).queryByText(/Obtenido de/)).not.toBeInTheDocument();
     expect(within(origen).queryByRole("link")).not.toBeInTheDocument();
   });
@@ -92,7 +92,7 @@ describe("Origen de la información en el detalle del insumo", () => {
     );
 
     expect(within(origen).getByText("Obtenido de Open Food Facts el 19-10-2026")).toBeInTheDocument();
-    expect(within(origen).queryByText("Registrado manualmente")).not.toBeInTheDocument();
+    expect(within(origen).queryByText("Creado manualmente")).not.toBeInTheDocument();
   });
 
   it("la fecha se cuenta en la hora de Chile, no en UTC", async () => {
@@ -155,11 +155,20 @@ describe("Origen de la información en el detalle del insumo", () => {
     expect(within(general).getByText("7802910000971")).toBeInTheDocument();
   });
 
-  it("el estado queda en su propia sección", async () => {
+  it("el estado lo dice la insignia del título: ya no hay una sección «Estado» que la repita (HT07)", async () => {
     await abrirDetalle(insumo({ activo: false }));
 
-    const estado = screen.getByRole("region", { name: "Estado" });
-    expect(within(estado).getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Estado" })).not.toBeInTheDocument();
+    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+  });
+
+  it("habla en segunda persona: «confirmaste estos datos al crear el insumo» (HT07)", async () => {
+    await abrirDetalle(insumo({ fuente: "open_food_facts", fecha_recuperacion: "2026-10-19T15:00:00Z" }));
+
+    expect(
+      screen.getByText("Los datos se completaron desde esa fuente y confirmaste estos datos al crear el insumo."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/el productor/)).not.toBeInTheDocument();
   });
 });
 

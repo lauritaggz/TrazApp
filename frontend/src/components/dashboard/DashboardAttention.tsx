@@ -37,28 +37,28 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
 
       <ul className="divide-y divide-border">
         {visible.map(({ product, gaps }) => (
-          <li
-            key={product.id}
-            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-text-primary">
-                {product.nombre}
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {gaps.map((gap) => (
-                  <Badge key={gap} variant="neutral">
-                    {PRODUCT_GAP_LABELS[gap]}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          <li key={product.id}>
+            {/* La fila completa es el enlace: más de 44 px de alto en cualquier pantalla. */}
             <Link
               to={`/productos/${product.id}/editar`}
               aria-label={`Completar producto ${product.nombre}`}
-              className="shrink-0 self-start rounded text-sm font-medium text-accent-strong underline-offset-2 hover:underline sm:self-center"
+              className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              Completar
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-text-primary">
+                  {product.nombre}
+                </span>
+                <span className="mt-1.5 flex flex-wrap gap-1.5">
+                  {gaps.map((gap) => (
+                    <Badge key={gap} variant="neutral">
+                      {PRODUCT_GAP_LABELS[gap]}
+                    </Badge>
+                  ))}
+                </span>
+              </span>
+              <span aria-hidden="true" className="shrink-0 text-sm font-medium text-accent-strong">
+                Completar
+              </span>
             </Link>
           </li>
         ))}
@@ -69,7 +69,7 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
           y {hidden} producto{hidden === 1 ? "" : "s"} más.{" "}
           <Link
             to="/productos"
-            className="font-medium text-accent-strong underline-offset-2 hover:underline"
+            className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
           >
             Ver todos los productos
           </Link>

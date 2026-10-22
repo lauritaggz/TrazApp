@@ -15,7 +15,7 @@ interface RevisarAlergenosDialogProps {
   onCancel: () => void;
 }
 
-const SAVE_ERROR = "No pudimos guardar los alérgenos. Inténtalo nuevamente.";
+const SAVE_ERROR = "No pudimos guardar los alérgenos. Revisa tu conexión e inténtalo de nuevo.";
 
 /**
  * Review of the allergens of a supply from a line of the registro (HT06). It starts from the

@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
-import PageHeader from "@/components/ui/PageHeader";
+import ComingSoonCard from "@/components/detail/ComingSoonCard";
+import DetailHero from "@/components/detail/DetailHero";
+import FactTile from "@/components/detail/FactTile";
+import { IngredienteIcon, InsumoIcon, ProductoIcon } from "@/components/detail/icons";
+import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
@@ -64,7 +68,7 @@ export default function IngredientDetail() {
   useEffect(() => {
     const state = location.state as { ingredientUpdated?: boolean } | null;
     if (!state?.ingredientUpdated) return;
-    notify("Ingrediente actualizado correctamente.");
+    notify("Cambios guardados.");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -80,7 +84,7 @@ export default function IngredientDetail() {
         setUnavailable(true);
         return;
       }
-      setDeleteError("No pudimos desactivar el ingrediente. Inténtalo nuevamente.");
+      setDeleteError("No pudimos desactivar el ingrediente. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -95,7 +99,7 @@ export default function IngredientDetail() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="max-w-2xl space-y-6">
+      <div className="max-w-6xl space-y-6">
         {loading && (
           <p className="text-sm text-text-secondary">Cargando ingrediente...</p>
         )}
@@ -106,77 +110,90 @@ export default function IngredientDetail() {
 
         {!loading && ingredient && ingredientId != null && (
           <>
-            <PageHeader
+            <Breadcrumbs
+              items={[{ label: "Ingredientes", to: "/ingredientes" }, { label: ingredient.nombre }]}
+            />
+            <DetailHero
+              kind="Ingrediente"
+              icon={<IngredienteIcon size={30} />}
               title={ingredient.nombre}
-              description={ingredient.codigo_interno ?? "—"}
-              breadcrumbs={[
-                { label: "Ingredientes", to: "/ingredientes" },
-                { label: ingredient.nombre },
-              ]}
+              subtitle={ingredient.codigo_interno ?? "—"}
+              badges={
+                <Badge variant={ingredient.activo ? "success" : "neutral"}>
+                  {ingredient.activo ? "Activo" : "Inactivo"}
+                </Badge>
+              }
               actions={
-                <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                    onClick={() => navigate("/ingredientes")}
-                  >
-                    Volver a ingredientes
-                  </Button>
-                  <Button
-                    type="button"
-                    className="w-full sm:w-auto"
-                    onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
-                  >
-                    Editar ingrediente
-                  </Button>
-                </>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  onClick={() => navigate(`/ingredientes/${ingredient.id}/editar`)}
+                >
+                  Editar ingrediente
+                </Button>
               }
             />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
 
-            <ProductDetailSection id="ingredient-detail-general" title="Información general">
-              <dl className="grid grid-cols-1 gap-4">
-                <DetailField label="Código interno">
-                  {ingredient.codigo_interno ?? "—"}
-                </DetailField>
-                <DetailField label="Descripción">
-                  {ingredient.descripcion?.trim() || "—"}
-                </DetailField>
-                <DetailField label="Estado">
-                  <Badge variant={ingredient.activo ? "success" : "neutral"}>
-                    {ingredient.activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </DetailField>
-              </dl>
-            </ProductDetailSection>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+              <div className="min-w-0 space-y-6">
+                <ProductDetailSection id="ingredient-detail-general" title="Información general">
+                  <dl className="grid grid-cols-2 gap-3">
+                    <FactTile label="Descripción" className="col-span-2">
+                      {ingredient.descripcion?.trim() || "—"}
+                    </FactTile>
+                    <FactTile label="Código interno">{ingredient.codigo_interno ?? "—"}</FactTile>
+                    <FactTile label="Estado">
+                      <Badge variant={ingredient.activo ? "success" : "neutral"}>
+                        {ingredient.activo ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </FactTile>
+                  </dl>
+                </ProductDetailSection>
 
-            <ProductDetailSection id="ingredient-detail-allergens" title="Alérgenos">
-              <IngredientAllergensSection ingredienteId={ingredientId} />
-            </ProductDetailSection>
-
-            <section
-              aria-label="Desactivar ingrediente"
-              className="bg-card border border-error-border rounded-xl p-5 sm:p-6"
-            >
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-text-primary">Desactivar ingrediente</h2>
-                  <p className="text-sm text-text-secondary mt-1">
-                    Al desactivar, el ingrediente dejará de aparecer en tu catálogo.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="text-error border-error/30 hover:bg-error-bg"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  loading={deleting}
-                >
-                  Desactivar ingrediente
-                </Button>
+                <ProductDetailSection id="ingredient-detail-allergens" title="Alérgenos">
+                  <IngredientAllergensSection ingredienteId={ingredientId} />
+                </ProductDetailSection>
               </div>
-            </section>
+
+              <aside className="min-w-0 space-y-6">
+                <ComingSoonCard
+                  id="ingredient-soon-uso"
+                  title="Uso en formulaciones"
+                  description="Verás qué productos llevan este ingrediente y en qué proporción."
+                  icon={<ProductoIcon size={20} />}
+                />
+                <ComingSoonCard
+                  id="ingredient-soon-insumos"
+                  title="Insumos asociados"
+                  description="Verás los insumos que abastecen este ingrediente y podrás asociar más."
+                  icon={<InsumoIcon size={20} />}
+                />
+
+                <section
+                  aria-label="Desactivar ingrediente"
+                  className="bg-card border border-error-border rounded-2xl p-5 sm:p-6"
+                >
+                  <div className="space-y-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-text-primary">Desactivar ingrediente</h2>
+                      <p className="text-sm text-text-secondary mt-1">
+                        Al desactivar, el ingrediente dejará de aparecer en tu catálogo.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full text-error border-error/30 hover:bg-error-bg sm:w-auto"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      loading={deleting}
+                    >
+                      Desactivar ingrediente
+                    </Button>
+                  </div>
+                </section>
+              </aside>
+            </div>
           </>
         )}
       </div>
@@ -195,22 +212,5 @@ export default function IngredientDetail() {
         }}
       />
     </AppShell>
-  );
-}
-
-function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wide">
-        {label}
-      </dt>
-      <dd className="text-sm text-text-primary whitespace-pre-wrap">{children}</dd>
-    </div>
   );
 }

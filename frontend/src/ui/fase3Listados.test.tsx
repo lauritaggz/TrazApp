@@ -135,18 +135,19 @@ describe("Dashboard: por completar", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("ofrece accesos rápidos para crear producto e ingrediente", async () => {
+  it("ofrece accesos rápidos para crear insumo y producto; «Nuevo ingrediente» ya no va en el encabezado (HT07)", async () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     await screen.findByText("Tus productos");
-    expect(screen.getByRole("link", { name: "+ Nuevo producto" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Nuevo producto" })).toHaveAttribute(
       "href",
       "/productos/nuevo",
     );
-    expect(screen.getByRole("link", { name: "+ Nuevo ingrediente" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Nuevo insumo" })).toHaveAttribute(
       "href",
-      "/ingredientes/nuevo",
+      "/insumos/nuevo",
     );
+    expect(screen.queryByRole("link", { name: /Nuevo ingrediente/ })).not.toBeInTheDocument();
   });
 });
 
@@ -213,14 +214,18 @@ describe("Listados y detalle: navegación", () => {
     ).toBeInTheDocument();
   });
 
-  it("el detalle del producto ofrece Editar y Volver arriba, junto al título", async () => {
+  it("el detalle del producto ofrece «Nueva elaboración» y «Editar producto» arriba, junto al título; «Volver» son las migas (HT07)", async () => {
     vi.mocked(productService.getProduct).mockResolvedValue(complete);
     renderWithProviders(<App />, { initialEntries: ["/productos/1"] });
 
     await screen.findByRole("heading", { name: "Galleta completa", level: 1 });
     const edit = screen.getByRole("button", { name: "Editar producto" });
-    const back = screen.getByRole("button", { name: "Volver a productos" });
-    expect(edit.parentElement).toBe(back.parentElement);
+    const nueva = screen.getByRole("button", { name: "Nueva elaboración" });
+    expect(edit.parentElement).toBe(nueva.parentElement);
+    expect(screen.queryByRole("button", { name: "Volver a productos" })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("navigation", { name: "Ruta de navegación" })).getByRole("link", { name: "Productos" }),
+    ).toHaveAttribute("href", "/productos");
     expect(
       screen.getByRole("region", { name: "Eliminar producto" }),
     ).toBeInTheDocument();

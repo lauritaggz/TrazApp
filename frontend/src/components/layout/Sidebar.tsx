@@ -1,6 +1,6 @@
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import NavItem, { NavItemSoon } from "@/components/layout/NavItem";
+import NavItem from "@/components/layout/NavItem";
 
 export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "perfil";
 
@@ -46,13 +46,13 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
           <NavItem icon={<SupplyIcon />} label="Insumos" to="/insumos" onClick={onClose} />
         </div>
 
-        <div className="space-y-1">
-          <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-text-secondary">
-            Trazabilidad
-          </p>
-          <NavItemSoon icon={<LotIcon />} label="Elaboraciones" />
-          <NavItemSoon icon={<HistoryIcon />} label="Elaboraciones relacionadas" />
-        </div>
+        {/*
+          Se reactivan con HU06 (listado de elaboraciones) y HU08 (elaboraciones relacionadas): el grupo
+          «Trazabilidad» con <NavItem icon={<LotIcon />} label="Elaboraciones" to="..." /> y
+          <NavItem icon={<HistoryIcon />} label="Elaboraciones relacionadas" to="..." />.
+          Mientras no existan no se muestran: un elemento «Pronto» ocupaba el lugar donde el productor
+          espera encontrar sus elaboraciones. Los íconos siguen exportados abajo para ese momento.
+        */}
       </nav>
     </aside>
   );
@@ -116,7 +116,7 @@ function LeafIcon() {
   );
 }
 
-function LotIcon() {
+export function LotIcon() {
   return (
     <svg
       aria-hidden="true"
@@ -135,7 +135,7 @@ function LotIcon() {
   );
 }
 
-function HistoryIcon() {
+export function HistoryIcon() {
   return (
     <svg
       aria-hidden="true"

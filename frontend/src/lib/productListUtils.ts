@@ -22,6 +22,12 @@ export function formatProductMoney(value: string | null): string {
   });
 }
 
+/** Amount as in the form: «$1.750», or «No informado». */
+export function formatProductPrice(value: string | null): string {
+  const texto = formatProductMoney(value);
+  return texto === "No informado" || Number.isNaN(Number(value)) ? texto : `$${texto}`;
+}
+
 export function formatProductContent(
   contenidoNeto: string | null,
   unidadMedida: string | null,

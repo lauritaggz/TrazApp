@@ -62,7 +62,7 @@ export default function Ingredients() {
     } | null;
     if (state?.ingredientCreated) {
       notify(
-        "Ingrediente creado correctamente.",
+        "Ingrediente creado.",
         "success",
         typeof state.ingredientId === "number"
           ? {
@@ -75,12 +75,12 @@ export default function Ingredients() {
       return;
     }
     if (state?.ingredientDeleted) {
-      notify("Ingrediente desactivado correctamente.");
+      notify("Ingrediente desactivado.");
       navigate(location.pathname, { replace: true, state: null });
       return;
     }
     if (state?.ingredientUpdated) {
-      notify("Ingrediente actualizado correctamente.");
+      notify("Cambios guardados.");
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate, notify]);
@@ -280,7 +280,7 @@ function IngredientsTable({
                   <Link
                     to={`/ingredientes/${ingrediente.id}`}
                     aria-label={`Ver ingrediente ${ingrediente.nombre}`}
-                    className="rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
+                    className="inline-flex min-h-11 items-center rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
                   >
                     {ingrediente.nombre}
                   </Link>
@@ -321,12 +321,12 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
                 <Link
                   to={`/ingredientes/${ingrediente.id}`}
                   aria-label={`Ver ingrediente ${ingrediente.nombre}`}
-                  className="after:absolute after:inset-0 focus:outline-none"
+                  className="inline-flex min-h-11 items-center after:absolute after:inset-0 focus:outline-none"
                 >
                   {ingrediente.nombre}
                 </Link>
               </h2>
-              <p className="text-[13px] text-accent uppercase">
+              <p className="text-[13px] text-accent">
                 {ingrediente.codigo_interno ?? "—"}
               </p>
             </div>
@@ -360,15 +360,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <EmptyStateCard
       title="Aún no tienes ingredientes"
-      description="Registra tu primer ingrediente para comenzar a organizar su información."
+      description="Crea tu primer ingrediente: es lo que lleva cada producto."
       steps={[
         "Escribe su nombre y código interno.",
-        "Declara sus alérgenos desde el detalle.",
         "Si es compuesto, indica su composición.",
+        "Los alérgenos que importan se declaran en tus insumos; los del ingrediente son solo de referencia.",
       ]}
       action={
         <Button type="button" onClick={onCreate}>
-          Registrar primer ingrediente
+          Crear tu primer ingrediente
         </Button>
       }
     />

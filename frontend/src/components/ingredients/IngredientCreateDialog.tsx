@@ -31,7 +31,7 @@ export default function IngredientCreateDialog({
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
-    panelRef.current?.querySelector<HTMLElement>('[name="codigo_interno"]')?.focus();
+    panelRef.current?.querySelector<HTMLElement>('[name="nombre"]')?.focus();
     return () => previousFocus?.focus();
   }, []);
 

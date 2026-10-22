@@ -51,7 +51,7 @@ export default function Profile() {
     if (!form.name.trim()) errs.name = "El nombre es obligatorio.";
     if (!form.businessName.trim()) {
       errs.businessName =
-        "El nombre del negocio o emprendimiento es obligatorio.";
+        "El nombre del negocio es obligatorio.";
     }
     return errs;
   }
@@ -73,7 +73,7 @@ export default function Profile() {
         nombre_negocio: form.businessName.trim(),
       });
       setProductor(updated);
-      notify("Perfil actualizado correctamente.");
+      notify("Cambios guardados.");
     } catch (err) {
       if (err instanceof ApiError) {
         if (Object.keys(err.fieldErrors).length > 0) {
@@ -104,7 +104,7 @@ export default function Profile() {
             Mi perfil
           </h1>
           <p className="text-text-secondary text-sm leading-relaxed">
-            Actualiza tu nombre y el de tu negocio o emprendimiento. El correo
+            Actualiza tu nombre y el de tu negocio. El correo
             se usa para iniciar sesión y no se puede modificar aquí.
           </p>
         </div>

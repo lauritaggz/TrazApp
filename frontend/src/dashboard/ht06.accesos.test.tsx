@@ -155,7 +155,7 @@ const botonNueva = () => screen.getByRole("button", { name: "Nueva elaboración"
 async function abrirDialogo(user: Usuario) {
   await waitFor(() => expect(botonNueva()).toBeEnabled());
   await user.click(botonNueva());
-  return screen.findByRole("dialog", { name: "Registrar elaboración" });
+  return screen.findByRole("dialog", { name: "Nueva elaboración" });
 }
 
 // --- acción «Nueva elaboración» ---
@@ -163,7 +163,7 @@ async function abrirDialogo(user: Usuario) {
 describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
   it("está habilitada cuando algún producto tiene formulación, sin explicación", async () => {
     abrirDashboard();
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     await waitFor(() => expect(botonNueva()).toBeEnabled());
     expect(screen.queryByText(/Define la formulación de un producto/)).not.toBeInTheDocument();
@@ -172,13 +172,13 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
   it("sin ningún producto con formulación está deshabilitada, explica por qué y enlaza a Productos", async () => {
     vi.mocked(productService.listProducts).mockResolvedValue([GALLETAS]);
     abrirDashboard();
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     await waitFor(() =>
-      expect(screen.getByText(/Define la formulación de un producto para registrar elaboraciones/)).toBeInTheDocument(),
+      expect(screen.getByText(/Define la formulación de un producto para crear elaboraciones/)).toBeInTheDocument(),
     );
     expect(botonNueva()).toBeDisabled();
-    const explicacion = screen.getByText(/Define la formulación de un producto para registrar elaboraciones/);
+    const explicacion = screen.getByText(/Define la formulación de un producto para crear elaboraciones/);
     expect(botonNueva().getAttribute("aria-describedby")).toBe(explicacion.id);
     expect(within(explicacion).getByRole("link", { name: "Ir a Productos" })).toHaveAttribute("href", "/productos");
   });
@@ -186,7 +186,7 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
   it("sin productos también está deshabilitada y explica por qué", async () => {
     vi.mocked(productService.listProducts).mockResolvedValue([]);
     abrirDashboard();
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     expect(await screen.findByText(/Define la formulación de un producto/)).toBeInTheDocument();
     expect(botonNueva()).toBeDisabled();
@@ -195,7 +195,7 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
   it("mientras carga los productos no se puede usar, y sin decir nada todavía", async () => {
     vi.mocked(productService.listProducts).mockReturnValue(new Promise(() => undefined));
     abrirDashboard();
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     expect(botonNueva()).toBeDisabled();
     expect(screen.queryByText(/Define la formulación de un producto/)).not.toBeInTheDocument();
@@ -290,12 +290,25 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
 // --- sección «Elaboraciones en curso» ---
 
 describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
-  it("pide solo los borradores, sin filtrar por producto", async () => {
+  it("pide las elaboraciones sin filtrar por producto y de ahí saca los borradores (HT07)", async () => {
     abrirDashboard();
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
-    await waitFor(() => expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ estado: "borrador" }));
+    // Una sola consulta: los borradores alimentan «Elaboraciones en curso» y cualquier elaboración marca el paso 3.
+    await waitFor(() => expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith());
     expect(elaboracionService.listElaboraciones).toHaveBeenCalledTimes(1);
+  });
+
+  it("solo muestra como «en curso» los borradores, no las finalizadas", async () => {
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+      borrador(31, "E-004", "2026-10-06", "Queque de vainilla", 5),
+      { ...borrador(32, "P-001", "2026-10-05", "Pan amasado", 7), estado: "finalizada" },
+    ]);
+    abrirDashboard();
+    await screen.findByRole("heading", { name: /Hola/ });
+
+    expect(await screen.findByRole("link", { name: /Continuar elaboración E-004/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Continuar elaboración P-001/ })).not.toBeInTheDocument();
   });
 
   it("muestra cada borrador con el producto, el código, la fecha y un enlace a su registro", async () => {
@@ -384,9 +397,9 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
   });
 });
 
-// --- «Registrar otra elaboración» en el detalle de una finalizada ---
+// --- «Nueva elaboración» en el detalle de una finalizada ---
 
-describe("Detalle de una elaboración finalizada: «Registrar otra elaboración» (HT06-07)", () => {
+describe("Detalle de una elaboración finalizada: «Nueva elaboración» (HT06-07)", () => {
   beforeEach(() => {
     vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) =>
       id === 31 ? elaboracionCreada(31, "E-010", "finalizada") : elaboracionCreada(id, "E-011"),
@@ -401,7 +414,7 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("ofrece el botón junto a «Volver al producto»", async () => {
     await abrirDetalle();
 
-    expect(screen.getByRole("button", { name: "Registrar otra elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva elaboración" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Volver al producto" })).toBeInTheDocument();
   });
 
@@ -409,9 +422,9 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
     const user = userEvent.setup();
     await abrirDetalle();
 
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
 
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     expect(within(dialogo).getByText("Producto: Queque de vainilla")).toBeInTheDocument();
     expect(within(dialogo).queryByLabelText("Producto")).not.toBeInTheDocument();
     await waitFor(() => expect(elaboracionService.getCodigoSugerido).toHaveBeenCalledWith(5));
@@ -420,8 +433,8 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("al crear navega al registro de la nueva elaboración", async () => {
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
 
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
@@ -437,8 +450,8 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
   it("cancelar cierra el diálogo y no crea nada", async () => {
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
 
     await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
 
@@ -452,13 +465,13 @@ describe("Detalle de una elaboración finalizada: «Registrar otra elaboración�
     );
     const user = userEvent.setup();
     await abrirDetalle();
-    await user.click(screen.getByRole("button", { name: "Registrar otra elaboración" }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    await user.click(screen.getByRole("button", { name: "Nueva elaboración" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
 
     await user.click(within(dialogo).getByRole("button", { name: "Crear borrador" }));
 
     expect(await within(dialogo).findByText("El producto no tiene formulación.")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Registrar elaboración" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nueva elaboración" })).toBeInTheDocument();
   });
 });

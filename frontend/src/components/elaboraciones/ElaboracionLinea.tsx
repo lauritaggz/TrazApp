@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import type { ErrorLinea } from "@/hooks/useElaboracionRegistro";
 import {
+  alergenosSinRevisarDe,
   describirLote,
   describirMotivo,
-  lineaPendiente,
+  ETIQUETA_ESTADO_LINEA,
   textoUsarLote,
+  type EstadoLinea,
 } from "@/lib/elaboracionUtils";
 import { formatFormulacionCantidad } from "@/lib/formulationUtils";
 import type {
@@ -23,6 +25,8 @@ import type { Insumo } from "@/types/insumo";
 
 interface ElaboracionLineaProps {
   linea: LineaRegistro;
+  /** What the line still lacks; computed by the screen, which also counts them. */
+  estado: EstadoLinea;
   /** Active supplies of the ingredient. */
   insumos: Insumo[];
   /** The line as the server has it: tells whether the assigned supply is deactivated. */
@@ -66,6 +70,7 @@ const MODOS: { valor: Exclude<LoteModo, "">; etiqueta: string }[] = [
 /** One ingredient of the formulation: its supply, its lot and what is wrong with it. */
 export default function ElaboracionLinea({
   linea,
+  estado,
   insumos,
   uso,
   lotes,
@@ -86,7 +91,6 @@ export default function ElaboracionLinea({
 }: ElaboracionLineaProps) {
   const id = linea.ingrediente_id;
   const titulo = `linea-${id}-titulo`;
-  const pendiente = lineaPendiente(linea);
   const cantidad = formatFormulacionCantidad(linea.cantidad, linea.unidad);
 
   const activos = new Set(insumos.map((insumo) => insumo.id));
@@ -96,17 +100,19 @@ export default function ElaboracionLinea({
     seleccionado !== null && !activos.has(seleccionado) && uso?.insumo?.id === seleccionado;
   const sinInsumosActivos = insumos.length === 0 && !insumoDesactivado;
   // The mark follows the supply selected NOW (not what the server brought), or the server's 409.
-  const alergenosSinRevisar =
-    insumoSeleccionado !== null &&
-    (!insumoSeleccionado.alergenos_revisados ||
-      Boolean(problemas?.includes("alergenos_sin_revisar")));
+  const alergenosSinRevisar = alergenosSinRevisarDe(insumoSeleccionado, problemas);
+  const conProblema = Boolean(error) || Boolean(problemas);
 
   return (
     <section
       aria-labelledby={titulo}
-      data-pendiente={pendiente}
-      className={`space-y-4 rounded-xl border bg-card p-4 sm:p-5 ${
-        error || problemas ? "border-error-border" : "border-border"
+      data-pendiente={estado !== "lista"}
+      data-estado={estado}
+      data-problema={conProblema}
+      // Where the screen takes the focus when finalizing fails: the line itself, announced by its name.
+      tabIndex={-1}
+      className={`space-y-4 rounded-xl border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:p-5 ${
+        conProblema ? "border-error-border" : "border-border"
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -116,11 +122,9 @@ export default function ElaboracionLinea({
           </h3>
           {cantidad && <p className="text-sm text-text-secondary">{cantidad}</p>}
         </div>
-        {pendiente ? (
-          <Badge variant="warning">Pendiente</Badge>
-        ) : (
-          <Badge variant="success">Completo</Badge>
-        )}
+        <Badge variant={estado === "lista" ? "success" : "warning"}>
+          {ETIQUETA_ESTADO_LINEA[estado]}
+        </Badge>
       </div>
 
       {linea.ingredienteDesactivado && (
@@ -132,7 +136,7 @@ export default function ElaboracionLinea({
 
       {sinInsumosActivos && (
         <Aviso>
-          Este ingrediente no tiene insumos activos. Registra uno nuevo para poder asignarlo.
+          Este ingrediente no tiene insumos activos. Crea uno para poder asignarlo.
         </Aviso>
       )}
 
@@ -184,9 +188,9 @@ export default function ElaboracionLinea({
         onClick={onRegistrarInsumo}
         data-destacado={sinInsumosActivos}
         disabled={disabled}
-        aria-label={`Registrar insumo nuevo para ${linea.ingrediente_nombre}`}
+        aria-label={`Crear insumo para ${linea.ingrediente_nombre}`}
       >
-        Registrar insumo nuevo
+        Crear insumo
       </Button>
 
       {linea.insumoId && (
@@ -194,7 +198,8 @@ export default function ElaboracionLinea({
           <legend className="text-sm font-medium text-text-primary">
             Lote de {linea.ingrediente_nombre}
           </legend>
-          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-5">
+          {/* En una fila cuando caben; si no, pasan a la siguiente (no apilados por defecto). */}
+          <div className="flex flex-row flex-wrap gap-x-5 gap-y-1">
             {MODOS.map((modo) => (
               <label key={modo.valor} className="flex min-h-11 items-center gap-2 text-sm">
                 <input
@@ -259,11 +264,11 @@ export default function ElaboracionLinea({
                 <p className="text-sm text-text-secondary">Cargando lotes...</p>
               ) : lotes.length === 0 ? (
                 <p className="text-sm text-text-secondary">
-                  Este insumo aún no tiene lotes registrados. Usa «Lote nuevo».
+                  Este insumo aún no tiene lotes cargados. Usa «Lote nuevo».
                 </p>
               ) : (
                 <Select
-                  label="Lote registrado"
+                  label="Elige el lote"
                   id={`linea-${id}-lote-existente`}
                   value={linea.loteId}
                   onChange={(event) => onCambio({ loteId: event.target.value })}

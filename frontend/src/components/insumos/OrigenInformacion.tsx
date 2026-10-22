@@ -12,7 +12,7 @@ interface OrigenInformacionProps {
 /** Where the information of a supply comes from (HU13, CA11): typed by hand, or retrieved from a source. */
 export default function OrigenInformacion({ fuente, fechaRecuperacion, ficha }: OrigenInformacionProps) {
   if (esFuenteManual(fuente)) {
-    return <p className="text-sm text-text-primary">Registrado manualmente</p>;
+    return <p className="text-sm text-text-primary">Creado manualmente</p>;
   }
 
   const nombre = nombreFuente(fuente);
@@ -30,14 +30,14 @@ export default function OrigenInformacion({ fuente, fechaRecuperacion, ficha }: 
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block text-sm font-medium text-accent-strong underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-accent-strong underline-offset-2 hover:underline"
         >
           Ver la ficha en {nombre}
           <span className="sr-only"> (se abre en otra pestaña)</span>
         </a>
       )}
       <p className="text-[13px] text-text-secondary">
-        Los datos se completaron desde esa fuente y el productor los confirmó al registrar el insumo.
+        Los datos se completaron desde esa fuente y confirmaste estos datos al crear el insumo.
       </p>
     </div>
   );

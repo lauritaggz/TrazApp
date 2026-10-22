@@ -3,16 +3,19 @@ import { FlagIcon } from "@/components/dashboard/dashboardIcons";
 interface DashboardGettingStartedProps {
   hasProducts: boolean;
   hasIngredients: boolean;
+  /** There is at least one elaboración (draft or finished). */
+  hasElaboraciones: boolean;
 }
 
 export default function DashboardGettingStarted({
   hasProducts,
   hasIngredients,
+  hasElaboraciones,
 }: DashboardGettingStartedProps) {
   const steps = [
     {
       n: 1,
-      label: "Registra tus productos",
+      label: "Crea tus productos",
       done: hasProducts,
     },
     {
@@ -22,8 +25,8 @@ export default function DashboardGettingStarted({
     },
     {
       n: 3,
-      label: "Próximamente: completa la trazabilidad de tus productos",
-      done: false,
+      label: "Registra tu primera elaboración",
+      done: hasElaboraciones,
     },
   ];
 

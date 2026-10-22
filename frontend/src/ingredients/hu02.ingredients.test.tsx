@@ -197,10 +197,10 @@ describe("Ingredientes HU02 — creación", () => {
     expect(screen.queryByLabelText(/^Tipo/)).not.toBeInTheDocument();
 
     await fillValidIngredientForm(user);
-    await user.click(screen.getByRole("button", { name: "Guardar ingrediente" }));
+    await user.click(screen.getByRole("button", { name: "Crear ingrediente" }));
 
     expect(
-      await screen.findByText("Ingrediente creado correctamente."),
+      await screen.findByText("Ingrediente creado."),
     ).toBeInTheDocument();
     const [payload] = vi.mocked(ingredientService.createIngredient).mock.calls[0];
     expect(payload).toStrictEqual({
@@ -220,7 +220,7 @@ describe("Ingredientes HU02 — creación", () => {
     renderWithProviders(<App />, { initialEntries: ["/ingredientes/nuevo"] });
     await screen.findByRole("heading", { name: "Nuevo ingrediente" });
     await fillValidIngredientForm(user);
-    await user.click(screen.getByRole("button", { name: "Guardar ingrediente" }));
+    await user.click(screen.getByRole("button", { name: "Crear ingrediente" }));
 
     expect(
       await screen.findByText("Ya existe un ingrediente con este código interno."),
@@ -288,7 +288,7 @@ describe("Ingredientes HU02 — detalle, edición y desactivación", () => {
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     expect(
-      await screen.findByText("Ingrediente actualizado correctamente."),
+      await screen.findByText("Cambios guardados."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Desactivar ingrediente" }));
@@ -298,7 +298,7 @@ describe("Ingredientes HU02 — detalle, edición y desactivación", () => {
     );
 
     expect(
-      await screen.findByText("Ingrediente desactivado correctamente."),
+      await screen.findByText("Ingrediente desactivado."),
     ).toBeInTheDocument();
     expect(ingredientService.deleteIngredient).toHaveBeenCalledWith(2);
   });
@@ -320,7 +320,7 @@ describe("Ingredientes HU02 — detalle, edición y desactivación", () => {
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     expect(
-      await screen.findByText("Ingrediente actualizado correctamente."),
+      await screen.findByText("Cambios guardados."),
     ).toBeInTheDocument();
     expect(ingredientService.updateIngredient).toHaveBeenCalledTimes(1);
     const [id, payload] = vi.mocked(ingredientService.updateIngredient).mock.calls[0];
@@ -446,7 +446,8 @@ describe("Ingredientes HU02 — composición y alérgenos", () => {
     expect(etiqueta).toHaveTextContent(ayuda);
     expect(screen.queryByText("Obligatorio")).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Alérgenos de referencia del ingrediente\./),
+      // HT07: ya no se contradice con el formulario: son de referencia y los de la elaboración salen de los insumos.
+      screen.getByText(/Los alérgenos del ingrediente son solo de referencia: los de cada elaboración salen de los insumos que uses\./),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/deben declararse en la etiqueta del producto según la Resolución Exenta N\.º 427 del Ministerio de Salud\./),

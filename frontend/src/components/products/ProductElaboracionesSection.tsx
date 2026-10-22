@@ -1,43 +1,39 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
+import { Link } from "react-router-dom";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { formatFecha } from "@/lib/elaboracionUtils";
 import { listElaboraciones } from "@/services/elaboracionService";
-import { getProductFormulation } from "@/services/formulationService";
 import type { ElaboracionResumen } from "@/types/elaboracion";
 
 const MAX_RECIENTES = 5;
 
 interface ProductElaboracionesSectionProps {
   productoId: number;
-  /** Changes when the formulation was saved, so the button follows it. */
+  /** Changes when the formulation was saved. */
   refreshKey?: number;
+  /** Whether the product has a formulation (true), has none (false) or it is not known yet (null). */
+  tieneFormulacion: boolean | null;
+  /** Id of the text that explains why «Nueva elaboración» is disabled, so the header button can point at it. */
+  idSinFormulacion: string;
 }
 
-/** Latest elaboraciones of the product and the way to register a new one (HU05). */
+/** Latest elaboraciones of the product (HU05). «Nueva elaboración» is in the page header (HT07). */
 export default function ProductElaboracionesSection({
   productoId,
   refreshKey = 0,
+  tieneFormulacion,
+  idSinFormulacion,
 }: ProductElaboracionesSectionProps) {
-  const navigate = useNavigate();
   const [elaboraciones, setElaboraciones] = useState<ElaboracionResumen[]>([]);
-  const [tieneFormulacion, setTieneFormulacion] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const [formulacion, lista] = await Promise.all([
-        getProductFormulation(productoId),
-        listElaboraciones({ productoId }),
-      ]);
-      setTieneFormulacion(formulacion.existe);
-      setElaboraciones(lista);
+      setElaboraciones(await listElaboraciones({ productoId }));
     } catch {
       setError(true);
     } finally {
@@ -68,13 +64,9 @@ export default function ProductElaboracionesSection({
 
   return (
     <div className="space-y-4">
-      {tieneFormulacion ? (
-        <Button type="button" className="w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
-          Registrar elaboración
-        </Button>
-      ) : (
-        <p className="text-sm text-text-secondary">
-          Define la formulación del producto para poder registrar elaboraciones.
+      {tieneFormulacion === false && (
+        <p id={idSinFormulacion} className="text-sm text-text-secondary">
+          Define la formulación del producto para poder crear elaboraciones.
         </p>
       )}
 
@@ -105,14 +97,6 @@ export default function ProductElaboracionesSection({
             </li>
           ))}
         </ul>
-      )}
-
-      {dialogOpen && (
-        <ElaboracionCreateDialog
-          productoId={productoId}
-          onCreated={(creada) => navigate(`/elaboraciones/${creada.id}/registro`)}
-          onCancel={() => setDialogOpen(false)}
-        />
       )}
     </div>
   );

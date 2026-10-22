@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -21,6 +21,7 @@ import {
   DEFAULT_INSUMO_LIST_FILTERS,
   INSUMO_ESTADO_OPTIONS,
   type Insumo,
+  type InsumoAlergenosFilter,
   type InsumoEstadoFilter,
   type InsumoListFilters,
 } from "@/types/insumo";
@@ -34,7 +35,12 @@ export default function Insumos() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filters, setFilters] = useState<InsumoListFilters>(DEFAULT_INSUMO_LIST_FILTERS);
+  // The Dashboard links here with `?alergenos=sin-revisar`.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<InsumoListFilters>(() => ({
+    ...DEFAULT_INSUMO_LIST_FILTERS,
+    alergenos: searchParams.get("alergenos") === "sin-revisar" ? "sin_revisar" : "todos",
+  }));
 
   const activos = filters.estado === "activos";
 
@@ -58,7 +64,7 @@ export default function Insumos() {
     // The allergens are declared in the creation form itself (HT06): nothing is left to do afterwards.
     const state = location.state as { insumoCreated?: boolean } | null;
     if (!state?.insumoCreated) return;
-    notify("Insumo creado correctamente.", "success");
+    notify("Insumo creado.", "success");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, notify]);
 
@@ -95,7 +101,7 @@ export default function Insumos() {
           title="Insumos"
           description={
             <>
-              Administra los productos comerciales que usas como insumos.
+              Administra los insumos que usas en tus elaboraciones.
               {!loading && !error && (
                 <span className="mt-2 block">{insumoCountLabel(totalCount, activos)}</span>
               )}
@@ -189,6 +195,13 @@ function InsumoListControls({
       onRemove: () => onChange({ ...filters, ingredienteId: "all" }),
     });
   }
+  if (filters.alergenos === "sin_revisar") {
+    chips.push({
+      key: "alergenos",
+      label: "Alérgenos sin revisar",
+      onRemove: () => onChange({ ...filters, alergenos: "todos" }),
+    });
+  }
   if (filters.estado !== "activos") {
     chips.push({
       key: "estado",
@@ -205,6 +218,7 @@ function InsumoListControls({
       searchPlaceholder="Buscar por nombre, marca, presentación o código de barras..."
       disabled={disabled}
       chips={chips}
+      controlsColumns={3}
       onClearAll={() => onChange(DEFAULT_INSUMO_LIST_FILTERS)}
       status={
         showResultCount && hasActiveInsumoFilters(filters)
@@ -226,6 +240,16 @@ function InsumoListControls({
                 {item.nombre}
               </option>
             ))}
+          </Select>
+          <Select
+            label="Alérgenos"
+            value={filters.alergenos}
+            onChange={(e) => onChange({ ...filters, alergenos: e.target.value as InsumoAlergenosFilter })}
+            disabled={disabled}
+            aria-label="Filtrar por alérgenos"
+          >
+            <option value="todos">Todos</option>
+            <option value="sin_revisar">Alérgenos sin revisar</option>
           </Select>
           <Select
             label="Estado"
@@ -258,7 +282,7 @@ function InsumoNameCell({ insumo }: { insumo: Insumo }) {
         <Link
           to={`/insumos/${insumo.id}`}
           aria-label={`Ver insumo ${insumo.nombre}`}
-          className="rounded font-medium text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
+          className="inline-flex min-h-11 items-center rounded font-medium text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
         >
           {insumo.nombre}
         </Link>
@@ -339,7 +363,7 @@ function InsumosCards({ insumos }: { insumos: Insumo[] }) {
             <Link
               to={`/insumos/${insumo.id}`}
               aria-label={`Ver insumo ${insumo.nombre}`}
-              className="break-words after:absolute after:inset-0 focus:outline-none"
+              className="inline-flex min-h-11 items-center break-words after:absolute after:inset-0 focus:outline-none"
             >
               {insumo.nombre}
             </Link>
@@ -370,15 +394,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <EmptyStateCard
       title="Aún no tienes insumos"
-      description="Registra los productos comerciales que usas, con sus ingredientes declarados y alérgenos, para saber qué se utilizó realmente en cada elaboración."
+      description="Crea los insumos que compras y usas, con sus ingredientes declarados y alérgenos, para saber qué se utilizó realmente en cada elaboración."
       steps={[
-        "Escribe su nombre y marca u origen, y elige el ingrediente que abastece.",
-        "Agrega su código de barras si lo tiene.",
+        "Escanea el código de barras del envase, o escribe su nombre y marca u origen.",
+        "Elige el ingrediente que abastece.",
         "Declara sus alérgenos o confirma que no contiene ninguno.",
       ]}
       action={
         <Button type="button" onClick={onCreate}>
-          Registrar primer insumo
+          Crear tu primer insumo
         </Button>
       }
     />

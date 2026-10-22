@@ -74,7 +74,7 @@ export default function ProductForm({
   mode = "create",
   loading = false,
   errorFocusToken = 0,
-  submitLabel = mode === "edit" ? "Guardar cambios" : "Guardar producto",
+  submitLabel = mode === "edit" ? "Guardar cambios" : "Crear producto",
   loadingLabel = "Guardando…",
   onChange,
   onSubmit,

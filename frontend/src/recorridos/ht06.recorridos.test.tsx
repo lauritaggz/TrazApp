@@ -594,12 +594,12 @@ describe("Escenario B (HT06-08): segunda elaboración con los mismos insumos y l
     const user = userEvent.setup();
     const r = new Recorrido(user);
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     r.etapa("Dashboard → crear el borrador");
     await waitFor(() => expect(screen.getByRole("button", { name: "Nueva elaboración" })).toBeEnabled());
     await r.clic("«Nueva elaboración»", screen.getByRole("button", { name: "Nueva elaboración" }));
-    const dialogo = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    const dialogo = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await r.elegir("Producto: Queque de vainilla", within(dialogo).getByLabelText("Producto"), "5");
     await waitFor(() => expect(within(dialogo).getByLabelText("Código de la elaboración")).toHaveValue("E-002"));
     await r.clic("«Crear borrador» (código y fecha ya sugeridos)", within(dialogo).getByRole("button", { name: "Crear borrador" }));
@@ -702,18 +702,18 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     const user = userEvent.setup();
     const r = new Recorrido(user);
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
-    await screen.findByRole("heading", { name: /Bienvenida/ });
+    await screen.findByRole("heading", { name: /Hola/ });
 
     // 1. The product.
     r.etapa("Producto nuevo");
-    await r.clic("«+ Nuevo producto»", screen.getByRole("link", { name: "+ Nuevo producto" }));
+    await r.clic("«Nuevo producto»", screen.getByRole("link", { name: "Nuevo producto" }));
     await screen.findByRole("heading", { name: "Nuevo producto", level: 1 });
     await r.escribir("Código interno", screen.getByLabelText(/Código interno/), "QUE-001");
     await r.escribir("Nombre", screen.getByLabelText(/^Nombre/), "Queque de vainilla");
     await r.escribir("Descripción", screen.getByLabelText(/Descripción/), "Queque casero");
     await r.escribir("Contenido neto", screen.getByLabelText(/Contenido neto/), "500");
     await r.elegir("Unidad de medida", screen.getByLabelText(/Unidad de medida/), "g");
-    await r.clic("«Guardar producto»", screen.getByRole("button", { name: "Guardar producto" }));
+    await r.clic("«Crear producto»", screen.getByRole("button", { name: "Crear producto" }));
     // A created product opens its own detail (HT06-07): no extra click to get to it.
     await screen.findByRole("heading", { name: "Queque de vainilla", level: 1 });
 
@@ -733,8 +733,11 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
 
     // 3. The borrador.
     r.etapa("Crear el borrador");
-    await r.clic("«Registrar elaboración»", await screen.findByRole("button", { name: "Registrar elaboración" }));
-    const dialogoElaboracion = await screen.findByRole("dialog", { name: "Registrar elaboración" });
+    // El botón del encabezado se habilita cuando la pantalla vuelve a leer que el producto ya tiene formulación (no cuenta).
+    const nueva = await screen.findByRole("button", { name: "Nueva elaboración" });
+    await waitFor(() => expect(nueva).toBeEnabled());
+    await r.clic("«Nueva elaboración»", nueva);
+    const dialogoElaboracion = await screen.findByRole("dialog", { name: "Nueva elaboración" });
     await waitFor(() => expect(within(dialogoElaboracion).getByLabelText("Código de la elaboración")).toHaveValue("E-001"));
     await r.clic("«Crear borrador» (código y fecha ya sugeridos)", within(dialogoElaboracion).getByRole("button", { name: "Crear borrador" }));
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
@@ -742,12 +745,12 @@ describe("Escenario A (HT06-08): producto nuevo con 5 ingredientes nuevos, hasta
     // 4. Each line: a new supply (with its allergens confirmed) and a new lot.
     r.etapa("Insumos y lotes (5 líneas)");
     for (const [, nombre] of INGREDIENTES) {
-      await r.clic(`${nombre}: «Registrar insumo nuevo»`, within(await waitForLinea(nombre)).getByRole("button", { name: /Registrar insumo nuevo/ }));
-      const dialogo = await screen.findByRole("dialog", { name: "Registrar insumo nuevo" });
+      await r.clic(`${nombre}: «Crear insumo»`, within(await waitForLinea(nombre)).getByRole("button", { name: /Crear insumo/ }));
+      const dialogo = await screen.findByRole("dialog", { name: "Crear insumo" });
       await r.escribir(`${nombre}: nombre del insumo`, within(dialogo).getByLabelText("Nombre"), `${nombre} Selecta`);
       await r.escribir(`${nombre}: marca u origen`, within(dialogo).getByLabelText("Marca u origen"), "Selecta");
       await r.clic(`${nombre}: «Este insumo no contiene alérgenos»`, within(dialogo).getByLabelText("Este insumo no contiene alérgenos"));
-      await r.clic(`${nombre}: «Registrar insumo»`, within(dialogo).getByRole("button", { name: "Registrar insumo" }));
+      await r.clic(`${nombre}: «Registrar insumo»`, within(dialogo).getByRole("button", { name: "Crear insumo" }));
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       await r.clic(`${nombre}: «Lote nuevo»`, await within(linea(nombre)).findByRole("radio", { name: "Lote nuevo" }));
       await r.escribir(`${nombre}: código del lote`, within(linea(nombre)).getByLabelText("Código del lote"), `L-${nombre.slice(0, 3).toUpperCase()}`);

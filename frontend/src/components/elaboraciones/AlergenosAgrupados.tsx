@@ -27,7 +27,7 @@ function Grupo({
   if (items.length === 0 && !mostrarVacio) return null;
   return (
     <div role="group" aria-label={`${titulo} · ${etiqueta}`} className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{titulo}</h4>
+      <h4 className="text-xs font-semibold text-text-secondary">{titulo}</h4>
       {items.length === 0 ? (
         <p className="text-sm text-text-secondary">Ninguno</p>
       ) : (
@@ -42,7 +42,7 @@ function Grupo({
                 <Badge
                   variant="warning"
                   title={ROTULACION_OBLIGATORIA_AYUDA}
-                  className="text-[10px] font-semibold uppercase tracking-wide"
+                  className="text-xs font-semibold"
                 >
                   Rotulación obligatoria
                   <span className="sr-only">. {ROTULACION_OBLIGATORIA_AYUDA}</span>
