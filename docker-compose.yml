@@ -51,6 +51,27 @@ services:
       --port 8000
       --reload"
 
+  # Solo para desarrollo: Vite con recarga en caliente. En produccion el frontend esta en Netlify.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trazapp-frontend
+    restart: unless-stopped
+    environment:
+      # El navegador del host llama a la API (no el contenedor): localhost y el puerto publicado.
+      VITE_API_URL: http://localhost:${API_PORT:-8000}
+      # Solo con `npm run dev:https` dentro del contenedor: su proxy llega al backend por la red de Docker.
+      VITE_DEV_API_TARGET: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-5175}:5175"
+    volumes:
+      - ./frontend:/app
+      # node_modules propios del contenedor (Linux): no se usan los de Windows (binarios nativos).
+      - /app/node_modules
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
   product_uploads:

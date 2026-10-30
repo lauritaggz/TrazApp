@@ -96,21 +96,33 @@ El frontend es una SPA independiente (se despliega en Netlify) que consume la AP
 
 ## Puesta en marcha
 
-### Backend
+### Levantar el entorno de desarrollo
+
+Base de datos, backend y frontend juntos, con recarga en caliente:
 
 ```bash
-cp .env.example .env
-docker compose up --build -d
+cp .env.example .env     # la primera vez; completa las contraseñas y claves
+docker compose up --build
 ```
 
 No subir `.env` al repositorio. El backend ejecuta `alembic upgrade head` al iniciar.
 
 | Servicio | URL / puerto |
 |----------|--------------|
+| Frontend (Vite) | http://localhost:5175 (`FRONTEND_PORT` en `.env`) |
 | API | http://localhost:8000 |
-| Swagger | http://localhost:8000/docs |
+| Documentación de la API (Swagger) | http://localhost:8000/docs |
 | Health | http://localhost:8000/health |
 | PostgreSQL | localhost:5432 (volumen `postgres_data`) |
+
+Si cambias `FRONTEND_PORT`, agrega el nuevo origen a `CORS_ORIGINS` (ver `.env.example`).
+
+Ver los registros:
+
+```bash
+docker compose logs -f              # todos los servicios
+docker compose logs -f frontend     # solo uno (backend, database, frontend)
+```
 
 Detener sin borrar datos:
 
@@ -118,14 +130,20 @@ Detener sin borrar datos:
 docker compose down
 ```
 
-### Frontend
+**Nunca uses `docker compose down -v`**: borra el volumen `postgres_data` y con él la base de datos.
+
+El servicio `frontend` solo es para desarrollo (en producción el frontend está en Netlify). Monta `./frontend` dentro del contenedor y usa sus propios `node_modules` (Linux). Si cambias `package.json` o `package-lock.json`, reconstruye y renueva ese volumen: `docker compose up --build -V frontend`.
+
+### Frontend sin Docker
 
 ```bash
 cd frontend
 cp .env.example .env     # VITE_API_URL=http://localhost:8000
 npm install
-npm run dev
+npm run dev              # o `npm run dev:https` para probar en el celular
 ```
+
+Con el backend en Docker (`docker compose up -d database backend`) y el frontend fuera de Docker, todo sigue funcionando como antes.
 
 Para producción en Netlify, definir `VITE_API_URL` y añadir el origen del sitio a `CORS_ORIGINS` del backend.
 
