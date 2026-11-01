@@ -9,7 +9,7 @@ import * as elaboracionService from "@/services/elaboracionService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
-import { mockProductor, renderWithProviders } from "@/test/testUtils";
+import { mockProductor, paginaElaboraciones, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type { Elaboracion, ElaboracionResumen } from "@/types/elaboracion";
 import type { Product } from "@/types/product";
@@ -137,7 +137,7 @@ beforeEach(() => {
   vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
   vi.mocked(ingredientService.listAlergenosCatalog).mockResolvedValue([]);
   vi.mocked(insumoService.listInsumos).mockResolvedValue([]);
-  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
+  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([]));
   vi.mocked(elaboracionService.getCodigoSugerido).mockResolvedValue({ codigo: "E-001" });
   vi.mocked(elaboracionService.listLotesInsumo).mockResolvedValue([]);
   vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) => elaboracionCreada(id, "E-001"));
@@ -290,20 +290,22 @@ describe("Dashboard: acción «Nueva elaboración» (HT06-07)", () => {
 // --- sección «Elaboraciones en curso» ---
 
 describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
-  it("pide las elaboraciones sin filtrar por producto y de ahí saca los borradores (HT07)", async () => {
+  it("pide los cinco borradores más recientes y, aparte, una página de una para saber si hay alguna elaboración (T06-04)", async () => {
     abrirDashboard();
     await screen.findByRole("heading", { name: /Hola/ });
 
-    // Una sola consulta: los borradores alimentan «Elaboraciones en curso» y cualquier elaboración marca el paso 3.
-    await waitFor(() => expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith());
-    expect(elaboracionService.listElaboraciones).toHaveBeenCalledTimes(1);
+    // Los borradores (estado y límite 5) alimentan «Elaboraciones en curso»; el `total` de una página de una marca el paso 3.
+    await waitFor(() => expect(elaboracionService.listElaboraciones).toHaveBeenCalledTimes(2));
+    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ estado: "borrador", limit: 5 });
+    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ limit: 1 });
   });
 
-  it("solo muestra como «en curso» los borradores, no las finalizadas", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
-      borrador(31, "E-004", "2026-10-06", "Queque de vainilla", 5),
-      { ...borrador(32, "P-001", "2026-10-05", "Pan amasado", 7), estado: "finalizada" },
-    ]);
+  it("solo muestra como «en curso» los borradores, no las finalizadas (el servidor filtra por estado)", async () => {
+    const enCurso = borrador(31, "E-004", "2026-10-06", "Queque de vainilla", 5);
+    const finalizada: ElaboracionResumen = { ...borrador(32, "P-001", "2026-10-05", "Pan amasado", 7), estado: "finalizada" };
+    vi.mocked(elaboracionService.listElaboraciones).mockImplementation(async (params = {}) =>
+      paginaElaboraciones(params.estado === "borrador" ? [enCurso] : [enCurso, finalizada]),
+    );
     abrirDashboard();
     await screen.findByRole("heading", { name: /Hola/ });
 
@@ -312,10 +314,10 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
   });
 
   it("muestra cada borrador con el producto, el código, la fecha y un enlace a su registro", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       borrador(31, "E-004", "2026-10-06", "Queque de vainilla", 5),
       borrador(32, "P-001", "2026-10-05", "Pan amasado", 7),
-    ]);
+    ]));
     abrirDashboard();
 
     const region = await screen.findByRole("region", { name: "Elaboraciones en curso" });
@@ -333,7 +335,7 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
   });
 
   it("el enlace abre el registro de ese borrador", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([borrador(31, "E-004", "2026-10-06")]);
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([borrador(31, "E-004", "2026-10-06")]));
     const user = userEvent.setup();
     abrirDashboard();
 
@@ -344,7 +346,7 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
   });
 
   it("sin borradores la sección no se muestra", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([]));
     abrirDashboard();
     await screen.findByText("Productos registrados");
     await waitFor(() => expect(elaboracionService.listElaboraciones).toHaveBeenCalled());
@@ -353,16 +355,15 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
     expect(screen.queryByText("Elaboraciones en curso")).not.toBeInTheDocument();
   });
 
-  it("muestra como máximo 5, los más recientes primero (por fecha y, a igual fecha, el último registrado)", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
-      borrador(1, "E-001", "2026-09-01"),
+  it("muestra como máximo 5, los más recientes primero, y dice cuántos borradores hay en total (T06-04)", async () => {
+    // El servidor entrega los cinco más recientes y el total de borradores (7).
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       borrador(2, "E-002", "2026-10-02"),
       borrador(3, "E-003", "2026-09-20"),
       borrador(4, "E-004", "2026-10-05"),
       borrador(5, "E-005", "2026-10-05"),
-      borrador(6, "E-006", "2026-08-15"),
       borrador(7, "E-007", "2026-10-03"),
-    ]);
+    ], 7));
     abrirDashboard();
 
     const region = await screen.findByRole("region", { name: "Elaboraciones en curso" });
@@ -372,13 +373,14 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
       .map((item) => within(item).getByText(/^E-\d{3} · /).textContent?.slice(0, 5));
     expect(codigos).toEqual(["E-005", "E-004", "E-007", "E-002", "E-003"]);
     expect(within(region).getByText("Mostrando las 5 más recientes de 7.")).toBeInTheDocument();
+    expect(within(region).getByText("7")).toBeInTheDocument();
   });
 
   it("con 5 o menos no avisa que hay más", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       borrador(1, "E-001", "2026-10-01"),
       borrador(2, "E-002", "2026-10-02"),
-    ]);
+    ]));
     abrirDashboard();
 
     const region = await screen.findByRole("region", { name: "Elaboraciones en curso" });

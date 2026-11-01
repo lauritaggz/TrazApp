@@ -13,16 +13,26 @@ export function ordenarBorradores(borradores: ElaboracionResumen[]): Elaboracion
 }
 
 interface DashboardElaboracionesEnCursoProps {
+  /** The most recent drafts (the page asked for `MAX_ELABORACIONES_EN_CURSO`). */
   borradores: ElaboracionResumen[];
+  /** How many drafts there are in all: `total` of the same query. */
+  total: number;
+  /**
+   * Where «Ver todas» goes. Without it the link is not shown: the historial page (`/elaboraciones`)
+   * arrives with T06-03.
+   */
+  verTodasTo?: string;
 }
 
 /** The drafts the productor can pick up again (HT06-07). Nothing is rendered without drafts. */
 export default function DashboardElaboracionesEnCurso({
   borradores,
+  total,
+  verTodasTo,
 }: DashboardElaboracionesEnCursoProps) {
   if (borradores.length === 0) return null;
   const visibles = ordenarBorradores(borradores).slice(0, MAX_ELABORACIONES_EN_CURSO);
-  const ocultos = borradores.length - visibles.length;
+  const ocultos = Math.max(total, borradores.length) - visibles.length;
 
   return (
     <section
@@ -38,7 +48,7 @@ export default function DashboardElaboracionesEnCurso({
             Borradores que puedes retomar donde los dejaste.
           </p>
         </div>
-        <Badge variant="warning">{borradores.length}</Badge>
+        <Badge variant="warning">{Math.max(total, borradores.length)}</Badge>
       </div>
 
       <ul className="divide-y divide-border">
@@ -66,10 +76,22 @@ export default function DashboardElaboracionesEnCurso({
         ))}
       </ul>
 
-      {ocultos > 0 && (
-        <p className="mt-3 border-t border-border pt-3 text-xs text-text-secondary">
-          Mostrando las {visibles.length} más recientes de {borradores.length}.
-        </p>
+      {(ocultos > 0 || verTodasTo) && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 border-t border-border pt-3 text-xs text-text-secondary">
+          {ocultos > 0 && (
+            <p>
+              Mostrando las {visibles.length} más recientes de {visibles.length + ocultos}.
+            </p>
+          )}
+          {verTodasTo && (
+            <Link
+              to={verTodasTo}
+              className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
+            >
+              Ver todas
+            </Link>
+          )}
+        </div>
       )}
     </section>
   );

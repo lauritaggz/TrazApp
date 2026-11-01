@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardAttention from "@/components/dashboard/DashboardAttention";
-import DashboardElaboracionesEnCurso from "@/components/dashboard/DashboardElaboracionesEnCurso";
+import DashboardElaboracionesEnCurso, {
+  MAX_ELABORACIONES_EN_CURSO,
+} from "@/components/dashboard/DashboardElaboracionesEnCurso";
 import DashboardGettingStarted from "@/components/dashboard/DashboardGettingStarted";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardProductPreviewCard from "@/components/dashboard/DashboardProductPreviewCard";
@@ -39,6 +41,13 @@ function sortRecentIngredients(ingredientes: Ingrediente[]): Ingrediente[] {
   });
 }
 
+/**
+ * Where «Ver todas» of «Elaboraciones en curso» goes: the historial filtered by drafts. The page
+ * `/elaboraciones` arrives with T06-03; until then there is no link. Then:
+ * `"/elaboraciones?estado=borrador"`.
+ */
+const RUTA_BORRADORES: string | undefined = undefined;
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { handleLogout, producerName, businessName } =
@@ -52,7 +61,9 @@ export default function Dashboard() {
   const [ingredientsError, setIngredientsError] = useState("");
   // Elaboraciones (HT06-07): the drafts feed «Elaboraciones en curso» and any of them marks the third step done.
   // A secondary block: if it fails to load it is simply not shown.
-  const [elaboraciones, setElaboraciones] = useState<ElaboracionResumen[]>([]);
+  const [borradores, setBorradores] = useState<ElaboracionResumen[]>([]);
+  const [totalBorradores, setTotalBorradores] = useState(0);
+  const [totalElaboraciones, setTotalElaboraciones] = useState(0);
   // Active supplies, to count the ones with allergens still to review (HT07).
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loadingInsumos, setLoadingInsumos] = useState(true);
@@ -85,15 +96,21 @@ export default function Dashboard() {
     }
   }, []);
 
-  // TECHNICAL DEBT (HT07): this downloads every elaboración only to know whether there is at least one (step 3 of
-  // «Primeros pasos») and to pick the drafts. GET /gestion/elaboraciones takes `producto_id` and `estado` but no
-  // limit or pagination, so a `limit=1` existence check is not possible without changing the backend. When it
-  // accepts one: ask for the drafts as before and for any elaboración with a limit of 1.
+  // «Elaboraciones en curso»: the latest drafts, and how many there are in all. «Primeros pasos»: whether there is
+  // any elaboración at all (a page of one and its `total`). Each one fails on its own without touching the rest.
   const loadElaboraciones = useCallback(async () => {
     try {
-      setElaboraciones(await listElaboraciones());
+      const pagina = await listElaboraciones({ estado: "borrador", limit: MAX_ELABORACIONES_EN_CURSO });
+      setBorradores(pagina.items);
+      setTotalBorradores(pagina.total);
     } catch {
-      setElaboraciones([]);
+      setBorradores([]);
+      setTotalBorradores(0);
+    }
+    try {
+      setTotalElaboraciones((await listElaboraciones({ limit: 1 })).total);
+    } catch {
+      setTotalElaboraciones(0);
     }
   }, []);
 
@@ -116,10 +133,6 @@ export default function Dashboard() {
     void loadInsumos();
   }, [loadProducts, loadIngredients, loadElaboraciones, loadInsumos]);
 
-  const borradores = useMemo(
-    () => elaboraciones.filter((elaboracion) => elaboracion.estado === "borrador"),
-    [elaboraciones],
-  );
   const insumosSinRevisar = useMemo(
     () => insumos.filter((insumo) => !insumo.alergenos_revisados).length,
     [insumos],
@@ -213,7 +226,11 @@ export default function Dashboard() {
           />
         </div>
 
-        <DashboardElaboracionesEnCurso borradores={borradores} />
+        <DashboardElaboracionesEnCurso
+          borradores={borradores}
+          total={totalBorradores}
+          verTodasTo={RUTA_BORRADORES}
+        />
 
         {!loadingProducts && !productsError && incompleteProducts.length > 0 && (
           <DashboardAttention items={incompleteProducts} />
@@ -274,7 +291,7 @@ export default function Dashboard() {
           <DashboardGettingStarted
             hasProducts={hasProducts}
             hasIngredients={hasIngredients}
-            hasElaboraciones={elaboraciones.length > 0}
+            hasElaboraciones={totalElaboraciones > 0}
           />
         </div>
       </div>

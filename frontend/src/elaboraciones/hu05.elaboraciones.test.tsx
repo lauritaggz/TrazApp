@@ -12,7 +12,7 @@ import * as formulationService from "@/services/formulationService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
-import { mockProductor, renderWithProviders } from "@/test/testUtils";
+import { mockProductor, paginaElaboraciones, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type {
   Elaboracion,
@@ -306,7 +306,7 @@ beforeEach(() => {
   vi.mocked(productService.listCategories).mockResolvedValue([]);
   vi.mocked(formulationService.getProductFormulation).mockResolvedValue(FORMULACION);
   vi.mocked(formulationService.listProductVersions).mockResolvedValue([]);
-  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
+  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([]));
   vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) => {
     if (id === 30) return BORRADOR;
     if (id === 31) return FINALIZADA;
@@ -358,10 +358,10 @@ describe("Detalle del producto: elaboraciones", () => {
   });
 
   it("lista las elaboraciones más recientes con código, fecha y estado, y enlaza cada una", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       resumen(32, "E-003", "2026-10-05", "borrador"),
       resumen(31, "E-002", "2026-10-01", "finalizada"),
-    ]);
+    ]));
     openPage("/productos/5");
 
     const borrador = await screen.findByRole("link", { name: /E-003/ });
@@ -372,13 +372,13 @@ describe("Detalle del producto: elaboraciones", () => {
     const finalizada = screen.getByRole("link", { name: /E-002/ });
     expect(finalizada).toHaveTextContent("Finalizada");
     expect(finalizada).toHaveAttribute("href", "/elaboraciones/31");
-    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ productoId: 5 });
+    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ productoId: 5, limit: 5 });
   });
 
   it("muestra solo las cinco más recientes", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones(
       Array.from({ length: 7 }, (_, i) => resumen(100 + i, `E-0${7 - i}`, "2026-10-01", "finalizada")),
-    );
+    ));
     openPage("/productos/5");
 
     await screen.findByRole("link", { name: /E-07/ });

@@ -16,6 +16,11 @@ interface ProductElaboracionesSectionProps {
   tieneFormulacion: boolean | null;
   /** Id of the text that explains why «Nueva elaboración» is disabled, so the header button can point at it. */
   idSinFormulacion: string;
+  /**
+   * Where «Ver todas» goes: the historial filtered by this product. Without it the link is not shown
+   * (the page `/elaboraciones` arrives with T06-03).
+   */
+  verTodasTo?: string;
 }
 
 /** Latest elaboraciones of the product (HU05). «Nueva elaboración» is in the page header (HT07). */
@@ -24,8 +29,10 @@ export default function ProductElaboracionesSection({
   refreshKey = 0,
   tieneFormulacion,
   idSinFormulacion,
+  verTodasTo,
 }: ProductElaboracionesSectionProps) {
   const [elaboraciones, setElaboraciones] = useState<ElaboracionResumen[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -33,7 +40,9 @@ export default function ProductElaboracionesSection({
     setLoading(true);
     setError(false);
     try {
-      setElaboraciones(await listElaboraciones({ productoId }));
+      const pagina = await listElaboraciones({ productoId, limit: MAX_RECIENTES });
+      setElaboraciones(pagina.items);
+      setTotal(pagina.total);
     } catch {
       setError(true);
     } finally {
@@ -61,6 +70,7 @@ export default function ProductElaboracionesSection({
   }
 
   const recientes = elaboraciones.slice(0, MAX_RECIENTES);
+  const ocultas = Math.max(total, recientes.length) - recientes.length;
 
   return (
     <div className="space-y-4">
@@ -97,6 +107,20 @@ export default function ProductElaboracionesSection({
             </li>
           ))}
         </ul>
+      )}
+
+      {(ocultas > 0 || verTodasTo) && recientes.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 text-xs text-text-secondary">
+          {ocultas > 0 && <p>Mostrando las {recientes.length} más recientes de {recientes.length + ocultas}.</p>}
+          {verTodasTo && (
+            <Link
+              to={verTodasTo}
+              className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
+            >
+              Ver todas
+            </Link>
+          )}
+        </div>
       )}
     </div>
   );

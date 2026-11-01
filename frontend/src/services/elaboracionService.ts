@@ -2,16 +2,24 @@ import { apiRequest } from "@/lib/apiClient";
 import type {
   Elaboracion,
   ElaboracionCreatePayload,
-  ElaboracionResumen,
+  ElaboracionLista,
   ElaboracionUpdatePayload,
   EstadoElaboracion,
   LoteInsumo,
   UsoPayload,
 } from "@/types/elaboracion";
 
-interface ListElaboracionesParams {
+export interface ListElaboracionesParams {
   productoId?: number;
   estado?: EstadoElaboracion;
+  /** Inclusive dates (yyyy-mm-dd) over the elaboración date. */
+  fechaDesde?: string;
+  fechaHasta?: string;
+  /** Partial, case-insensitive search over the code. */
+  codigo?: string;
+  /** Page size (the API default is 20; 1 to 100). */
+  limit?: number;
+  offset?: number;
 }
 
 export async function getCodigoSugerido(productoId: number): Promise<{ codigo: string }> {
@@ -34,14 +42,20 @@ export async function createElaboracion(
   );
 }
 
+/** A page of the elaboraciones: `{items, total, limit, offset}` (HU06). */
 export async function listElaboraciones(
   params: ListElaboracionesParams = {},
-): Promise<ElaboracionResumen[]> {
+): Promise<ElaboracionLista> {
   const query = new URLSearchParams();
   if (params.productoId !== undefined) query.set("producto_id", String(params.productoId));
   if (params.estado !== undefined) query.set("estado", params.estado);
+  if (params.fechaDesde) query.set("fecha_desde", params.fechaDesde);
+  if (params.fechaHasta) query.set("fecha_hasta", params.fechaHasta);
+  if (params.codigo?.trim()) query.set("codigo", params.codigo.trim());
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  return apiRequest<ElaboracionResumen[]>(
+  return apiRequest<ElaboracionLista>(
     `/gestion/elaboraciones${suffix}`,
     { method: "GET" },
     true,

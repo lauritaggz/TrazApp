@@ -8,7 +8,7 @@ import * as elaboracionService from "@/services/elaboracionService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
-import { mockProductor, renderWithProviders } from "@/test/testUtils";
+import { mockProductor, paginaElaboraciones, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type { Ingrediente } from "@/types/ingredient";
 import type { Insumo } from "@/types/insumo";
@@ -106,7 +106,7 @@ function setupDashboardMocks() {
   vi.mocked(productService.listProducts).mockResolvedValue(mockProducts);
   vi.mocked(productService.listCategories).mockResolvedValue([]);
   vi.mocked(ingredientService.listIngredients).mockResolvedValue(mockIngredients);
-  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
+  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([]));
   vi.mocked(insumoService.listInsumos).mockResolvedValue([]);
 }
 
@@ -265,7 +265,7 @@ describe("Dashboard HT02", () => {
     await waitFor(() => expect(screen.getByText("67%")).toBeInTheDocument());
     unmount();
 
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       {
         id: 1,
         producto: { id: 1, nombre: "Galleta de chocolate" },
@@ -277,10 +277,22 @@ describe("Dashboard HT02", () => {
         total_ingredientes: 1,
         pendientes: 0,
       },
-    ]);
+    ]));
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     await waitFor(() => expect(screen.getByText("100%")).toBeInTheDocument());
+  });
+
+  it("«Primeros pasos»: el paso 3 se marca con el `total` de una página de una, no con cuántas filas llegan (T06-04)", async () => {
+    setupDashboardMocks();
+    // La consulta de existencia (limit=1) dice que hay 4 elaboraciones aunque la página venga sin filas.
+    vi.mocked(elaboracionService.listElaboraciones).mockImplementation(async (params = {}) =>
+      paginaElaboraciones([], params.limit === 1 ? 4 : 0),
+    );
+    renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
+
+    await waitFor(() => expect(screen.getByText("100%")).toBeInTheDocument());
+    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ limit: 1 });
   });
 
   it("lista productos recientes con datos reales", async () => {

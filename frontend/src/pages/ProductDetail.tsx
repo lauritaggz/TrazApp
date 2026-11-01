@@ -26,6 +26,13 @@ import type { Product, Categoria } from "@/types/product";
 
 const ID_SIN_FORMULACION = "product-sin-formulacion";
 
+/**
+ * Where «Ver todas» of the elaboraciones of a product goes: the historial filtered by the product. The
+ * page `/elaboraciones` arrives with T06-03; until then there is no link. Then: `"/elaboraciones"`
+ * (the product goes as `?producto=<id>`).
+ */
+const RUTA_HISTORIAL: string | undefined = undefined;
+
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;
   const id = Number(raw);
@@ -230,6 +237,9 @@ export default function ProductDetail() {
                     refreshKey={formulationVersion}
                     tieneFormulacion={tieneFormulacion}
                     idSinFormulacion={ID_SIN_FORMULACION}
+                    verTodasTo={
+                      RUTA_HISTORIAL === undefined ? undefined : `${RUTA_HISTORIAL}?producto=${product.id}`
+                    }
                   />
                 </ProductDetailSection>
               </div>

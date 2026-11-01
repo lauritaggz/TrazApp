@@ -24,8 +24,8 @@ import * as formulationService from "@/services/formulationService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
-import { mockProductor, renderWithProviders } from "@/test/testUtils";
-import type { Elaboracion, LoteInsumo, LoteUsado, UsoInsumo } from "@/types/elaboracion";
+import { mockProductor, paginaElaboraciones, renderWithProviders } from "@/test/testUtils";
+import type { Elaboracion, ElaboracionResumen, LoteInsumo, LoteUsado, UsoInsumo } from "@/types/elaboracion";
 import type { FormulacionLinea, FormulacionVersion } from "@/types/formulation";
 import type { Ingrediente } from "@/types/ingredient";
 import type { Insumo } from "@/types/insumo";
@@ -390,11 +390,11 @@ function instalarApi(mundo: Mundo) {
     const cantidad = mundo.elaboraciones.filter((item) => item.producto.id === productoId).length;
     return { codigo: `E-${String(cantidad + 1).padStart(3, "0")}` };
   });
-  vi.mocked(elaboracionService.listElaboraciones).mockImplementation(async (params = {}) =>
-    mundo.elaboraciones
+  vi.mocked(elaboracionService.listElaboraciones).mockImplementation(async (params = {}) => {
+    const todas = mundo.elaboraciones
       .filter((item) => (params.estado ? item.estado === params.estado : true))
       .filter((item) => (params.productoId ? item.producto.id === params.productoId : true))
-      .map((item) => ({
+      .map((item): ElaboracionResumen => ({
         id: item.id,
         producto: item.producto,
         version: item.version,
@@ -404,8 +404,9 @@ function instalarApi(mundo: Mundo) {
         finalizada_at: item.finalizada_at,
         total_ingredientes: item.usos.length,
         pendientes: item.usos.filter((uso) => uso.pendiente).length,
-      })),
-  );
+      }));
+    return paginaElaboraciones(todas.slice(0, params.limit ?? 20), todas.length);
+  });
   vi.mocked(elaboracionService.createElaboracion).mockImplementation(async (productoId, payload) =>
     crearBorrador(mundo, productoId, payload?.codigo ?? "E-001", payload?.fecha ?? hoyChile()),
   );
