@@ -391,8 +391,8 @@ def test_pt05_16_un_productor_no_accede_a_elaboraciones_de_otro(client, ctx, db_
     assert client.get(
         f"/gestion/productos/{producto_id}/elaboraciones/codigo-sugerido", headers=headers_b
     ).status_code == 404
-    assert client.get("/gestion/elaboraciones", headers=headers_b).json() == []
-    assert client.get(f"/gestion/elaboraciones?producto_id={producto_id}", headers=headers_b).json() == []
+    assert client.get("/gestion/elaboraciones", headers=headers_b).json()["items"] == []
+    assert client.get(f"/gestion/elaboraciones?producto_id={producto_id}", headers=headers_b).json()["items"] == []
     assert _filas(db_session, Elaboracion) == 1
 
 
@@ -426,7 +426,7 @@ def test_las_elaboraciones_de_un_producto_desactivado_siguen_siendo_consultables
     assert detalle.json() == creada
     for respuesta in (todas, del_producto, borradores):
         assert respuesta.status_code == 200
-        assert [item["id"] for item in respuesta.json()] == [creada["id"]]
+        assert [item["id"] for item in respuesta.json()["items"]] == [creada["id"]]
     assert _crear(client, ctx).status_code == 404
 
 
@@ -443,7 +443,7 @@ def test_el_detalle_devuelve_la_misma_elaboracion_que_se_creo(client, ctx) -> No
 def test_el_listado_muestra_el_resumen_con_los_pendientes(client, ctx) -> None:
     creada = _crear(client, ctx, codigo="E-100", fecha="2026-10-01").json()
 
-    lista = client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()
+    lista = client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()["items"]
 
     assert lista == [
         {
@@ -464,7 +464,7 @@ def test_el_listado_va_de_la_fecha_mas_reciente_a_la_mas_antigua(client, ctx) ->
     for codigo, fecha in (("E-001", "2026-10-01"), ("E-002", "2026-10-05"), ("E-003", "2026-10-05"), ("E-004", "2026-09-30")):
         _crear(client, ctx, codigo=codigo, fecha=fecha)
 
-    codigos = [item["codigo"] for item in client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()]
+    codigos = [item["codigo"] for item in client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()["items"]]
 
     assert codigos == ["E-003", "E-002", "E-001", "E-004"]
 
@@ -474,7 +474,7 @@ def test_el_listado_filtra_por_producto_y_por_estado(client, ctx) -> None:
     formular(client, ctx["headers"], otro["id"], ctx["harina"])
     _crear(client, ctx, codigo="E-001")
     crear_elaboracion(client, ctx["headers"], otro["id"], codigo="G-001")
-    pedir = lambda query: [i["codigo"] for i in client.get(f"/gestion/elaboraciones{query}", headers=ctx["headers"]).json()]
+    pedir = lambda query: [i["codigo"] for i in client.get(f"/gestion/elaboraciones{query}", headers=ctx["headers"]).json()["items"]]
 
     assert sorted(pedir("")) == ["E-001", "G-001"]
     assert pedir(f"?producto_id={ctx['producto']['id']}") == ["E-001"]

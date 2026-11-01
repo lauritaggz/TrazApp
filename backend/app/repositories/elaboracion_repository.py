@@ -1,6 +1,7 @@
+from datetime import date
 from typing import Any
 
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import Select, and_, case, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import (
@@ -177,14 +178,67 @@ class ElaboracionRepository:
         )
         return self.db.scalar(stmt)
 
+    @staticmethod
+    def _escape_like(texto: str) -> str:
+        """Escape `\\`, `%` and `_` so the text is searched literally in a LIKE."""
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    @classmethod
+    def _filtrar(
+        cls,
+        stmt: Select[Any],
+        productor_id: int,
+        *,
+        producto_id: int | None,
+        estado: str | None,
+        fecha_desde: date | None,
+        fecha_hasta: date | None,
+        codigo: str | None,
+    ) -> Select[Any]:
+        """The filters of the list. The page and the total both go through here, so `total`
+        always counts what the page is a slice of.
+
+        The code is searched as a partial, case-insensitive text over `lower(codigo)` (the same
+        function as the unique index). SQLite's `lower()` only folds ASCII; PostgreSQL's folds
+        Unicode. Both dates are inclusive.
+        """
+        stmt = stmt.where(Elaboracion.productor_id == productor_id)
+        if producto_id is not None:
+            stmt = stmt.where(Elaboracion.producto_id == producto_id)
+        if estado is not None:
+            stmt = stmt.where(Elaboracion.estado == estado)
+        if fecha_desde is not None:
+            stmt = stmt.where(Elaboracion.fecha_elaboracion >= fecha_desde)
+        if fecha_hasta is not None:
+            stmt = stmt.where(Elaboracion.fecha_elaboracion <= fecha_hasta)
+        texto = (codigo or "").strip().lower()
+        if texto:
+            stmt = stmt.where(
+                func.lower(Elaboracion.codigo).like(f"%{cls._escape_like(texto)}%", escape="\\")
+            )
+        return stmt
+
     def list_resumenes(
         self,
         productor_id: int,
         *,
         producto_id: int | None = None,
         estado: str | None = None,
-    ) -> list[tuple[Elaboracion, int, int]]:
-        """Elaboraciones of the productor with their ingredient and pending counts."""
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        codigo: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[tuple[Elaboracion, int, int]], int]:
+        """A page of the productor's elaboraciones with their ingredient and pending counts,
+        and how many there are in total with the same filters."""
+        filtros = {
+            "producto_id": producto_id,
+            "estado": estado,
+            "fecha_desde": fecha_desde,
+            "fecha_hasta": fecha_hasta,
+            "codigo": codigo,
+        }
         pendiente = or_(
             UsoInsumo.insumo_id.is_(None),
             and_(UsoInsumo.lote_id.is_(None), UsoInsumo.sin_lote.is_(False)),
@@ -206,14 +260,17 @@ class ElaboracionRepository:
             )
             .options(joinedload(Elaboracion.producto), joinedload(Elaboracion.version_producto))
             .outerjoin(conteos, conteos.c.elaboracion_id == Elaboracion.id)
-            .where(Elaboracion.productor_id == productor_id)
-            .order_by(Elaboracion.fecha_elaboracion.desc(), Elaboracion.id.desc())
         )
-        if producto_id is not None:
-            stmt = stmt.where(Elaboracion.producto_id == producto_id)
-        if estado is not None:
-            stmt = stmt.where(Elaboracion.estado == estado)
-        return [(fila[0], int(fila[1]), int(fila[2])) for fila in self.db.execute(stmt).unique()]
+        stmt = (
+            self._filtrar(stmt, productor_id, **filtros)
+            .order_by(Elaboracion.fecha_elaboracion.desc(), Elaboracion.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        ids = self._filtrar(select(Elaboracion.id), productor_id, **filtros)
+        total = self.db.scalar(select(func.count()).select_from(ids.subquery())) or 0
+        filas = [(fila[0], int(fila[1]), int(fila[2])) for fila in self.db.execute(stmt).unique()]
+        return filas, int(total)
 
     def lineas_por_ingrediente(self, version_id: int) -> dict[int, FormulacionVersionProducto]:
         return {linea.ingrediente_id: linea for linea in self.list_lineas_formulacion(version_id)}

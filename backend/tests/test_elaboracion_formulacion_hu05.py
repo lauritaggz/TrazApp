@@ -119,7 +119,7 @@ def test_el_listado_muestra_la_version_de_cada_elaboracion(client, ctx) -> None:
     formular(client, ctx["headers"], producto_id, ctx["harina"])
     crear_elaboracion(client, ctx["headers"], producto_id, codigo="E-002")
 
-    lista = client.get(f"/gestion/elaboraciones?producto_id={producto_id}", headers=ctx["headers"]).json()
+    lista = client.get(f"/gestion/elaboraciones?producto_id={producto_id}", headers=ctx["headers"]).json()["items"]
 
     assert {item["codigo"]: item["version"]["numero_version"] for item in lista} == {"E-001": 1, "E-002": 2}
     assert {item["codigo"]: item["total_ingredientes"] for item in lista} == {"E-001": 2, "E-002": 1}

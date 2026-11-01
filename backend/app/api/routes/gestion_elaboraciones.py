@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import get_current_productor, get_elaboracion_service
@@ -5,8 +7,8 @@ from app.models import Productor
 from app.schemas.elaboracion import (
     CodigoSugeridoRead,
     ElaboracionCreate,
+    ElaboracionListaRead,
     ElaboracionRead,
-    ElaboracionResumenRead,
     ElaboracionUpdate,
     EstadoElaboracion,
     LoteRead,
@@ -91,14 +93,33 @@ def crear_elaboracion(
         raise _invalid_error(exc) from exc
 
 
-@router.get("/elaboraciones", response_model=list[ElaboracionResumenRead])
+@router.get("/elaboraciones", response_model=ElaboracionListaRead)
 def listar_elaboraciones(
     producto_id: int | None = Query(default=None, gt=0),
     estado: EstadoElaboracion | None = Query(default=None),
+    fecha_desde: date | None = Query(default=None),
+    fecha_hasta: date | None = Query(default=None),
+    codigo: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current_productor: Productor = Depends(get_current_productor),
     service: ElaboracionService = Depends(get_elaboracion_service),
-) -> list[ElaboracionResumenRead]:
-    return service.list_mine(current_productor, producto_id=producto_id, estado=estado)
+) -> ElaboracionListaRead:
+    try:
+        return service.list_mine(
+            current_productor,
+            producto_id=producto_id,
+            estado=estado,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            codigo=codigo,
+            limit=limit,
+            offset=offset,
+        )
+    except InvalidElaboracionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"mensaje": str(exc)}
+        ) from exc
 
 
 @router.get("/elaboraciones/{elaboracion_id}", response_model=ElaboracionRead)

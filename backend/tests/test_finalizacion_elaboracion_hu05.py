@@ -227,11 +227,11 @@ def test_el_listado_muestra_la_elaboracion_finalizada(client, ctx) -> None:
     _asignar(client, ctx)
     _finalizar(client, ctx)
 
-    lista = client.get("/gestion/elaboraciones?estado=finalizada", headers=ctx["headers"]).json()
+    lista = client.get("/gestion/elaboraciones?estado=finalizada", headers=ctx["headers"]).json()["items"]
 
     assert [(i["codigo"], i["estado"], i["pendientes"], i["total_ingredientes"]) for i in lista] == [("E-001", "finalizada", 0, 2)]
     assert lista[0]["finalizada_at"] is not None
-    assert client.get("/gestion/elaboraciones?estado=borrador", headers=ctx["headers"]).json() == []
+    assert client.get("/gestion/elaboraciones?estado=borrador", headers=ctx["headers"]).json()["items"] == []
 
 
 def test_otra_elaboracion_en_borrador_no_se_ve_afectada(client, ctx) -> None:
