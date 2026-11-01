@@ -1,0 +1,10 @@
+{
+  "description": "Permite a productores consultar y filtrar el historial de elaboraciones, revisar insumos, lotes y estados, e identificar productos relacionados ante incidencias.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
