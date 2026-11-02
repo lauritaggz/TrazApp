@@ -383,6 +383,8 @@ describe("Detalle del producto: elaboraciones", () => {
 
     await screen.findByRole("link", { name: /E-07/ });
     expect(screen.getAllByRole("link", { name: /^E-0\d/ })).toHaveLength(5);
+    // T06-03: «Ver todas» abre el historial filtrado por este producto.
+    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/elaboraciones?producto=5");
   });
 
   it("sin elaboraciones lo dice", async () => {

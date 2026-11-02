@@ -12,6 +12,8 @@ interface ListToolbarProps {
   onSearchChange: (value: string) => void;
   searchLabel: string;
   searchPlaceholder: string;
+  /** Enter in the search field (the text is applied at once instead of waiting). */
+  onSearchEnter?: () => void;
   disabled?: boolean;
   /** Controles de filtro y orden; en móvil quedan tras el botón «Filtros». */
   controls: ReactNode;
@@ -27,6 +29,7 @@ export default function ListToolbar({
   onSearchChange,
   searchLabel,
   searchPlaceholder,
+  onSearchEnter,
   disabled = false,
   controls,
   controlsColumns = 2,
@@ -48,6 +51,12 @@ export default function ListToolbar({
             placeholder={searchPlaceholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && onSearchEnter) {
+                e.preventDefault();
+                onSearchEnter();
+              }
+            }}
             disabled={disabled}
             aria-label={searchLabel}
           />

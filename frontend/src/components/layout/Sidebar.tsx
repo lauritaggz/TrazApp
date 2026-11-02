@@ -2,7 +2,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem from "@/components/layout/NavItem";
 
-export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "perfil";
+export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "elaboraciones" | "perfil";
 
 interface SidebarProps {
   open: boolean;
@@ -46,13 +46,12 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
           <NavItem icon={<SupplyIcon />} label="Insumos" to="/insumos" onClick={onClose} />
         </div>
 
-        {/*
-          Se reactivan con HU06 (listado de elaboraciones) y HU08 (elaboraciones relacionadas): el grupo
-          «Trazabilidad» con <NavItem icon={<LotIcon />} label="Elaboraciones" to="..." /> y
-          <NavItem icon={<HistoryIcon />} label="Elaboraciones relacionadas" to="..." />.
-          Mientras no existan no se muestran: un elemento «Pronto» ocupaba el lugar donde el productor
-          espera encontrar sus elaboraciones. Los íconos siguen exportados abajo para ese momento.
-        */}
+        <div className="space-y-1">
+          <p className="px-3 pb-1 text-xs font-semibold text-text-muted">Trazabilidad</p>
+          {/* «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración (NavLink sin `end`). */}
+          <NavItem icon={<LotIcon />} label="Elaboraciones" to="/elaboraciones" onClick={onClose} />
+          {/* HU08: aquí va «Elaboraciones relacionadas» (<NavItem icon={<HistoryIcon />} ... />). El ícono sigue exportado. */}
+        </div>
       </nav>
     </aside>
   );

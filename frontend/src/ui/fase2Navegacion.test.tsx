@@ -68,17 +68,16 @@ describe("Menú de usuario del header", () => {
 });
 
 describe("Menú lateral", () => {
-  it("no muestra lo que aún no existe: ni «Elaboraciones» ni «Elaboraciones relacionadas» ni «Pronto» (HT07)", () => {
+  it("muestra «Elaboraciones» en «Trazabilidad» y no lo que aún no existe: ni «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
     renderShell();
 
-    // Se reactivan con HU06 y HU08.
-    expect(screen.queryByText("Trazabilidad")).not.toBeInTheDocument();
-    expect(screen.queryByText("Elaboraciones")).not.toBeInTheDocument();
+    // HU06 habilitó «Elaboraciones»; «Elaboraciones relacionadas» se reactiva con HU08.
+    expect(screen.getByText("Trazabilidad")).toBeInTheDocument();
     expect(screen.queryByText("Elaboraciones relacionadas")).not.toBeInTheDocument();
     expect(screen.queryByText("Pronto")).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link").map((l) => l.textContent),
-    ).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos"]);
+    const enlaces = within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link");
+    expect(enlaces.map((l) => l.textContent)).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos", "Elaboraciones"]);
+    expect(enlaces[4]).toHaveAttribute("href", "/elaboraciones");
     // Los términos del modelo anterior ya no aparecen en el menú.
     expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
     expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();

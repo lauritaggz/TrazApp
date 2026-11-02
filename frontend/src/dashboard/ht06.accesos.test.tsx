@@ -376,6 +376,15 @@ describe("Dashboard: sección «Elaboraciones en curso» (HT06-07)", () => {
     expect(within(region).getByText("7")).toBeInTheDocument();
   });
 
+  it("«Ver todas» abre el historial filtrado por borradores (T06-03)", async () => {
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([borrador(31, "E-004", "2026-10-06")]));
+    abrirDashboard();
+
+    const region = await screen.findByRole("region", { name: "Elaboraciones en curso" });
+
+    expect(within(region).getByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/elaboraciones?estado=borrador");
+  });
+
   it("con 5 o menos no avisa que hay más", async () => {
     vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       borrador(1, "E-001", "2026-10-01"),

@@ -173,3 +173,60 @@ El detalle ya cumplía CA4 y CA5 (una finalizada se construye solo desde la info
 |---|---|
 | Backend: el detalle de una finalizada se construye desde el insumo vigente | 1 (PT06-06) |
 | Frontend: mostrar el aviso aunque no haya `finalizada_at` | 1 |
+
+### Suites completas de T06-02 (GitHub Actions, Pull Request #22, commit `df7c32c`)
+
+| Trabajo | Resultado |
+|---|---|
+| Backend (SQLite) | aprobado (9 min 5 s) |
+| Backend (PostgreSQL) | aprobado (14 min 33 s) |
+| Frontend | aprobado (1 min 39 s) |
+
+---
+
+## T06-03 — Interfaz del historial
+
+**Horas reales aproximadas:** 2,5 h (estimadas: 1,75 h). La diferencia viene de la verificación en el navegador con datos para paginar y de un defecto que encontraron las pruebas (ver abajo).
+
+### Qué se hizo (solo frontend)
+
+- **Página nueva** `/elaboraciones` (`pages/Elaboraciones.tsx`): tarjetas de cifras, barra de filtros, lista de filas y paginación.
+- **Filtros en la URL:** `?producto=`, `?estado=`, `?desde=`, `?hasta=`, `?codigo=` y `?pagina=` (`lib/historialElaboraciones.ts` y `hooks/useHistorialElaboraciones.ts`). Los valores inválidos se ignoran. Cambiar un **filtro** añade una entrada al historial del navegador y vuelve a la página 1; cambiar de **página** solo cambia la página (también con una entrada nueva) y conserva los filtros; escribir el código reemplaza la entrada actual y vuelve a la página 1.
+- **Búsqueda por código:** el texto se aplica a los 400 ms de dejar de escribir (`useDebouncedValue`) o al instante con Enter (`ListToolbar` ganó `onSearchEnter`).
+- **Tarjetas:** Elaboraciones totales, Finalizadas y En borrador, cada una con una consulta `limit=1` y su `total`. **Son globales: no siguen los filtros.** El contador «N elaboraciones encontradas» sí los sigue.
+- **Paginación** (`components/ui/Pagination.tsx`): Anterior, Siguiente y «x–y de z», de 20 en 20. Una página más allá de la última lleva a la última.
+- **Estados:** cargando, error con «Reintentar», «Aún no tienes elaboraciones» (sin filtros) y «Ninguna elaboración coincide» con «Limpiar filtros». Un rango «desde» posterior a «hasta» avisa en el cliente y no se pide.
+- **Fila:** código, producto, fecha, insignia de estado y, en borradores, «Faltan N de M ingredientes» o «Lista para finalizar». Una finalizada lleva al detalle y un borrador al registro.
+- **Menú:** «Elaboraciones» en el grupo «Trazabilidad». Sin «Elaboraciones relacionadas» (HU08).
+- **«Ver todas» activados:** `RUTA_BORRADORES` (panel de inicio → `/elaboraciones?estado=borrador`) y `RUTA_HISTORIAL` (producto → `/elaboraciones?producto=<id>`).
+- **Fuera de alcance:** pestaña «Rastrear insumo» (HU08) e insignias de publicación y visibilidad (HU09).
+
+### Cambio de una condición de HT07
+
+En HT07 (Bloque 2) el menú no marcaba ninguna sección en el registro ni en el detalle de una elaboración, porque no existía una sección «Elaboraciones». **Esa condición cambió porque ahora existe:** (era una decisión de HT07 comprobada en el navegador; no había una prueba automática que la exigiera, así que no se actualizó ninguna prueba por esto) «Elaboraciones» queda marcado en `/elaboraciones`, `/elaboraciones/:id` y `/elaboraciones/:id/registro`, y solo esa. Una prueba nueva lo exige en las tres rutas. Las pantallas de detalle y de registro pasaron a `activePage="elaboraciones"` (solo cambia el título de la pestaña).
+
+### Pruebas
+
+- **Nuevos:** `src/elaboraciones/hu06.historial.test.tsx` (34 pruebas: URL, búsqueda por código, tarjetas, filas, paginación, estados y menú) y `src/lib/historialElaboraciones.test.ts` (unitarias de los filtros).
+- **Existentes actualizados, con su motivo (sin relajar ninguna aserción):**
+  - `fase2Navegacion` («Menú lateral»): ahora el menú sí trae «Trazabilidad» y «Elaboraciones», porque la sección existe; sigue sin «Elaboraciones relacionadas» ni «Pronto».
+  - `mejoraUiUx` («el foco queda atrapado en el menú»): el último enlace del menú es ahora «Elaboraciones», no «Insumos».
+  - `ht06.accesos` y `hu05.elaboraciones`: se agregó que «Ver todas» abre el historial filtrado.
+- **Un defecto que encontraron las pruebas:** `setSearchParams` de react-router cambia de identidad cada vez que cambia la URL; estaba en las dependencias de un efecto y cada cambio de la URL pedía la lista dos veces. Se corrigió usando una referencia estable.
+- **Local:** `tsc -b` limpio; Vitest de `lib`, `dashboard`, `elaboraciones`, `ui`, `recorridos` y `products`: 26 archivos, 548 pruebas aprobadas.
+
+### Mutaciones (con copia y restauración)
+
+| Mutación | Pruebas que fallan |
+|---|---|
+| El `offset` no resta 1 a la página | 12 |
+| No leer `estado` de la URL | 8 |
+| La fila de un borrador apunta al detalle y no al registro | 1 |
+| Quitar el debounce del código | 2 |
+| «Limpiar filtros» no limpia la URL | 1 |
+| Las tarjetas piden la lista completa y no una fila | 2 |
+| «Ver todas» del panel de inicio desactivado | 1 |
+
+### Verificación en el navegador
+
+Un frontend propio en otro puerto (proxy al backend del contenedor) y una cuenta de prueba creada con la API: **47 elaboraciones** (16 finalizadas y 31 borradores, de dos productos), porque no había datos para paginar. En escritorio y en celular (390 px): tarjetas 47 / 16 / 31; lista de 20 filas y «1–20 de 47»; página 2 («21–40 de 47») y 3 («41–47 de 47», «Siguiente» deshabilitado) con la URL `?pagina=N`; filtro por estado (31 borradores, con «Falta 1 de 1 ingrediente»); escribir «e-03» no genera ninguna petición mientras se escribe y una sola después de la pausa; «Limpiar todo» deja `/elaboraciones`; el aviso de fechas al revés; «Ninguna elaboración coincide»; «Ver todas» del panel y del producto con las URL correctas; «Elaboraciones» como única sección marcada en el historial, el registro de un borrador y el detalle de una finalizada; sin desplazamiento horizontal ni errores de consola. En celular los filtros quedan tras «Filtros» y las tarjetas caben en una fila.

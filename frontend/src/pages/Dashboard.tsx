@@ -42,11 +42,9 @@ function sortRecentIngredients(ingredientes: Ingrediente[]): Ingrediente[] {
 }
 
 /**
- * Where «Ver todas» of «Elaboraciones en curso» goes: the historial filtered by drafts. The page
- * `/elaboraciones` arrives with T06-03; until then there is no link. Then:
- * `"/elaboraciones?estado=borrador"`.
+ * Where «Ver todas» of «Elaboraciones en curso» goes: the historial filtered by drafts (HU06).
  */
-const RUTA_BORRADORES: string | undefined = undefined;
+const RUTA_BORRADORES: string | undefined = "/elaboraciones?estado=borrador";
 
 export default function Dashboard() {
   const navigate = useNavigate();

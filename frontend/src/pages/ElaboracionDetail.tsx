@@ -97,7 +97,7 @@ export default function ElaboracionDetail() {
 
   return (
     <AppShell
-      activePage="productos"
+      activePage="elaboraciones"
       pageTitle={elaboracion ? `Elaboración ${elaboracion.codigo}` : "Elaboración"}
       onLogout={handleLogout}
       producerName={producerName}

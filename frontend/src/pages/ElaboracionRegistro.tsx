@@ -70,7 +70,7 @@ export default function ElaboracionRegistro() {
 
   return (
     <AppShell
-      activePage="productos"
+      activePage="elaboraciones"
       pageTitle="Elaboración"
       onLogout={handleLogout}
       producerName={producerName}

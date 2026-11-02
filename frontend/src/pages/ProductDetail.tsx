@@ -27,11 +27,10 @@ import type { Product, Categoria } from "@/types/product";
 const ID_SIN_FORMULACION = "product-sin-formulacion";
 
 /**
- * Where «Ver todas» of the elaboraciones of a product goes: the historial filtered by the product. The
- * page `/elaboraciones` arrives with T06-03; until then there is no link. Then: `"/elaboraciones"`
- * (the product goes as `?producto=<id>`).
+ * Where «Ver todas» of the elaboraciones of a product goes: the historial filtered by the product
+ * (`?producto=<id>`, HU06).
  */
-const RUTA_HISTORIAL: string | undefined = undefined;
+const RUTA_HISTORIAL: string | undefined = "/elaboraciones";
 
 function parseProductId(raw: string | undefined): number | null {
   if (!raw) return null;

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute } from "@/auth/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ElaboracionDetail from "@/pages/ElaboracionDetail";
+import Elaboraciones from "@/pages/Elaboraciones";
 import ElaboracionRegistro from "@/pages/ElaboracionRegistro";
 import IngredientDetail from "@/pages/IngredientDetail";
 import IngredientEdit from "@/pages/IngredientEdit";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/insumos/nuevo" element={<InsumoNew />} />
         <Route path="/insumos/:id/editar" element={<InsumoEdit />} />
         <Route path="/insumos/:id" element={<InsumoDetail />} />
+        <Route path="/elaboraciones" element={<Elaboraciones />} />
         <Route path="/elaboraciones/:id" element={<ElaboracionDetail />} />
         <Route path="/elaboraciones/:id/registro" element={<ElaboracionRegistro />} />
         <Route path="/perfil" element={<Profile />} />
