@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { CandadoIcon } from "@/components/detail/icons";
 import AlergenosAgrupados from "@/components/elaboraciones/AlergenosAgrupados";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
@@ -10,7 +11,6 @@ import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
 import { consolidarAlergenos } from "@/lib/alergenosResumen";
 import {
-  describirLote,
   formatFecha,
   formatFechaDeMomento,
   textoInformacionConservada,
@@ -187,16 +187,36 @@ export default function ElaboracionDetail() {
                 </Dato>
                 <Dato titulo="Código">{elaboracion.codigo}</Dato>
                 <Dato titulo="Fecha de elaboración">{formatFecha(elaboracion.fecha)}</Dato>
-                <Dato titulo="Versión de la formulación">
+                <Dato titulo="Versión del producto">
                   Versión {elaboracion.version.numero_version}
                 </Dato>
               </dl>
-              {textoInformacionConservada(elaboracion.finalizada_at) && (
-                <p className="border-t border-border pt-3 text-sm text-text-secondary">
-                  {textoInformacionConservada(elaboracion.finalizada_at)}
-                </p>
-              )}
             </section>
+
+            {elaboracion.finalizada_at && (
+              <section
+                aria-labelledby="elaboracion-conservada"
+                className="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4 sm:p-5"
+              >
+                <span aria-hidden="true" className="mt-0.5 shrink-0 text-accent-strong">
+                  <CandadoIcon size={20} />
+                </span>
+                <div className="space-y-1">
+                  <h2 id="elaboracion-conservada" className="text-sm font-semibold text-text-primary">
+                    Información histórica conservada
+                  </h2>
+                  <p className="text-sm text-text-secondary">
+                    Estos datos corresponden al momento de la finalización y no cambian aunque se
+                    actualicen los insumos o el producto.
+                  </p>
+                  {textoInformacionConservada(elaboracion.finalizada_at) && (
+                    <p className="text-sm text-text-secondary">
+                      {textoInformacionConservada(elaboracion.finalizada_at)}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
 
             <section
               aria-labelledby="elaboracion-resumen-alergenos"
@@ -304,19 +324,20 @@ function UsoDetalle({ uso }: { uso: UsoInsumo }) {
           <Dato titulo="Marca u origen">{insumo.marca_origen}</Dato>
           {insumo.presentacion && <Dato titulo="Presentación">{insumo.presentacion}</Dato>}
           {insumo.codigo_barras && <Dato titulo="Código de barras">{insumo.codigo_barras}</Dato>}
-          <Dato titulo="Lote">
-            {uso.lote ? describirLote(uso.lote.codigo, uso.lote.fecha_vencimiento) : "Sin lote"}
+          <Dato titulo="Lote">{uso.lote ? uso.lote.codigo : "Sin lote registrado"}</Dato>
+          <Dato titulo="Vencimiento">
+            {uso.lote?.fecha_vencimiento ? formatFecha(uso.lote.fecha_vencimiento) : "No registrado"}
           </Dato>
         </dl>
       )}
 
-      {insumo?.ingredientes_declarados && (
+      {insumo && (
         <div className="space-y-1">
           <h4 className="text-xs font-medium text-text-secondary">
             Ingredientes declarados
           </h4>
           <p className="whitespace-pre-wrap text-sm text-text-primary">
-            {insumo.ingredientes_declarados}
+            {insumo.ingredientes_declarados?.trim() ? insumo.ingredientes_declarados : "No declarados"}
           </p>
         </div>
       )}

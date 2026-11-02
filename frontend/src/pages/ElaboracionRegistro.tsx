@@ -238,7 +238,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
             </div>
             <div className="space-y-1">
               <dt className="text-xs font-medium text-text-secondary">
-                Versión de la formulación
+                Versión del producto
               </dt>
               <dd className="text-sm text-text-primary">
                 Versión {form.servidor.version.numero_version}

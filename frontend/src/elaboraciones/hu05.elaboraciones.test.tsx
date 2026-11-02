@@ -693,6 +693,9 @@ describe("Registro: encabezado y líneas", () => {
 
     expect(screen.getAllByText("Queque de vainilla").length).toBeGreaterThan(0);
     expect(screen.getByText("Versión 1")).toBeInTheDocument();
+    // T06-02: el mismo nombre que el detalle de la elaboración.
+    expect(screen.getByText("Versión del producto")).toBeInTheDocument();
+    expect(screen.queryByText("Versión de la formulación")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("E-001");
     expect(screen.getByLabelText("Fecha de elaboración")).toHaveValue("2026-10-06");
   });
@@ -1870,8 +1873,10 @@ describe("Detalle de la elaboración (T05-07)", () => {
     const leche = tarjeta("Leche");
     expect(within(leche).queryByText("Presentación")).not.toBeInTheDocument();
     expect(within(leche).queryByText("Código de barras")).not.toBeInTheDocument();
-    expect(within(leche).queryByText("Ingredientes declarados")).not.toBeInTheDocument();
     expect(within(leche).queryByText("Advertencias")).not.toBeInTheDocument();
+    // T06-02: «Ingredientes declarados» ya no se omite: sin texto dice «No declarados».
+    expect(within(leche).getByText("Ingredientes declarados")).toBeInTheDocument();
+    expect(within(leche).getByText("No declarados")).toBeInTheDocument();
   });
 
   it("muestra los ingredientes declarados y las advertencias cuando existen", async () => {
@@ -1884,12 +1889,60 @@ describe("Detalle de la elaboración (T05-07)", () => {
     expect(within(harina).getByText("Puede contener trazas de soya y sésamo")).toBeInTheDocument();
   });
 
-  it("muestra el código y el vencimiento del lote, o «Sin lote»", async () => {
+  it("muestra el código del lote y su vencimiento en campos propios, o «Sin lote registrado» y «No registrado»", async () => {
     await abrirDetalle();
 
-    expect(within(tarjeta("Leche")).getByText("X123 · vence 15-10-2026")).toBeInTheDocument();
-    expect(within(tarjeta("Harina")).getByText("Sin lote")).toBeInTheDocument();
-    expect(within(tarjeta("Harina")).queryByText(/vence/)).not.toBeInTheDocument();
+    // T06-02: el vencimiento ya no va pegado al código («X123 · vence …»): es el campo «Vencimiento».
+    const leche = tarjeta("Leche");
+    expect(within(leche).getByText("Lote")).toBeInTheDocument();
+    expect(within(leche).getByText("X123")).toBeInTheDocument();
+    expect(within(leche).getByText("Vencimiento")).toBeInTheDocument();
+    expect(within(leche).getByText("15-10-2026")).toBeInTheDocument();
+    const harina = tarjeta("Harina");
+    expect(within(harina).getByText("Sin lote registrado")).toBeInTheDocument();
+    expect(within(harina).getByText("Vencimiento")).toBeInTheDocument();
+    expect(within(harina).getByText("No registrado")).toBeInTheDocument();
+    expect(within(harina).queryByText(/vence/)).not.toBeInTheDocument();
+  });
+
+  it("T06-02: el bloque de datos dice «Versión del producto», no «Versión de la formulación»", async () => {
+    await abrirDetalle();
+
+    const datos = screen.getByRole("region", { name: "Datos de la elaboración" });
+    expect(within(datos).getByText("Versión del producto")).toBeInTheDocument();
+    expect(within(datos).getByText("Versión 3")).toBeInTheDocument();
+    expect(screen.queryByText("Versión de la formulación")).not.toBeInTheDocument();
+    // El estado va solo como insignia del encabezado: no se repite en el bloque de datos.
+    expect(within(datos).queryByText("Estado")).not.toBeInTheDocument();
+    expect(within(datos).queryByText("Finalizada")).not.toBeInTheDocument();
+  });
+
+  it("T06-02: el aviso «Información histórica conservada» explica que no cambia y lleva la fecha una sola vez", async () => {
+    await abrirDetalle();
+
+    const aviso = screen.getByRole("region", { name: "Información histórica conservada" });
+    expect(
+      within(aviso).getByText(/Estos datos corresponden al momento de la finalización y no cambian aunque se actualicen los insumos o el producto\./),
+    ).toBeInTheDocument();
+    expect(within(aviso).getByText("Información conservada al finalizar el 06-10-2026 a las 15:30")).toBeInTheDocument();
+    expect(screen.getAllByText(/Información conservada al finalizar/)).toHaveLength(1);
+  });
+
+  it("T06-02: sin fecha de finalización no hay aviso de información conservada", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockResolvedValue({ ...FINALIZADA_COMPLETA, finalizada_at: null });
+    openPage("/elaboraciones/31");
+    await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
+
+    expect(screen.queryByText("Información histórica conservada")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Información conservada al finalizar/)).not.toBeInTheDocument();
+  });
+
+  it("T06-02: los ingredientes declarados siempre están: el texto del insumo o «No declarados»", async () => {
+    await abrirDetalle();
+
+    expect(within(tarjeta("Harina")).getByText("Harina de trigo, vitaminas")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText("No declarados")).not.toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("No declarados")).toBeInTheDocument();
   });
 
   it("agrupa los alérgenos de cada insumo en «Contiene» y «Puede contener»", async () => {

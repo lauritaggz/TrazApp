@@ -126,3 +126,50 @@ La primera mutación solo es detectable con una página sin filas pero con `tota
 ### Verificación en el navegador
 
 Un frontend propio en otro puerto (con proxy al backend con el listado paginado) y una cuenta de prueba con 7 borradores: el panel muestra «Elaboraciones en curso» con la cifra 7 y «Mostrando las 5 más recientes de 7.», «Primeros pasos» al 100 % y sin «Ver todas»; el detalle del producto lista sus elaboraciones; en escritorio y en celular, sin errores de consola. La pantalla negra ya no aparece.
+
+### Suites completas de T06-04 (GitHub Actions, Pull Request #22, commit `32b9c26`)
+
+| Trabajo | Resultado |
+|---|---|
+| Backend (SQLite) | aprobado (9 min 5 s) |
+| Backend (PostgreSQL) | aprobado (14 min 27 s) |
+| Frontend | aprobado (1 min 39 s) |
+
+---
+
+## T06-02 — Detalle de la elaboración
+
+El detalle ya cumplía CA4 y CA5 (una finalizada se construye solo desde la información conservada). Esta tarea lo verifica con pruebas de backend y complementa la pantalla según el diseño (`docs/diseno/sprint3/src/pages/Elaborations.tsx`), sin tocar el backend, la información conservada ni los triggers.
+
+### Qué cambió (frontend, `ElaboracionDetail.tsx`)
+
+- **Bloque de datos:** Producto, Código, Fecha y **«Versión del producto»** (antes «Versión de la formulación»). El estado sigue solo como insignia del encabezado.
+- **Aviso:** una caja con candado (`CandadoIcon`, nuevo en `components/detail/icons.tsx`), el título «Información histórica conservada», la frase «Estos datos corresponden al momento de la finalización y no cambian aunque se actualicen los insumos o el producto.» y debajo la fecha ya existente («Información conservada al finalizar el …»). Reemplaza al párrafo anterior: la fecha aparece una sola vez. Solo se muestra si la elaboración tiene `finalizada_at`.
+- **Por insumo:** «Lote» (código o **«Sin lote registrado»**) y «Vencimiento» como campo propio (**«No registrado»** si no hay); «Ingredientes declarados» siempre visible, con **«No declarados»** si falta. Los alérgenos no cambian.
+- **Fuera de alcance (según el contexto de la HU):** insignia de publicación, «Visibilidad», unidades producidas, cualquier cifra que no venga de la API y la forma de mostrar la cantidad de la formulación.
+
+### Dónde más aparecía «versión de la formulación»
+
+`ElaboracionRegistro.tsx:241` («Versión de la formulación», en el registro de un borrador): también se cambió a «Versión del producto», por consistencia con el detalle, y su prueba lo exige. Otras pantallas usan «Versión vigente: N» (formulación del producto) y «Versión N» o «versión N» (historial de versiones y mensajes de guardado), que no son ese texto.
+
+### Pruebas
+
+**Backend** (`test_historial_elaboraciones_hu06.py`, 3 pruebas nuevas):
+- **PT06-05:** una finalizada con un insumo sin lote y otro con lote que vence: versión, insumo, marca, presentación, ingredientes declarados, alérgenos con su tipo, lote y vencimiento, o `sin_lote`. Una segunda con un lote sin vencimiento.
+- **PT06-06:** se finaliza, se cambian la marca y el tipo de un alérgeno del insumo, y se comprueba que el insumo vigente sí cambió mientras el detalle devuelve exactamente los valores originales.
+
+**Frontend** (`hu05.elaboraciones.test.tsx`, 4 pruebas nuevas y 2 actualizadas):
+- **Nuevas:** «Versión del producto» sin «Estado» duplicado; aviso con la frase y la fecha una sola vez; sin `finalizada_at` no hay aviso; «No declarados» frente al texto del insumo.
+- **Actualizadas, con su motivo:**
+  - «omite la presentación y el código de barras»: «Ingredientes declarados» ya no se omite; ahora aparece con «No declarados».
+  - «muestra el código y el vencimiento del lote, o “Sin lote”»: el vencimiento dejó de ir pegado al código («X123 · vence …») y es un campo propio; «Sin lote» pasó a «Sin lote registrado» y «No registrado».
+  - No se relajó ninguna aserción.
+
+**Local:** SQLite, `test_historial_elaboraciones_hu06.py` y `test_finalizacion_elaboracion_hu05.py`: 70 aprobadas; Vitest de `elaboraciones`, `recorridos`, `ui` y `dashboard`: 15 archivos y 351 aprobadas; `tsc -b` limpio. PostgreSQL y las suites completas, en GitHub Actions.
+
+### Mutaciones
+
+| Mutación | Pruebas que fallan |
+|---|---|
+| Backend: el detalle de una finalizada se construye desde el insumo vigente | 1 (PT06-06) |
+| Frontend: mostrar el aviso aunque no haya `finalizada_at` | 1 |

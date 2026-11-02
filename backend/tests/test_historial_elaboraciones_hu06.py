@@ -1,8 +1,10 @@
-"""The elaboraciones list: pagination, filters and search by code (T06-01 / HU06).
+"""The elaboraciones history: the list and the detail (T06-01 and T06-02 / HU06).
 
 GET /gestion/elaboraciones answers `{items, total, limit, offset}`. Covers PT06-01 (pages),
 PT06-02 (filters, alone and combined), PT06-03 (search by code), PT06-04 (state of each row),
-PT06-07 (reading changes nothing) and PT06-08 (only the productor's own elaboraciones).
+PT06-05 (the detail with its version, supplies, lots and allergens), PT06-06 (a finalizada keeps
+what it had when it was finalized), PT06-07 (reading changes nothing) and PT06-08 (only the
+productor's own elaboraciones).
 """
 
 from datetime import date
@@ -14,6 +16,8 @@ from app.models import Elaboracion, LoteInsumo, UsoInsumo
 from app.services import elaboracion_service
 from tests.escenario_hu05 import (
     PRODUCTOR_B,
+    completar_insumo,
+    crear_alergenos,
     crear_elaboracion,
     crear_ingrediente,
     crear_insumo,
@@ -348,3 +352,112 @@ def test_pt06_08_ningun_filtro_deja_pasar_las_de_otro_productor(client, ctx, aje
 
 def test_pt06_08_el_detalle_de_una_ajena_responde_404(client, ctx, ajeno) -> None:
     assert client.get(f"{URL}/{ajeno['ids'][0]}", headers=ctx["headers"]).status_code == 404
+
+
+# --- PT06-05 y PT06-06: el detalle ----------------------------------------------------------
+
+
+@pytest.fixture
+def finalizada(client, ctx, db_session) -> dict:
+    """E-100 finalized with two lines: harina without lot, leche with a lot that expires.
+
+    Both supplies declare their brand, ingredients and allergens: harina «Selecta» with soya as
+    traces; leche «Marca» with apio and leche (contiene) and soya (trazas).
+    """
+    headers = ctx["headers"]
+    alergenos = crear_alergenos(db_session)
+    completar_insumo(client, headers, ctx["insumo_habitual"]["id"], alergenos)
+    harina = ctx["insumo_harina"]["id"]
+    assert client.patch(
+        f"/gestion/insumos/{harina}",
+        headers=headers,
+        json={"marca_origen": "Selecta", "presentacion": "Bolsa de 1 kg", "ingredientes_declarados": "Harina de trigo"},
+    ).status_code == 200
+    assert client.post(
+        f"/gestion/insumos/{harina}/alergenos", headers=headers, json={"alergeno_id": alergenos["soya"], "tipo": "trazas"}
+    ).status_code == 201
+    elaboracion = _crear(client, ctx, "E-100", "2026-10-01")
+    usos = [
+        {"ingrediente_id": ctx["harina"]["id"], "insumo_id": harina, "lote": {"tipo": "sin_lote"}},
+        {
+            "ingrediente_id": ctx["leche"]["id"],
+            "insumo_id": ctx["insumo_habitual"]["id"],
+            "lote": {"tipo": "nuevo", "codigo": "X123", "fecha_vencimiento": "2026-10-15"},
+        },
+    ]
+    assert client.put(f"{URL}/{elaboracion['id']}/usos", headers=headers, json={"usos": usos}).status_code == 200
+    assert client.post(f"{URL}/{elaboracion['id']}/finalizar", headers=headers).status_code == 200
+    return {"id": elaboracion["id"], "alergenos": alergenos, "harina": harina, "leche": ctx["insumo_habitual"]["id"]}
+
+
+def _detalle(client, ctx, elaboracion_id: int) -> dict:
+    response = client.get(f"{URL}/{elaboracion_id}", headers=ctx["headers"])
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _por_ingrediente(detalle: dict) -> dict[int, dict]:
+    return {uso["ingrediente_id"]: uso for uso in detalle["usos"]}
+
+
+def test_pt06_05_el_detalle_trae_la_version_los_insumos_los_lotes_y_los_alergenos(client, ctx, finalizada) -> None:
+    detalle = _detalle(client, ctx, finalizada["id"])
+
+    assert detalle["estado"] == "finalizada" and detalle["finalizada_at"] is not None
+    assert detalle["version"] == {"id": ctx["version"]["id"], "numero_version": 1}
+    usos = _por_ingrediente(detalle)
+
+    harina = usos[ctx["harina"]["id"]]
+    assert harina["insumo"]["nombre"] == "Harina Selecta 1 kg"
+    assert harina["insumo"]["marca_origen"] == "Selecta"
+    assert harina["insumo"]["presentacion"] == "Bolsa de 1 kg"
+    assert harina["insumo"]["ingredientes_declarados"] == "Harina de trigo"
+    assert [(a["codigo"], a["tipo"]) for a in harina["insumo"]["alergenos"]] == [("soya", "trazas")]
+    assert (harina["lote"], harina["sin_lote"]) == (None, True)
+
+    leche = usos[ctx["leche"]["id"]]
+    assert leche["insumo"]["nombre"] == "Leche Colun Semidescremada 1 L"
+    assert leche["insumo"]["marca_origen"] == "Marca"
+    assert leche["insumo"]["ingredientes_declarados"] == "Leche semidescremada, vitaminas A y D"
+    assert sorted((a["codigo"], a["tipo"]) for a in leche["insumo"]["alergenos"]) == [
+        ("apio", "contiene"), ("leche", "contiene"), ("soya", "trazas"),
+    ]
+    assert (leche["lote"]["codigo"], leche["lote"]["fecha_vencimiento"], leche["sin_lote"]) == ("X123", "2026-10-15", False)
+
+
+def test_pt06_05_un_lote_sin_vencimiento_conserva_el_codigo_y_la_fecha_vacia(client, ctx, db_session) -> None:
+    headers = ctx["headers"]
+    elaboracion = _crear(client, ctx, "E-200", "2026-10-02")
+    usos = [
+        {"ingrediente_id": ctx["harina"]["id"], "insumo_id": ctx["insumo_harina"]["id"], "lote": {"tipo": "nuevo", "codigo": "H-1"}},
+        {"ingrediente_id": ctx["leche"]["id"], "insumo_id": ctx["insumo_habitual"]["id"], "lote": {"tipo": "sin_lote"}},
+    ]
+    assert client.put(f"{URL}/{elaboracion['id']}/usos", headers=headers, json={"usos": usos}).status_code == 200
+    assert client.post(f"{URL}/{elaboracion['id']}/finalizar", headers=headers).status_code == 200
+
+    harina = _por_ingrediente(_detalle(client, ctx, elaboracion["id"]))[ctx["harina"]["id"]]
+
+    assert (harina["lote"]["codigo"], harina["lote"]["fecha_vencimiento"], harina["sin_lote"]) == ("H-1", None, False)
+
+
+def test_pt06_06_cambiar_la_marca_y_un_alergeno_del_insumo_no_cambia_el_detalle_de_una_finalizada(client, ctx, finalizada) -> None:
+    headers = ctx["headers"]
+    antes = _detalle(client, ctx, finalizada["id"])
+    leche = finalizada["leche"]
+    alergenos = finalizada["alergenos"]
+
+    assert client.patch(f"/gestion/insumos/{leche}", headers=headers, json={"marca_origen": "Soprole"}).status_code == 200
+    assert client.patch(
+        f"/gestion/insumos/{leche}/alergenos/{alergenos['leche']}", headers=headers, json={"tipo": "trazas"}
+    ).status_code == 200
+
+    # El insumo vigente sí cambió ...
+    vigente = client.get(f"/gestion/insumos/{leche}", headers=headers).json()
+    assert vigente["marca_origen"] == "Soprole"
+    assert [a["tipo"] for a in vigente["alergenos_declarados"] if a["codigo"] == "leche"] == ["trazas"]
+    # ... y el detalle de la elaboración finalizada devuelve los valores originales.
+    despues = _detalle(client, ctx, finalizada["id"])
+    assert despues == antes
+    original = _por_ingrediente(despues)[ctx["leche"]["id"]]["insumo"]
+    assert original["marca_origen"] == "Marca"
+    assert [a["tipo"] for a in original["alergenos"] if a["codigo"] == "leche"] == ["contiene"]
