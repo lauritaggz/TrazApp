@@ -165,6 +165,22 @@ describe("Historial: fidelidad al diseño", () => {
     expect(within(screen.getByLabelText("Estado")).getAllByRole("option")[0]).toHaveTextContent(/^Todos$/);
   });
 
+  it("filtros: la fila nunca se desborda: los controles pueden pasar a otra línea y los selectores tienen ancho fijo", async () => {
+    await abrirHistorial();
+
+    // El contenedor de los controles permite el salto de línea desde lg (sin «nowrap» en ningún ancho).
+    const controles = screen.getByLabelText("Estado").closest("div[class*='lg:flex-wrap']");
+    expect(controles).not.toBeNull();
+    expect(controles!.className).not.toMatch(/nowrap/);
+    // El ancho de cada selector no depende de su contenido (un producto de nombre largo): ancho fijo que no crece.
+    const producto = screen.getByLabelText("Producto").closest("div[class*='lg:w-']");
+    const estado = screen.getByLabelText("Estado").closest("div[class*='lg:w-']");
+    for (const envoltorio of [producto, estado]) {
+      expect(envoltorio!.className).toMatch(/lg:w-\d+/);
+      expect(envoltorio).toHaveClass("lg:shrink-0");
+    }
+  });
+
   it("filtros: siguen todos accesibles por su nombre", async () => {
     await abrirHistorial();
 

@@ -90,7 +90,7 @@ export default function ListToolbar({
           id={controlsId}
           className={`${expanded ? "grid" : "hidden"} grid-cols-1 gap-4 sm:grid sm:grid-cols-2 ${
             layout === "fila"
-              ? "lg:flex lg:flex-wrap lg:items-end lg:gap-3 xl:flex-nowrap"
+              ? "lg:flex lg:flex-wrap lg:items-end lg:gap-3"
               : controlsColumns === 3
                 ? "lg:grid-cols-3"
                 : ""

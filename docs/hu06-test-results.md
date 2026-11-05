@@ -257,18 +257,18 @@ Un frontend propio en otro puerto (proxy al backend del contenedor) y una cuenta
 
 ### Decisiones (aprobadas)
 
-- **Fila única de filtros desde 1280 px (`xl`).** Con «Desde» y «Hasta» visibles junto a su campo, la búsqueda y los cuatro controles no caben en una fila a 1024 px (unos 690 px útiles): ahí los controles pasan a una segunda línea en vez de apretarse. Desde 1280 px quedan en una sola línea. Es una decisión de diseño aprobada, no solo una limitación.
+- **Fila única de filtros desde 1280 px (`xl`).** Con «Desde» y «Hasta» visibles junto a su campo, la búsqueda y los cuatro controles no caben en una fila a 1024 px (unos 690 px útiles): ahí los controles pasan a una segunda línea en vez de apretarse. Desde 1280 px quedan en una sola línea; si no caben (zoom, un ancho menor), pasan a otra línea en cualquier ancho desde `lg`: la fila nunca se desborda, y el ancho de los selectores es fijo (no depende de un nombre de producto largo). Es una decisión de diseño aprobada, no solo una limitación.
 - **Opción «todos» de los filtros: «Todos».** Se probó «Todos los productos» y «Todos los estados» (en escritorio y celular): a 1280 px la fila deja de caber (el último campo se salía del recuadro unos 65 px), así que se usó «Todos» en ambos, como se había acordado para ese caso. Con «Todos» el último campo termina justo dentro del recuadro (1231 de 1232 px).
 - **Un borrador no tiene un detalle distinto del registro:** abrir `/elaboraciones/:id` de un borrador redirige a `/elaboraciones/:id/registro` (`ElaboracionDetail`), así que ambas pantallas comparten las migas «Elaboraciones / código».
 
 ### Pruebas
 
-- **Nuevas:** `src/elaboraciones/hu06.fidelidad.test.tsx` (14 pruebas: filtros, filas, tarjetas, migas y acordeón) y 3 en `fase2Navegacion` (título del grupo, orden y sin contadores, ítem activo sin punto).
+- **Nuevas:** `src/elaboraciones/hu06.fidelidad.test.tsx` (15 pruebas: filtros, filas, tarjetas, migas y acordeón) y 3 en `fase2Navegacion` (título del grupo, orden y sin contadores, ítem activo sin punto).
 - **Existentes actualizadas, con su motivo (sin eliminar aserciones):**
   - `fase2Navegacion` («Menú lateral»): el grupo se llama «Gestión»; sigue sin «Trazabilidad», «Herramientas», «Elaboraciones relacionadas» ni «Pronto».
   - `hu05.elaboraciones`, detalle de la elaboración: cada ingrediente es un acordeón, así que el ayudante `tarjeta()` abre el panel antes de leerlo (el primero ya está abierto). Una prueba busca el alérgeno «Leche» dentro de su grupo, porque el nombre del ingrediente ahora también está en un `span`.
   - `hu05.elaboraciones`, registro: las migas son «Elaboraciones / E-001», con las mismas aserciones adaptadas (el enlace «Elaboraciones», el código como página actual, sin «Productos» ni «Registro de elaboración»).
-- **Local:** `tsc -b` limpio; Vitest de `lib`, `dashboard`, `elaboraciones`, `ui`, `recorridos` y `products`: 27 archivos, 565 aprobadas.
+- **Local:** `tsc -b` limpio; Vitest de `lib`, `dashboard`, `elaboraciones`, `ui`, `recorridos` y `products`: 27 archivos, 566 aprobadas.
 
 ### Mutaciones (con copia y restauración)
 
