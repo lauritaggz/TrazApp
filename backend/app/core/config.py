@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     off_user_agent: str = "TrazApp/2.0 (proyecto academico; https://github.com/lauritaggz/trazapp)"
     off_timeout_seconds: float = 8.0
 
+    # Jumbo (HU07): public catalog; ai.txt allows scraping with attribution. Generic User-Agent.
+    jumbo_base_url: str = "https://www.jumbo.cl"
+    jumbo_user_agent: str = "TrazApp/2.0 (proyecto academico)"
+    jumbo_timeout_seconds: float = 6.0
+
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 

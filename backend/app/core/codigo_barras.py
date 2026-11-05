@@ -41,6 +41,26 @@ def formas_equivalentes(codigo: str) -> tuple[str, ...]:
     return (codigo,)
 
 
+def es_circulacion_restringida(codigo: str) -> bool:
+    """True for numbers that GS1 reserves for restricted circulation: they do not identify one product.
+
+    Stores use them for bulk items, weighed goods and in-house labels (a PLU, a price-embedded code),
+    so the same number can mean different things in each store. Per the GS1 General Specifications
+    (GS1 Prefix list): EAN-13 starting with 02 or 20-29, GS1-8 starting with 0 or 2 (000-099 and
+    200-299). A UPC-A is the EAN-13 with a leading 0, so a UPC-A starting with 2 is the 02 range.
+    Expects a code already validated by `validar_codigo_barras`; returns False for any other shape.
+    """
+    if not (codigo.isascii() and codigo.isdigit()):
+        return False
+    if len(codigo) == 13:
+        return codigo[0] == "2" or codigo.startswith("02")
+    if len(codigo) == 12:
+        return codigo[0] == "2"
+    if len(codigo) == 8:
+        return codigo[0] in "02"
+    return False
+
+
 def validar_codigo_barras(codigo: str) -> str:
     """Return the code if it is a valid EAN-8, UPC-A or EAN-13; raise ValueError otherwise."""
     if not (codigo.isascii() and codigo.isdigit()) or len(codigo) not in LARGOS_VALIDOS:
