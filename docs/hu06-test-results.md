@@ -285,3 +285,42 @@ Un frontend propio en otro puerto (proxy al backend del contenedor) y una cuenta
 ### Verificación en el navegador
 
 Servidor propio en otro puerto y una cuenta de prueba nueva con 26 elaboraciones (13 finalizadas y 13 borradores): a 1280 px la búsqueda y los cuatro controles quedan en la misma línea; el menú muestra «Gestión» con los cinco enlaces y «Elaboraciones» marcado también en el detalle y el registro; el detalle abre el primer ingrediente y los demás cerrados, y abrir uno no cierra los otros; las migas dicen «Elaboraciones / E-001»; en celular el cajón del menú trae el mismo grupo y no hay desplazamiento horizontal ni errores de consola.
+
+---
+
+## T06-05 — Cierre: trazabilidad de pruebas, mutaciones y prueba en celular
+
+### Plan de pruebas contra lo ejecutado
+
+| Prueba | Criterio | Dónde se cubre |
+|---|---|---|
+| PT06-01 Paginación | CA1 | `test_historial_elaboraciones_hu06.py` (`test_pt06_01_*`, 5 casos) y `hu06.historial.test.tsx` (páginas, «x–y de z», filtros conservados al cambiar de página) |
+| PT06-02 Filtros | CA1 | `test_pt06_02_*` (producto, estado, rango inclusivo, combinados, total con los mismos filtros, 422) y `hu06.historial.test.tsx` (URL, página 1 al filtrar) |
+| PT06-03 Búsqueda por código | CA2 | `test_pt06_03_*` (exacto, parcial, mayúsculas, espacios, inexistente, comodines como texto) y búsqueda con espera de 400 ms / Enter en el frontend |
+| PT06-04 Estado en el listado | CA3 | `test_pt06_04_*`; `HistorialFila` (insignia, «Faltan N de M», «Lista para finalizar») |
+| PT06-05 Detalle con y sin lote | CA4 | `test_pt06_05_*` y `hu05.elaboraciones.test.tsx` (acordeón: versión, insumo, marca, lote o «Sin lote», vencimiento, ingredientes declarados, alérgenos) |
+| PT06-06 Información conservada | CA5 | `test_pt06_06_*` (cambiar marca y alérgeno del insumo no cambia el detalle) |
+| PT06-07 Solo lectura | CA6 | `test_pt06_07_el_listado_no_modifica_la_base` |
+| PT06-08 Otro productor | CA7 | `test_pt06_08_*` (listado, filtro por producto ajeno, cada filtro, detalle 404) |
+| PT06-09 Panel de inicio | Regresión | `hu06.listado.test.tsx` y `hu02.dashboard.test.tsx` (borradores con el endpoint paginado, «Primeros pasos» con `total`) |
+| PT06-10 Celular | CA1, CA2, CA4 | Prueba manual, ver abajo |
+
+### Mutaciones
+
+Las cinco mínimas del plan están en la tabla de T06-01 (todas hacen fallar al menos una prueba). Las de T06-04, T06-02, T06-03 y T06-06 están en sus secciones, más la de T06-06 que quita el salto de línea de la fila de filtros (falla 1 de 15 pruebas). En todas el archivo se restauró y quedó idéntico a su copia.
+
+### Prueba en celular (PT06-10)
+
+La hizo la persona desarrolladora en un celular real, con el frontend en modo HTTPS de desarrollo en la red local (puerto 5176) apuntando al backend de Docker (8010). Resultado informado: **todos los criterios se cumplen** (filtros, búsqueda y detalle utilizables, sin desplazamiento horizontal). Se complementa con la revisión automática a 390×844 de T06-03 y T06-06 (sin desplazamiento horizontal ni errores de consola).
+
+### Verificación local final
+
+- `tsc -b` limpio.
+- Vitest completo: **46 archivos, 1.056 pruebas aprobadas** (línea base: 42 archivos, 970).
+- `npm run lint`: solo advertencias (`set-state-in-effect`) en archivos que ya las tenían; ningún error.
+- Backend: las suites completas, en SQLite y en PostgreSQL, corren en GitHub Actions (resultados por tarea arriba; el último commit queda en el resumen del Pull Request).
+
+### Pendientes para la persona desarrolladora
+
+- Cuentas de prueba en la base de desarrollo (`t0603.*`, `t0604.*`, `t0606.*`, `t0606b.*`, `capturas.informe@ejemplo.com`): se pueden borrar a mano.
+- Limitación documentada: la búsqueda por código en SQLite distingue acentos y mayúsculas no ASCII (`lower()`); en PostgreSQL funciona completa. Los códigos son `E-###`, por lo que no afecta en la práctica.
