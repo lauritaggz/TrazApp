@@ -198,9 +198,8 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
         description="Indica el insumo y el lote que usaste para cada ingrediente. Puedes guardar un avance y terminar después."
         titleSuffix={<Badge variant="warning">Borrador</Badge>}
         breadcrumbs={[
-          { label: "Productos", to: "/productos" },
-          { label: producto.nombre, to: `/productos/${producto.id}` },
-          { label: "Elaboración" },
+          { label: "Elaboraciones", to: "/elaboraciones" },
+          { label: form.encabezado.codigo || elaboracion.codigo },
         ]}
         actions={
           <Link

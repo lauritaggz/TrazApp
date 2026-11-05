@@ -5,10 +5,12 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   hint?: string;
+  /** Extra classes of the label, for example `lg:sr-only` to hide it visually from `lg` (it stays the accessible name). */
+  labelClassName?: string;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { label, error, hint, id, className = "", children, ...props },
+  { label, error, hint, id, className = "", labelClassName = "", children, ...props },
   ref,
 ) {
   const generatedId = useId();
@@ -19,7 +21,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={selectId} className="text-sm font-medium text-text-primary">
+        <label htmlFor={selectId} className={`text-sm font-medium text-text-primary ${labelClassName}`}>
           {label}
         </label>
       )}

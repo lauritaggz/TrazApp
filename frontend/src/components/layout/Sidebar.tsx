@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem from "@/components/layout/NavItem";
@@ -32,30 +33,45 @@ export default function Sidebar({ open, onClose, interactive, id }: SidebarProps
 
       <nav
         aria-label="Secciones"
-        className="flex-1 overflow-y-auto px-3 py-4 space-y-6"
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-5"
       >
-        <div className="space-y-1">
-          <NavItem icon={<HomeIcon />} label="Inicio" to="/dashboard" onClick={onClose} />
-          <NavItem icon={<BoxIcon />} label="Productos" to="/productos" onClick={onClose} />
-          <NavItem
-            icon={<LeafIcon />}
-            label="Ingredientes"
-            to="/ingredientes"
-            onClick={onClose}
-          />
-          <NavItem icon={<SupplyIcon />} label="Insumos" to="/insumos" onClick={onClose} />
-        </div>
-
-        <div className="space-y-1">
-          <p className="px-3 pb-1 text-xs font-semibold text-text-muted">Trazabilidad</p>
-          {/* «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración (NavLink sin `end`). */}
-          <NavItem icon={<LotIcon />} label="Elaboraciones" to="/elaboraciones" onClick={onClose} />
-          {/* HU08: aquí va «Elaboraciones relacionadas» (<NavItem icon={<HistoryIcon />} ... />). El ícono sigue exportado. */}
-        </div>
+        {GRUPOS.map((grupo) => (
+          <div key={grupo.titulo} className="space-y-0.5">
+            <p className="px-3 pb-2 pt-1 text-xs font-semibold text-text-muted">{grupo.titulo}</p>
+            {grupo.items.map((item) => (
+              <NavItem key={item.to} icon={item.icono} label={item.etiqueta} to={item.to} onClick={onClose} />
+            ))}
+          </div>
+        ))}
       </nav>
     </aside>
   );
 }
+
+interface GrupoMenu {
+  titulo: string;
+  items: { icono: ReactNode; etiqueta: string; to: string }[];
+}
+
+/**
+ * Los grupos del menú, como en el diseño. Para agregar un grupo basta una entrada nueva: el grupo
+ * «Herramientas» (HU09: «Publicaciones»; HU14: «Calculadora de costos») va después de «Gestión» cuando
+ * existan esas pantallas. Mientras no existan no se agrega: sin enlaces a pantallas inexistentes ni
+ * «Próximamente». «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración
+ * (NavLink sin `end`). Sin contadores.
+ */
+const GRUPOS: GrupoMenu[] = [
+  {
+    titulo: "Gestión",
+    items: [
+      { icono: <HomeIcon />, etiqueta: "Inicio", to: "/dashboard" },
+      { icono: <BoxIcon />, etiqueta: "Productos", to: "/productos" },
+      { icono: <LeafIcon />, etiqueta: "Ingredientes", to: "/ingredientes" },
+      { icono: <PackageIcon />, etiqueta: "Insumos", to: "/insumos" },
+      { icono: <HistoryIcon />, etiqueta: "Elaboraciones", to: "/elaboraciones" },
+    ],
+  },
+];
 
 function HomeIcon() {
   return (
@@ -147,14 +163,14 @@ export function HistoryIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M3 3v5h5" />
-      <path d="M3.05 13A9 9 0 106 5.3L3 8" />
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.5 15a9 9 0 102.1-9.4L1 10" />
       <polyline points="12 7 12 12 15 14" />
     </svg>
   );
 }
 
-function SupplyIcon() {
+function PackageIcon() {
   return (
     <svg
       aria-hidden="true"
@@ -167,9 +183,10 @@ function SupplyIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 01-8 0" />
+      <path d="M16.5 9.4L7.5 4.2" />
+      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+      <polyline points="3.3 7 12 12 20.7 7" />
+      <line x1="12" y1="22" x2="12" y2="12" />
     </svg>
   );
 }

@@ -108,6 +108,7 @@ export default function Elaboraciones() {
             search={historial.codigoTexto}
             onSearchChange={historial.setCodigoTexto}
             onSearchEnter={historial.buscarCodigoYa}
+            layout="fila"
             searchLabel="Buscar elaboración por código"
             searchPlaceholder="Buscar por código"
             chips={chips}
@@ -115,39 +116,53 @@ export default function Elaboraciones() {
             status={encontradas}
             controls={
               <>
-                <Select
-                  label="Producto"
-                  value={filtros.producto === null ? "" : String(filtros.producto)}
-                  onChange={(e) => historial.cambiarFiltros({ producto: e.target.value ? Number(e.target.value) : null })}
-                >
-                  <option value="">Todos</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  label="Estado"
-                  value={filtros.estado ?? ""}
-                  onChange={(e) => historial.cambiarFiltros({ estado: (e.target.value || null) as EstadoElaboracion | null })}
-                >
-                  <option value="">Todos</option>
-                  <option value="borrador">Borrador</option>
-                  <option value="finalizada">Finalizada</option>
-                </Select>
-                <Input
-                  label="Desde"
-                  type="date"
-                  value={filtros.desde ?? ""}
-                  onChange={(e) => historial.cambiarFiltros({ desde: e.target.value || null })}
-                />
-                <Input
-                  label="Hasta"
-                  type="date"
-                  value={filtros.hasta ?? ""}
-                  onChange={(e) => historial.cambiarFiltros({ hasta: e.target.value || null })}
-                />
+                {/* From lg all of this shares one row with the search: the labels of the product and the state
+                    are for screen readers only; «Desde» and «Hasta» stay visible beside their field. */}
+                <div className="lg:w-36 lg:shrink-0">
+                  <Select
+                    label="Producto"
+                    labelClassName="lg:sr-only"
+                    value={filtros.producto === null ? "" : String(filtros.producto)}
+                    onChange={(e) => historial.cambiarFiltros({ producto: e.target.value ? Number(e.target.value) : null })}
+                  >
+                    <option value="">Todos</option>
+                    {productos.map((producto) => (
+                      <option key={producto.id} value={producto.id}>
+                        {producto.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="lg:w-28 lg:shrink-0">
+                  <Select
+                    label="Estado"
+                    labelClassName="lg:sr-only"
+                    value={filtros.estado ?? ""}
+                    onChange={(e) => historial.cambiarFiltros({ estado: (e.target.value || null) as EstadoElaboracion | null })}
+                  >
+                    <option value="">Todos</option>
+                    <option value="borrador">Borrador</option>
+                    <option value="finalizada">Finalizada</option>
+                  </Select>
+                </div>
+                <div className="lg:w-[12.5rem] lg:shrink-0">
+                  <Input
+                    label="Desde"
+                    labelBesideFromLg
+                    type="date"
+                    value={filtros.desde ?? ""}
+                    onChange={(e) => historial.cambiarFiltros({ desde: e.target.value || null })}
+                  />
+                </div>
+                <div className="lg:w-[12.5rem] lg:shrink-0">
+                  <Input
+                    label="Hasta"
+                    labelBesideFromLg
+                    type="date"
+                    value={filtros.hasta ?? ""}
+                    onChange={(e) => historial.cambiarFiltros({ hasta: e.target.value || null })}
+                  />
+                </div>
               </>
             }
           />

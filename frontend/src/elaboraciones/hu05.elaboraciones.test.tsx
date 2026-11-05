@@ -1834,8 +1834,12 @@ describe("Detalle de la elaboración (T05-07)", () => {
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
   }
 
+  /** T06-06: cada ingrediente es un acordeón (el primero parte abierto); la tarjeta se abre para leer su contenido. */
   function tarjeta(ingrediente: string) {
-    return screen.getByRole("region", { name: ingrediente });
+    const region = screen.getByRole("region", { name: ingrediente });
+    const boton = within(region).getByRole("button");
+    if (boton.getAttribute("aria-expanded") === "false") fireEvent.click(boton);
+    return region;
   }
 
   it("PT05-15: el encabezado muestra producto, código, fecha, estado y versión", async () => {
@@ -2513,11 +2517,14 @@ describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", (
     expect(elaboracionService.deleteElaboracion).not.toHaveBeenCalled();
   });
 
-  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboración»", async () => {
+  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboraciones / código»", async () => {
     await openRegistro();
 
+    // T06-06: las migas son las mismas que las del detalle («Elaboraciones / código»), no «Productos / producto / Elaboración».
     const migas = screen.getByRole("navigation", { name: "Ruta de navegación" });
-    expect(within(migas).getByText("Elaboración")).toBeInTheDocument();
+    expect(within(migas).getByRole("link", { name: "Elaboraciones" })).toHaveAttribute("href", "/elaboraciones");
+    expect(within(migas).getByText("E-001")).toHaveAttribute("aria-current", "page");
+    expect(within(migas).queryByText("Productos")).not.toBeInTheDocument();
     expect(within(migas).queryByText("Registro de elaboración")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Volver al producto" })).toHaveAttribute("href", "/productos/5");
   });
@@ -2887,7 +2894,13 @@ describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => 
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
   }
 
-  const tarjeta = (ingrediente: string) => screen.getByRole("region", { name: ingrediente });
+  // T06-06: el acordeón de cada ingrediente se abre para leer su contenido (el primero parte abierto).
+  const tarjeta = (ingrediente: string) => {
+    const region = screen.getByRole("region", { name: ingrediente });
+    const boton = within(region).getByRole("button");
+    if (boton.getAttribute("aria-expanded") === "false") fireEvent.click(boton);
+    return region;
+  };
 
   function usoFinalizado(
     ingredienteId: number,
@@ -2966,7 +2979,8 @@ describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => 
 
     expect(within(tarjeta("Harina")).getByText("Gluten")).toBeInTheDocument();
     expect(within(tarjeta("Harina")).queryByText(/No contiene alérgenos/)).not.toBeInTheDocument();
-    expect(within(tarjeta("Leche")).getByText("Leche", { selector: "span" })).toBeInTheDocument();
+    // T06-06: el nombre del ingrediente también es un «span» (fila del acordeón): el alérgeno se busca en su grupo.
+    expect(within(within(tarjeta("Leche")).getByRole("group", { name: /^Contiene/ })).getByText("Leche")).toBeInTheDocument();
     expect(within(tarjeta("Leche")).queryByText("Sin información de revisión de alérgenos")).not.toBeInTheDocument();
     // A copy without the review date but WITH allergens does not make the summary incomplete.
     expect(screen.queryByText(/podría estar incompleto/)).not.toBeInTheDocument();

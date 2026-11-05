@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { CapasIcon, CheckIcon, LapizIcon } from "@/components/elaboraciones/historial/iconos";
 import { listElaboraciones } from "@/services/elaboracionService";
 
 interface Cifras {
@@ -34,9 +35,9 @@ export default function HistorialCifras() {
 
   return (
     <div role="group" aria-label="Resumen de elaboraciones" className="grid grid-cols-3 gap-3">
-      <Cifra etiqueta="Elaboraciones totales" valor={cifras?.totales} cargando={cifras === null} />
-      <Cifra etiqueta="Finalizadas" valor={cifras?.finalizadas} cargando={cifras === null} tono="positivo" />
-      <Cifra etiqueta="En borrador" valor={cifras?.borradores} cargando={cifras === null} />
+      <Cifra etiqueta="Elaboraciones totales" valor={cifras?.totales} cargando={cifras === null} icono={<CapasIcon />} />
+      <Cifra etiqueta="Finalizadas" valor={cifras?.finalizadas} cargando={cifras === null} tono="positivo" icono={<CheckIcon />} />
+      <Cifra etiqueta="En borrador" valor={cifras?.borradores} cargando={cifras === null} icono={<LapizIcon />} />
     </div>
   );
 }
@@ -46,21 +47,35 @@ function Cifra({
   valor,
   cargando,
   tono = "normal",
+  icono,
 }: {
   etiqueta: string;
   valor: number | null | undefined;
   cargando: boolean;
   tono?: "normal" | "positivo";
+  icono: ReactNode;
 }): ReactNode {
   return (
     <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
-      <p
-        className={`text-2xl font-bold ${tono === "positivo" ? "text-success" : "text-text-primary"}`}
-        aria-live={cargando ? "polite" : undefined}
-      >
-        {cargando || valor === null || valor === undefined ? "—" : valor}
-      </p>
-      <p className="mt-0.5 text-xs leading-snug text-text-secondary">{etiqueta}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p
+            className="text-2xl font-semibold text-text-primary"
+            aria-live={cargando ? "polite" : undefined}
+          >
+            {cargando || valor === null || valor === undefined ? "—" : valor}
+          </p>
+          <p className="mt-1 text-xs leading-snug text-text-secondary">{etiqueta}</p>
+        </div>
+        <span
+          aria-hidden="true"
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+            tono === "positivo" ? "bg-success-bg text-success" : "bg-brand-50 text-accent"
+          }`}
+        >
+          {icono}
+        </span>
+      </div>
     </div>
   );
 }

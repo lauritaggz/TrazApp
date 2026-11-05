@@ -19,6 +19,11 @@ interface ListToolbarProps {
   controls: ReactNode;
   /** Columns of the controls from `lg`: 3 when there are three, so none is left alone in a second row. */
   controlsColumns?: 2 | 3;
+  /**
+   * «fila»: from `lg` the search and every control share one row (the labels are up to each control).
+   * Under `lg` it looks the same: the controls stay behind «Filtros».
+   */
+  layout?: "apilado" | "fila";
   chips: FilterChip[];
   onClearAll: () => void;
   status?: string;
@@ -33,6 +38,7 @@ export default function ListToolbar({
   disabled = false,
   controls,
   controlsColumns = 2,
+  layout = "apilado",
   chips,
   onClearAll,
   status,
@@ -43,48 +49,55 @@ export default function ListToolbar({
 
   return (
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <Input
-            label="Buscar"
-            type="search"
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && onSearchEnter) {
-                e.preventDefault();
-                onSearchEnter();
-              }
-            }}
-            disabled={disabled}
-            aria-label={searchLabel}
-          />
+      <div className={layout === "fila" ? "space-y-3 lg:flex lg:items-end lg:gap-3 lg:space-y-0" : "space-y-3"}>
+        <div className={`flex items-end gap-3 ${layout === "fila" ? "lg:min-w-[11rem] lg:flex-1" : ""}`}>
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Buscar"
+              labelClassName={layout === "fila" ? "lg:sr-only" : ""}
+              type="search"
+              placeholder={searchPlaceholder}
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && onSearchEnter) {
+                  e.preventDefault();
+                  onSearchEnter();
+                }
+              }}
+              disabled={disabled}
+              aria-label={searchLabel}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+            aria-controls={controlsId}
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border-strong bg-card px-3 text-sm font-medium text-text-primary transition-colors hover:bg-surface sm:hidden"
+          >
+            <FilterIcon />
+            Filtros
+            {nonSearchCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
+                {nonSearchCount}
+              </span>
+            )}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((value) => !value)}
-          aria-expanded={expanded}
-          aria-controls={controlsId}
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border-strong bg-card px-3 text-sm font-medium text-text-primary transition-colors hover:bg-surface sm:hidden"
-        >
-          <FilterIcon />
-          Filtros
-          {nonSearchCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
-              {nonSearchCount}
-            </span>
-          )}
-        </button>
-      </div>
 
-      <div
-        id={controlsId}
-        className={`${expanded ? "grid" : "hidden"} grid-cols-1 gap-4 sm:grid sm:grid-cols-2 ${
-          controlsColumns === 3 ? "lg:grid-cols-3" : ""
-        }`}
-      >
-        {controls}
+        <div
+          id={controlsId}
+          className={`${expanded ? "grid" : "hidden"} grid-cols-1 gap-4 sm:grid sm:grid-cols-2 ${
+            layout === "fila"
+              ? "lg:flex lg:flex-wrap lg:items-end lg:gap-3 xl:flex-nowrap"
+              : controlsColumns === 3
+                ? "lg:grid-cols-3"
+                : ""
+          }`}
+        >
+          {controls}
+        </div>
       </div>
 
       {chips.length > 0 && (

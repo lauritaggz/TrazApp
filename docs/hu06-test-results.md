@@ -230,3 +230,58 @@ En HT07 (Bloque 2) el menú no marcaba ninguna sección en el registro ni en el 
 ### Verificación en el navegador
 
 Un frontend propio en otro puerto (proxy al backend del contenedor) y una cuenta de prueba creada con la API: **47 elaboraciones** (16 finalizadas y 31 borradores, de dos productos), porque no había datos para paginar. En escritorio y en celular (390 px): tarjetas 47 / 16 / 31; lista de 20 filas y «1–20 de 47»; página 2 («21–40 de 47») y 3 («41–47 de 47», «Siguiente» deshabilitado) con la URL `?pagina=N`; filtro por estado (31 borradores, con «Falta 1 de 1 ingrediente»); escribir «e-03» no genera ninguna petición mientras se escribe y una sola después de la pausa; «Limpiar todo» deja `/elaboraciones`; el aviso de fechas al revés; «Ninguna elaboración coincide»; «Ver todas» del panel y del producto con las URL correctas; «Elaboraciones» como única sección marcada en el historial, el registro de un borrador y el detalle de una finalizada; sin desplazamiento horizontal ni errores de consola. En celular los filtros quedan tras «Filtros» y las tarjetas caben en una fila.
+
+### Suites completas de T06-03 (GitHub Actions, Pull Request #22, commit `723c186`)
+
+| Trabajo | Resultado |
+|---|---|
+| Backend (SQLite) | aprobado (8 min 0 s) |
+| Backend (PostgreSQL) | aprobado (14 min 38 s) |
+| Frontend | aprobado (1 min 38 s) |
+
+---
+
+## T06-06 — Ajustes de fidelidad al diseño
+
+**Horas reales aproximadas:** 3 h (estimadas: 2,5 h). Solo frontend. Se tomó del export de Figma (`docs/diseno/sprint3/`) únicamente la estructura y la presentación, nunca sus valores, textos de ejemplo ni cifras.
+
+### Qué se hizo
+
+- **Historial, filtros** (`ListToolbar` con `layout="fila"`, opt-in: Productos, Ingredientes e Insumos no cambian): en escritorio la búsqueda, el producto, el estado, «Desde» y «Hasta» van en una sola fila. La búsqueda, el producto y el estado no muestran etiqueta (`lg:sr-only`, siguen siendo su nombre accesible); «Desde» y «Hasta» se ven en línea junto a su campo. En celular siguen plegados tras «Filtros», con sus etiquetas. La opción «todos» de producto y estado dice «Todos» (ver «Decisiones»).
+- **Historial, fila:** ícono de estado a la izquierda (check para finalizada, lápiz para borrador), producto como título con la insignia, debajo el código (monoespaciado) · la fecha (dd-mm-aaaa) y una flecha a la derecha; en borradores, «Faltan N de M ingredientes» o «Lista para finalizar» debajo.
+- **Tarjetas:** cifra y etiqueta a la izquierda, ícono (capas, check, lápiz) a la derecha.
+- **Detalle, insumos utilizados:** acordeón por ingrediente (`button` con `aria-expanded` y `aria-controls`). La fila dice el número, el ingrediente, «insumo · marca» y «Lote X» o «Sin lote». El primero parte abierto y los demás cerrados. Abierto muestra insumo, marca u origen, lote, vencimiento, ingredientes declarados, advertencias y alérgenos. El resumen «Alérgenos de la elaboración» se mantiene. La cantidad de la formulación se muestra como antes.
+- **Detalle y registro, migas:** «Elaboraciones / código» en ambos (antes «Productos / producto / Elaboración»). El enlace al producto se mantiene en el bloque de datos y «Volver al producto» no cambia.
+- **Menú:** un solo grupo, «Gestión», con Inicio, Productos, Ingredientes, Insumos y Elaboraciones, con los íconos del diseño (Insumos pasó de la bolsa al paquete y Elaboraciones usa el reloj de historial). Se eliminó «Trazabilidad». El título del grupo va en minúscula inicial y de 12 px (HT07, en vez de las mayúsculas de 10 px del diseño). El ítem activo se marca solo con fondo y color, sin el punto que tenía. Los grupos son datos (`GRUPOS` en `Sidebar.tsx`): «Herramientas» (HU09 y HU14) se agrega con una entrada nueva cuando existan sus pantallas; no se muestra ahora ni hay «Próximamente» ni contadores.
+- **Fuera de alcance:** pestañas, publicación, visibilidad, cuarta tarjeta, contadores y el formato de fecha del diseño.
+
+### Decisiones (aprobadas)
+
+- **Fila única de filtros desde 1280 px (`xl`).** Con «Desde» y «Hasta» visibles junto a su campo, la búsqueda y los cuatro controles no caben en una fila a 1024 px (unos 690 px útiles): ahí los controles pasan a una segunda línea en vez de apretarse. Desde 1280 px quedan en una sola línea. Es una decisión de diseño aprobada, no solo una limitación.
+- **Opción «todos» de los filtros: «Todos».** Se probó «Todos los productos» y «Todos los estados» (en escritorio y celular): a 1280 px la fila deja de caber (el último campo se salía del recuadro unos 65 px), así que se usó «Todos» en ambos, como se había acordado para ese caso. Con «Todos» el último campo termina justo dentro del recuadro (1231 de 1232 px).
+- **Un borrador no tiene un detalle distinto del registro:** abrir `/elaboraciones/:id` de un borrador redirige a `/elaboraciones/:id/registro` (`ElaboracionDetail`), así que ambas pantallas comparten las migas «Elaboraciones / código».
+
+### Pruebas
+
+- **Nuevas:** `src/elaboraciones/hu06.fidelidad.test.tsx` (14 pruebas: filtros, filas, tarjetas, migas y acordeón) y 3 en `fase2Navegacion` (título del grupo, orden y sin contadores, ítem activo sin punto).
+- **Existentes actualizadas, con su motivo (sin eliminar aserciones):**
+  - `fase2Navegacion` («Menú lateral»): el grupo se llama «Gestión»; sigue sin «Trazabilidad», «Herramientas», «Elaboraciones relacionadas» ni «Pronto».
+  - `hu05.elaboraciones`, detalle de la elaboración: cada ingrediente es un acordeón, así que el ayudante `tarjeta()` abre el panel antes de leerlo (el primero ya está abierto). Una prueba busca el alérgeno «Leche» dentro de su grupo, porque el nombre del ingrediente ahora también está en un `span`.
+  - `hu05.elaboraciones`, registro: las migas son «Elaboraciones / E-001», con las mismas aserciones adaptadas (el enlace «Elaboraciones», el código como página actual, sin «Productos» ni «Registro de elaboración»).
+- **Local:** `tsc -b` limpio; Vitest de `lib`, `dashboard`, `elaboraciones`, `ui`, `recorridos` y `products`: 27 archivos, 565 aprobadas.
+
+### Mutaciones (con copia y restauración)
+
+| Mutación | Pruebas que fallan |
+|---|---|
+| El botón del acordeón no cambia `aria-expanded` | 3 |
+| El panel se muestra aunque esté cerrado | 1 |
+| Las migas del detalle enlazan al producto y no al historial | 1 |
+| Las etiquetas de búsqueda, producto y estado quedan visibles en escritorio | 1 |
+| Se muestra el grupo «Herramientas» | 2 |
+| La fila de un borrador lleva el ícono de finalizada | 1 |
+| Ningún ingrediente parte abierto | 3 |
+
+### Verificación en el navegador
+
+Servidor propio en otro puerto y una cuenta de prueba nueva con 26 elaboraciones (13 finalizadas y 13 borradores): a 1280 px la búsqueda y los cuatro controles quedan en la misma línea; el menú muestra «Gestión» con los cinco enlaces y «Elaboraciones» marcado también en el detalle y el registro; el detalle abre el primer ingrediente y los demás cerrados, y abrir uno no cierra los otros; las migas dicen «Elaboraciones / E-001»; en celular el cajón del menú trae el mismo grupo y no hay desplazamiento horizontal ni errores de consola.
