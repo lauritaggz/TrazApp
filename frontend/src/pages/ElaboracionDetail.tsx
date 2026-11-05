@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { CandadoIcon } from "@/components/detail/icons";
+import { ChevronIcon } from "@/components/elaboraciones/historial/iconos";
 import AlergenosAgrupados from "@/components/elaboraciones/AlergenosAgrupados";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
@@ -10,7 +12,6 @@ import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
 import { consolidarAlergenos } from "@/lib/alergenosResumen";
 import {
-  describirLote,
   formatFecha,
   formatFechaDeMomento,
   textoInformacionConservada,
@@ -97,7 +98,7 @@ export default function ElaboracionDetail() {
 
   return (
     <AppShell
-      activePage="productos"
+      activePage="elaboraciones"
       pageTitle={elaboracion ? `Elaboración ${elaboracion.codigo}` : "Elaboración"}
       onLogout={handleLogout}
       producerName={producerName}
@@ -144,9 +145,8 @@ export default function ElaboracionDetail() {
               description={elaboracion.producto.nombre}
               titleSuffix={<Badge variant="success">Finalizada</Badge>}
               breadcrumbs={[
-                { label: "Productos", to: "/productos" },
-                { label: elaboracion.producto.nombre, to: `/productos/${elaboracion.producto.id}` },
-                { label: `Elaboración ${elaboracion.codigo}` },
+                { label: "Elaboraciones", to: "/elaboraciones" },
+                { label: elaboracion.codigo },
               ]}
               actions={
                 <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -187,16 +187,36 @@ export default function ElaboracionDetail() {
                 </Dato>
                 <Dato titulo="Código">{elaboracion.codigo}</Dato>
                 <Dato titulo="Fecha de elaboración">{formatFecha(elaboracion.fecha)}</Dato>
-                <Dato titulo="Versión de la formulación">
+                <Dato titulo="Versión del producto">
                   Versión {elaboracion.version.numero_version}
                 </Dato>
               </dl>
-              {textoInformacionConservada(elaboracion.finalizada_at) && (
-                <p className="border-t border-border pt-3 text-sm text-text-secondary">
-                  {textoInformacionConservada(elaboracion.finalizada_at)}
-                </p>
-              )}
             </section>
+
+            {elaboracion.finalizada_at && (
+              <section
+                aria-labelledby="elaboracion-conservada"
+                className="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4 sm:p-5"
+              >
+                <span aria-hidden="true" className="mt-0.5 shrink-0 text-accent-strong">
+                  <CandadoIcon size={20} />
+                </span>
+                <div className="space-y-1">
+                  <h2 id="elaboracion-conservada" className="text-sm font-semibold text-text-primary">
+                    Información histórica conservada
+                  </h2>
+                  <p className="text-sm text-text-secondary">
+                    Estos datos corresponden al momento de la finalización y no cambian aunque se
+                    actualicen los insumos o el producto.
+                  </p>
+                  {textoInformacionConservada(elaboracion.finalizada_at) && (
+                    <p className="text-sm text-text-secondary">
+                      {textoInformacionConservada(elaboracion.finalizada_at)}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
 
             <section
               aria-labelledby="elaboracion-resumen-alergenos"
@@ -234,10 +254,10 @@ export default function ElaboracionDetail() {
               >
                 Insumos utilizados
               </h2>
-              <ul className="space-y-4">
-                {elaboracion.usos.map((uso) => (
+              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+                {elaboracion.usos.map((uso, indice) => (
                   <li key={uso.ingrediente_id}>
-                    <UsoDetalle uso={uso} />
+                    <UsoDetalle uso={uso} numero={indice + 1} inicialAbierto={indice === 0} />
                   </li>
                 ))}
               </ul>
@@ -280,63 +300,91 @@ function textoSinAlergenos(uso: UsoInsumo): string {
   return "Alérgenos sin revisar";
 }
 
-function UsoDetalle({ uso }: { uso: UsoInsumo }) {
-  const titulo = `uso-${uso.ingrediente_id}`;
+/**
+ * One ingredient of the elaboración as an accordion: the row says the ingredient, «insumo · marca» and the lot;
+ * open, it shows the whole copy that was conserved. The first one starts open, the rest closed.
+ */
+function UsoDetalle({ uso, numero, inicialAbierto }: { uso: UsoInsumo; numero: number; inicialAbierto: boolean }) {
+  const [abierto, setAbierto] = useState(inicialAbierto);
+  const botonId = `uso-${uso.ingrediente_id}-boton`;
+  const panelId = `uso-${uso.ingrediente_id}-panel`;
   const insumo = uso.insumo;
   const cantidad = formatFormulacionCantidad(uso.cantidad, uso.unidad);
   const alergenos = consolidarAlergenos(insumo?.alergenos ?? []);
 
   return (
-    <section
-      aria-labelledby={titulo}
-      className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
-    >
-      <div>
-        <h3 id={titulo} className="text-base font-semibold text-text-primary">
-          {uso.ingrediente_nombre}
-        </h3>
-        {cantidad && <p className="text-sm text-text-secondary">{cantidad}</p>}
-      </div>
+    <section aria-label={uso.ingrediente_nombre}>
+      <h3>
+        <button
+          type="button"
+          id={botonId}
+          aria-expanded={abierto}
+          aria-controls={panelId}
+          onClick={() => setAbierto((valor) => !valor)}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-5 sm:py-4"
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-accent-strong"
+          >
+            {numero}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-text-primary">{uso.ingrediente_nombre}</span>
+            {cantidad && <span className="block text-xs text-text-secondary">{cantidad}</span>}
+            {insumo && (
+              <span className="block text-xs text-text-secondary">{`${insumo.nombre} · ${insumo.marca_origen}`}</span>
+            )}
+          </span>
+          <span className="shrink-0 text-xs text-text-secondary">
+            {uso.lote ? `Lote ${uso.lote.codigo}` : "Sin lote"}
+          </span>
+          <span className="shrink-0 text-text-muted">
+            <ChevronIcon abierto={abierto} />
+          </span>
+        </button>
+      </h3>
 
-      {insumo && (
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Dato titulo="Insumo">{insumo.nombre}</Dato>
-          <Dato titulo="Marca u origen">{insumo.marca_origen}</Dato>
-          {insumo.presentacion && <Dato titulo="Presentación">{insumo.presentacion}</Dato>}
-          {insumo.codigo_barras && <Dato titulo="Código de barras">{insumo.codigo_barras}</Dato>}
-          <Dato titulo="Lote">
-            {uso.lote ? describirLote(uso.lote.codigo, uso.lote.fecha_vencimiento) : "Sin lote"}
-          </Dato>
-        </dl>
-      )}
+      {abierto && (
+        <div id={panelId} aria-labelledby={botonId} className="space-y-4 border-t border-border bg-surface px-4 py-4 sm:px-5">
+          {insumo && (
+            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Dato titulo="Insumo">{insumo.nombre}</Dato>
+              <Dato titulo="Marca u origen">{insumo.marca_origen}</Dato>
+              {insumo.presentacion && <Dato titulo="Presentación">{insumo.presentacion}</Dato>}
+              {insumo.codigo_barras && <Dato titulo="Código de barras">{insumo.codigo_barras}</Dato>}
+              <Dato titulo="Lote">{uso.lote ? uso.lote.codigo : "Sin lote registrado"}</Dato>
+              <Dato titulo="Vencimiento">
+                {uso.lote?.fecha_vencimiento ? formatFecha(uso.lote.fecha_vencimiento) : "No registrado"}
+              </Dato>
+            </dl>
+          )}
 
-      {insumo?.ingredientes_declarados && (
-        <div className="space-y-1">
-          <h4 className="text-xs font-medium text-text-secondary">
-            Ingredientes declarados
-          </h4>
-          <p className="whitespace-pre-wrap text-sm text-text-primary">
-            {insumo.ingredientes_declarados}
-          </p>
+          {insumo && (
+            <div className="space-y-1">
+              <h4 className="text-xs font-medium text-text-secondary">Ingredientes declarados</h4>
+              <p className="whitespace-pre-wrap text-sm text-text-primary">
+                {insumo.ingredientes_declarados?.trim() ? insumo.ingredientes_declarados : "No declarados"}
+              </p>
+            </div>
+          )}
+
+          {insumo?.advertencias && (
+            <div className="space-y-1">
+              <h4 className="text-xs font-medium text-text-secondary">Advertencias</h4>
+              <p className="whitespace-pre-wrap text-sm text-text-primary">{insumo.advertencias}</p>
+            </div>
+          )}
+
+          {insumo && (
+            <AlergenosAgrupados
+              contiene={alergenos.contiene}
+              puedeContener={alergenos.puedeContener}
+              vacio={textoSinAlergenos(uso)}
+              etiqueta={uso.ingrediente_nombre}
+            />
+          )}
         </div>
-      )}
-
-      {insumo?.advertencias && (
-        <div className="space-y-1">
-          <h4 className="text-xs font-medium text-text-secondary">
-            Advertencias
-          </h4>
-          <p className="whitespace-pre-wrap text-sm text-text-primary">{insumo.advertencias}</p>
-        </div>
-      )}
-
-      {insumo && (
-        <AlergenosAgrupados
-          contiene={alergenos.contiene}
-          puedeContener={alergenos.puedeContener}
-          vacio={textoSinAlergenos(uso)}
-          etiqueta={uso.ingrediente_nombre}
-        />
       )}
     </section>
   );

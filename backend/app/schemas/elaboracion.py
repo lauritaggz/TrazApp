@@ -379,3 +379,12 @@ class ElaboracionResumenRead(BaseModel):
     finalizada_at: datetime | None
     total_ingredientes: int
     pendientes: int
+
+
+class ElaboracionListaRead(BaseModel):
+    """A page of the elaboraciones list: `total` counts all that match the filters."""
+
+    items: list[ElaboracionResumenRead]
+    total: int
+    limit: int
+    offset: int

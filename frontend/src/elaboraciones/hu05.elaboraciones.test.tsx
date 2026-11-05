@@ -12,7 +12,7 @@ import * as formulationService from "@/services/formulationService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
 import * as productService from "@/services/productService";
-import { mockProductor, renderWithProviders } from "@/test/testUtils";
+import { mockProductor, paginaElaboraciones, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type {
   Elaboracion,
@@ -306,7 +306,7 @@ beforeEach(() => {
   vi.mocked(productService.listCategories).mockResolvedValue([]);
   vi.mocked(formulationService.getProductFormulation).mockResolvedValue(FORMULACION);
   vi.mocked(formulationService.listProductVersions).mockResolvedValue([]);
-  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([]);
+  vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([]));
   vi.mocked(elaboracionService.getElaboracion).mockImplementation(async (id) => {
     if (id === 30) return BORRADOR;
     if (id === 31) return FINALIZADA;
@@ -358,10 +358,10 @@ describe("Detalle del producto: elaboraciones", () => {
   });
 
   it("lista las elaboraciones más recientes con código, fecha y estado, y enlaza cada una", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue([
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones([
       resumen(32, "E-003", "2026-10-05", "borrador"),
       resumen(31, "E-002", "2026-10-01", "finalizada"),
-    ]);
+    ]));
     openPage("/productos/5");
 
     const borrador = await screen.findByRole("link", { name: /E-003/ });
@@ -372,17 +372,19 @@ describe("Detalle del producto: elaboraciones", () => {
     const finalizada = screen.getByRole("link", { name: /E-002/ });
     expect(finalizada).toHaveTextContent("Finalizada");
     expect(finalizada).toHaveAttribute("href", "/elaboraciones/31");
-    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ productoId: 5 });
+    expect(elaboracionService.listElaboraciones).toHaveBeenCalledWith({ productoId: 5, limit: 5 });
   });
 
   it("muestra solo las cinco más recientes", async () => {
-    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(
+    vi.mocked(elaboracionService.listElaboraciones).mockResolvedValue(paginaElaboraciones(
       Array.from({ length: 7 }, (_, i) => resumen(100 + i, `E-0${7 - i}`, "2026-10-01", "finalizada")),
-    );
+    ));
     openPage("/productos/5");
 
     await screen.findByRole("link", { name: /E-07/ });
     expect(screen.getAllByRole("link", { name: /^E-0\d/ })).toHaveLength(5);
+    // T06-03: «Ver todas» abre el historial filtrado por este producto.
+    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/elaboraciones?producto=5");
   });
 
   it("sin elaboraciones lo dice", async () => {
@@ -693,6 +695,9 @@ describe("Registro: encabezado y líneas", () => {
 
     expect(screen.getAllByText("Queque de vainilla").length).toBeGreaterThan(0);
     expect(screen.getByText("Versión 1")).toBeInTheDocument();
+    // T06-02: el mismo nombre que el detalle de la elaboración.
+    expect(screen.getByText("Versión del producto")).toBeInTheDocument();
+    expect(screen.queryByText("Versión de la formulación")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Código de la elaboración")).toHaveValue("E-001");
     expect(screen.getByLabelText("Fecha de elaboración")).toHaveValue("2026-10-06");
   });
@@ -1829,8 +1834,12 @@ describe("Detalle de la elaboración (T05-07)", () => {
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
   }
 
+  /** T06-06: cada ingrediente es un acordeón (el primero parte abierto); la tarjeta se abre para leer su contenido. */
   function tarjeta(ingrediente: string) {
-    return screen.getByRole("region", { name: ingrediente });
+    const region = screen.getByRole("region", { name: ingrediente });
+    const boton = within(region).getByRole("button");
+    if (boton.getAttribute("aria-expanded") === "false") fireEvent.click(boton);
+    return region;
   }
 
   it("PT05-15: el encabezado muestra producto, código, fecha, estado y versión", async () => {
@@ -1870,8 +1879,10 @@ describe("Detalle de la elaboración (T05-07)", () => {
     const leche = tarjeta("Leche");
     expect(within(leche).queryByText("Presentación")).not.toBeInTheDocument();
     expect(within(leche).queryByText("Código de barras")).not.toBeInTheDocument();
-    expect(within(leche).queryByText("Ingredientes declarados")).not.toBeInTheDocument();
     expect(within(leche).queryByText("Advertencias")).not.toBeInTheDocument();
+    // T06-02: «Ingredientes declarados» ya no se omite: sin texto dice «No declarados».
+    expect(within(leche).getByText("Ingredientes declarados")).toBeInTheDocument();
+    expect(within(leche).getByText("No declarados")).toBeInTheDocument();
   });
 
   it("muestra los ingredientes declarados y las advertencias cuando existen", async () => {
@@ -1884,12 +1895,60 @@ describe("Detalle de la elaboración (T05-07)", () => {
     expect(within(harina).getByText("Puede contener trazas de soya y sésamo")).toBeInTheDocument();
   });
 
-  it("muestra el código y el vencimiento del lote, o «Sin lote»", async () => {
+  it("muestra el código del lote y su vencimiento en campos propios, o «Sin lote registrado» y «No registrado»", async () => {
     await abrirDetalle();
 
-    expect(within(tarjeta("Leche")).getByText("X123 · vence 15-10-2026")).toBeInTheDocument();
-    expect(within(tarjeta("Harina")).getByText("Sin lote")).toBeInTheDocument();
-    expect(within(tarjeta("Harina")).queryByText(/vence/)).not.toBeInTheDocument();
+    // T06-02: el vencimiento ya no va pegado al código («X123 · vence …»): es el campo «Vencimiento».
+    const leche = tarjeta("Leche");
+    expect(within(leche).getByText("Lote")).toBeInTheDocument();
+    expect(within(leche).getByText("X123")).toBeInTheDocument();
+    expect(within(leche).getByText("Vencimiento")).toBeInTheDocument();
+    expect(within(leche).getByText("15-10-2026")).toBeInTheDocument();
+    const harina = tarjeta("Harina");
+    expect(within(harina).getByText("Sin lote registrado")).toBeInTheDocument();
+    expect(within(harina).getByText("Vencimiento")).toBeInTheDocument();
+    expect(within(harina).getByText("No registrado")).toBeInTheDocument();
+    expect(within(harina).queryByText(/vence/)).not.toBeInTheDocument();
+  });
+
+  it("T06-02: el bloque de datos dice «Versión del producto», no «Versión de la formulación»", async () => {
+    await abrirDetalle();
+
+    const datos = screen.getByRole("region", { name: "Datos de la elaboración" });
+    expect(within(datos).getByText("Versión del producto")).toBeInTheDocument();
+    expect(within(datos).getByText("Versión 3")).toBeInTheDocument();
+    expect(screen.queryByText("Versión de la formulación")).not.toBeInTheDocument();
+    // El estado va solo como insignia del encabezado: no se repite en el bloque de datos.
+    expect(within(datos).queryByText("Estado")).not.toBeInTheDocument();
+    expect(within(datos).queryByText("Finalizada")).not.toBeInTheDocument();
+  });
+
+  it("T06-02: el aviso «Información histórica conservada» explica que no cambia y lleva la fecha una sola vez", async () => {
+    await abrirDetalle();
+
+    const aviso = screen.getByRole("region", { name: "Información histórica conservada" });
+    expect(
+      within(aviso).getByText(/Estos datos corresponden al momento de la finalización y no cambian aunque se actualicen los insumos o el producto\./),
+    ).toBeInTheDocument();
+    expect(within(aviso).getByText("Información conservada al finalizar el 06-10-2026 a las 15:30")).toBeInTheDocument();
+    expect(screen.getAllByText(/Información conservada al finalizar/)).toHaveLength(1);
+  });
+
+  it("T06-02: sin fecha de finalización no hay aviso de información conservada", async () => {
+    vi.mocked(elaboracionService.getElaboracion).mockResolvedValue({ ...FINALIZADA_COMPLETA, finalizada_at: null });
+    openPage("/elaboraciones/31");
+    await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
+
+    expect(screen.queryByText("Información histórica conservada")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Información conservada al finalizar/)).not.toBeInTheDocument();
+  });
+
+  it("T06-02: los ingredientes declarados siempre están: el texto del insumo o «No declarados»", async () => {
+    await abrirDetalle();
+
+    expect(within(tarjeta("Harina")).getByText("Harina de trigo, vitaminas")).toBeInTheDocument();
+    expect(within(tarjeta("Harina")).queryByText("No declarados")).not.toBeInTheDocument();
+    expect(within(tarjeta("Leche")).getByText("No declarados")).toBeInTheDocument();
   });
 
   it("agrupa los alérgenos de cada insumo en «Contiene» y «Puede contener»", async () => {
@@ -2458,11 +2517,14 @@ describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", (
     expect(elaboracionService.deleteElaboracion).not.toHaveBeenCalled();
   });
 
-  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboración»", async () => {
+  it("«Volver al producto» es un enlace del encabezado y las migas dicen «Elaboraciones / código»", async () => {
     await openRegistro();
 
+    // T06-06: las migas son las mismas que las del detalle («Elaboraciones / código»), no «Productos / producto / Elaboración».
     const migas = screen.getByRole("navigation", { name: "Ruta de navegación" });
-    expect(within(migas).getByText("Elaboración")).toBeInTheDocument();
+    expect(within(migas).getByRole("link", { name: "Elaboraciones" })).toHaveAttribute("href", "/elaboraciones");
+    expect(within(migas).getByText("E-001")).toHaveAttribute("aria-current", "page");
+    expect(within(migas).queryByText("Productos")).not.toBeInTheDocument();
     expect(within(migas).queryByText("Registro de elaboración")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Volver al producto" })).toHaveAttribute("href", "/productos/5");
   });
@@ -2832,7 +2894,13 @@ describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => 
     await screen.findByRole("heading", { name: "Elaboración E-001", level: 1 });
   }
 
-  const tarjeta = (ingrediente: string) => screen.getByRole("region", { name: ingrediente });
+  // T06-06: el acordeón de cada ingrediente se abre para leer su contenido (el primero parte abierto).
+  const tarjeta = (ingrediente: string) => {
+    const region = screen.getByRole("region", { name: ingrediente });
+    const boton = within(region).getByRole("button");
+    if (boton.getAttribute("aria-expanded") === "false") fireEvent.click(boton);
+    return region;
+  };
 
   function usoFinalizado(
     ingredienteId: number,
@@ -2911,7 +2979,8 @@ describe("Detalle de la elaboración: revisión de alérgenos (HT06-06)", () => 
 
     expect(within(tarjeta("Harina")).getByText("Gluten")).toBeInTheDocument();
     expect(within(tarjeta("Harina")).queryByText(/No contiene alérgenos/)).not.toBeInTheDocument();
-    expect(within(tarjeta("Leche")).getByText("Leche", { selector: "span" })).toBeInTheDocument();
+    // T06-06: el nombre del ingrediente también es un «span» (fila del acordeón): el alérgeno se busca en su grupo.
+    expect(within(within(tarjeta("Leche")).getByRole("group", { name: /^Contiene/ })).getByText("Leche")).toBeInTheDocument();
     expect(within(tarjeta("Leche")).queryByText("Sin información de revisión de alérgenos")).not.toBeInTheDocument();
     // A copy without the review date but WITH allergens does not make the summary incomplete.
     expect(screen.queryByText(/podría estar incompleto/)).not.toBeInTheDocument();

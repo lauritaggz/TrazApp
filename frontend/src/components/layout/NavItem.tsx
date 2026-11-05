@@ -18,7 +18,7 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
         flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
         ${
           isActive
-            ? "bg-brand-50 text-accent-strong"
+            ? "bg-brand-50 text-accent"
             : "text-text-secondary hover:bg-surface hover:text-text-primary"
         }
       `}
@@ -32,12 +32,6 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
             {icon}
           </span>
           {label}
-          {isActive && (
-            <span
-              aria-hidden="true"
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600"
-            />
-          )}
         </>
       )}
     </NavLink>

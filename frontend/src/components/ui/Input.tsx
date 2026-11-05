@@ -10,24 +10,28 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   leftIcon?: ReactNode;
+  /** Extra classes of the label, for example `lg:sr-only` to hide it visually from `lg` (it stays the accessible name). */
+  labelClassName?: string;
+  /** From `lg` the label goes beside the field instead of above it. */
+  labelBesideFromLg?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, leftIcon, id, className = "", ...props }, ref) => {
+  ({ label, error, hint, leftIcon, id, className = "", labelClassName = "", labelBesideFromLg = false, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
     const errorId = error && inputId ? `${inputId}-error` : undefined;
     const hintId = hint && !error && inputId ? `${inputId}-hint` : undefined;
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className={`flex flex-col gap-1.5 ${labelBesideFromLg ? "lg:flex-row lg:items-center lg:gap-2" : ""}`}>
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-text-primary"
+            className={`text-sm font-medium text-text-primary ${labelClassName}`}
           >
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className={`relative ${labelBesideFromLg ? "lg:flex-1" : ""}`}>
           {leftIcon && (
             <span className="absolute inset-y-0 left-3 flex items-center text-text-secondary pointer-events-none">
               {leftIcon}

@@ -9,6 +9,7 @@ const SECTION_TITLES: Record<AppSection, string> = {
   productos: "Productos",
   ingredientes: "Ingredientes",
   insumos: "Insumos",
+  elaboraciones: "Elaboraciones",
   perfil: "Mi perfil",
 };
 

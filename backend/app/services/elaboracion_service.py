@@ -12,6 +12,7 @@ from app.repositories.elaboracion_repository import ElaboracionRepository
 from app.schemas.elaboracion import (
     CodigoSugeridoRead,
     ElaboracionCreate,
+    ElaboracionListaRead,
     ElaboracionRead,
     ElaboracionResumenRead,
     ElaboracionUpdate,
@@ -346,8 +347,25 @@ class ElaboracionService:
         *,
         producto_id: int | None = None,
         estado: EstadoElaboracion | None = None,
-    ) -> list[ElaboracionResumenRead]:
-        return [
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        codigo: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ElaboracionListaRead:
+        if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
+            raise InvalidElaboracionError("La fecha desde no puede ser posterior a la fecha hasta")
+        filas, total = self.repository.list_resumenes(
+            productor.id,
+            producto_id=producto_id,
+            estado=estado,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            codigo=codigo,
+            limit=limit,
+            offset=offset,
+        )
+        items = [
             ElaboracionResumenRead(
                 id=elaboracion.id,
                 producto=ProductoResumenRead(
@@ -362,15 +380,12 @@ class ElaboracionService:
                 fecha=elaboracion.fecha_elaboracion,
                 estado=elaboracion.estado,
                 finalizada_at=elaboracion.finalizada_at,
-                total_ingredientes=total,
+                total_ingredientes=total_ingredientes,
                 pendientes=pendientes,
             )
-            for elaboracion, total, pendientes in self.repository.list_resumenes(
-                productor.id,
-                producto_id=producto_id,
-                estado=estado,
-            )
+            for elaboracion, total_ingredientes, pendientes in filas
         ]
+        return ElaboracionListaRead(items=items, total=total, limit=limit, offset=offset)
 
     def replace_usos_mine(
         self,

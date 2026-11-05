@@ -86,6 +86,14 @@ export interface ElaboracionResumen {
   pendientes: number;
 }
 
+/** A page of GET /gestion/elaboraciones: `total` counts every elaboración that matches the filters. */
+export interface ElaboracionLista {
+  items: ElaboracionResumen[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface LoteInsumo {
   id: number;
   insumo_id: number;

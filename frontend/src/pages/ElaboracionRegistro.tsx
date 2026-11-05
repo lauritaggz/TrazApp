@@ -70,7 +70,7 @@ export default function ElaboracionRegistro() {
 
   return (
     <AppShell
-      activePage="productos"
+      activePage="elaboraciones"
       pageTitle="Elaboración"
       onLogout={handleLogout}
       producerName={producerName}
@@ -198,9 +198,8 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
         description="Indica el insumo y el lote que usaste para cada ingrediente. Puedes guardar un avance y terminar después."
         titleSuffix={<Badge variant="warning">Borrador</Badge>}
         breadcrumbs={[
-          { label: "Productos", to: "/productos" },
-          { label: producto.nombre, to: `/productos/${producto.id}` },
-          { label: "Elaboración" },
+          { label: "Elaboraciones", to: "/elaboraciones" },
+          { label: form.encabezado.codigo || elaboracion.codigo },
         ]}
         actions={
           <Link
@@ -238,7 +237,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
             </div>
             <div className="space-y-1">
               <dt className="text-xs font-medium text-text-secondary">
-                Versión de la formulación
+                Versión del producto
               </dt>
               <dd className="text-sm text-text-primary">
                 Versión {form.servidor.version.numero_version}

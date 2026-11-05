@@ -267,7 +267,7 @@ def test_el_detalle_refleja_lo_asignado(client, ctx) -> None:
     respuesta = _put(client, ctx, _completo(ctx, leche=uso(ctx["leche"]["id"], ctx["insumo_otro"]["id"], nuevo("L-9", "2027-01-31"))))
 
     assert _detalle(client, ctx)["usos"] == respuesta.json()["usos"]
-    resumen = client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()[0]
+    resumen = client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()["items"][0]
     assert (resumen["total_ingredientes"], resumen["pendientes"]) == (2, 0)
 
 

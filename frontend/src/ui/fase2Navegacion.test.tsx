@@ -68,20 +68,57 @@ describe("Menú de usuario del header", () => {
 });
 
 describe("Menú lateral", () => {
-  it("no muestra lo que aún no existe: ni «Elaboraciones» ni «Elaboraciones relacionadas» ni «Pronto» (HT07)", () => {
+  it("agrupa todo en «Gestión» y no muestra lo que aún no existe: ni «Trazabilidad», «Herramientas», «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
     renderShell();
 
-    // Se reactivan con HU06 y HU08.
+    // T06-06: un solo grupo, «Gestión», como el diseño. «Herramientas» (HU09 y HU14) y «Elaboraciones relacionadas» (HU08) llegan con sus pantallas.
+    expect(screen.getByText("Gestión")).toBeInTheDocument();
     expect(screen.queryByText("Trazabilidad")).not.toBeInTheDocument();
-    expect(screen.queryByText("Elaboraciones")).not.toBeInTheDocument();
+    expect(screen.queryByText("Herramientas")).not.toBeInTheDocument();
     expect(screen.queryByText("Elaboraciones relacionadas")).not.toBeInTheDocument();
     expect(screen.queryByText("Pronto")).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link").map((l) => l.textContent),
-    ).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos"]);
+    const enlaces = within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link");
+    expect(enlaces.map((l) => l.textContent)).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos", "Elaboraciones"]);
+    expect(enlaces[4]).toHaveAttribute("href", "/elaboraciones");
     // Los términos del modelo anterior ya no aparecen en el menú.
     expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
     expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();
+  });
+});
+
+describe("Menú lateral: estilo del diseño (T06-06)", () => {
+  it("el título del grupo va en minúscula inicial y de 12 px, sin mayúsculas forzadas", () => {
+    renderShell();
+
+    const titulo = screen.getByText("Gestión");
+    expect(titulo).toHaveClass("text-xs");
+    expect(titulo).not.toHaveClass("uppercase");
+    expect(titulo.textContent).toBe("Gestión");
+  });
+
+  it("los enlaces van en el orden del diseño, sin contadores ni «Pronto»", () => {
+    renderShell();
+
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(within(nav).getAllByRole("link").map((enlace) => enlace.textContent)).toEqual([
+      "Inicio",
+      "Productos",
+      "Ingredientes",
+      "Insumos",
+      "Elaboraciones",
+    ]);
+    expect(nav.textContent).not.toMatch(/\d/);
+  });
+
+  it("el ítem activo se marca solo con fondo y color: sin punto", () => {
+    renderShell();
+
+    const activo = within(screen.getByRole("navigation", { name: "Secciones" })).getByRole("link", { name: "Inicio" });
+    expect(activo).toHaveAttribute("aria-current", "page");
+    expect(activo).toHaveClass("bg-brand-50", "text-accent");
+    expect(activo.querySelector(".rounded-full")).toBeNull();
+    const otro = within(screen.getByRole("navigation", { name: "Secciones" })).getByRole("link", { name: "Productos" });
+    expect(otro).not.toHaveClass("bg-brand-50");
   });
 });
 

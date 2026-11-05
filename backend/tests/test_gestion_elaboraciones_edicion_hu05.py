@@ -215,7 +215,7 @@ def test_pt05_08_eliminar_un_borrador_borra_la_elaboracion_y_sus_usos(client, ct
     assert client.get(_url(ctx), headers=ctx["headers"]).status_code == 404
     assert _contar(db_session, Elaboracion) == 0
     assert _contar(db_session, UsoInsumo) == 0
-    assert client.get("/gestion/elaboraciones", headers=ctx["headers"]).json() == []
+    assert client.get("/gestion/elaboraciones", headers=ctx["headers"]).json()["items"] == []
 
 
 def test_eliminar_un_borrador_conserva_los_lotes_la_version_y_el_resto(client, ctx, db_session) -> None:
