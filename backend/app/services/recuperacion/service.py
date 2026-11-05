@@ -13,9 +13,16 @@ from app.schemas.consulta_codigo import (
 from app.services.insumo_service import DuplicateCodigoBarrasError
 from app.services.recuperacion.alergenos import AlergenoDetectado, Deteccion, detectar_alergenos
 from app.services.recuperacion.base import FuenteProducto
+from app.services.recuperacion.combinacion import combinar_alergenos
 from app.services.recuperacion.limpieza import limpiar_ingredientes
 
 Detector = Callable[[tuple[str, ...], tuple[str, ...], str | None], Deteccion]
+
+
+# The fields of the proposal whose source is reported (`fuentes_campos` also carries allergen inputs).
+CAMPOS_DEL_PRODUCTO = frozenset(
+    {"nombre", "marca_origen", "presentacion", "ingredientes_declarados"}
+)
 
 
 class CodigoInvalidoError(ValueError):
@@ -53,15 +60,19 @@ class RecuperacionService:
                 fecha_recuperacion=fecha,
             )
 
-        deteccion = self.detector(
-            producto.etiquetas_alergenos,
-            producto.etiquetas_trazas,
-            producto.ingredientes,
-        )
+        if producto.fuentes_campos:
+            # A sheet put together from several sources: union of what each one says (HU07).
+            deteccion = combinar_alergenos(self.detector, producto)
+        else:
+            deteccion = self.detector(
+                producto.etiquetas_alergenos,
+                producto.etiquetas_trazas,
+                producto.ingredientes,
+            )
         return ConsultaCodigoRead(
             codigo_barras=codigo,
             encontrado=True,
-            fuente=self.fuente.nombre,
+            fuente=producto.fuente or self.fuente.nombre,
             fecha_recuperacion=fecha,
             producto=ProductoPropuestoRead(
                 nombre=producto.nombre,
@@ -72,6 +83,13 @@ class RecuperacionService:
             ),
             alergenos=self._alergenos(deteccion),
             ficha=producto.ficha,
+            fuentes_campos={
+                campo: fuente
+                for campo, fuente in producto.fuentes_campos.items()
+                if campo in CAMPOS_DEL_PRODUCTO
+            }
+            or None,
+            fuentes_sin_respuesta=list(producto.fuentes_sin_respuesta) or None,
         )
 
     @staticmethod
@@ -100,6 +118,7 @@ class RecuperacionService:
                     codigo=item.codigo,
                     nombre=catalogo[item.codigo].nombre,
                     origen=item.origen,
+                    fuentes=list(item.fuentes) or None,
                 )
                 for item in items
                 if item.codigo in catalogo

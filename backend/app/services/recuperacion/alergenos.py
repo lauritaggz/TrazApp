@@ -43,6 +43,8 @@ CODIGO_LACTEOS = "lacteos"
 class AlergenoDetectado:
     codigo: str
     origen: str
+    # Every source that names this allergen (HU07, combined sheets). Empty for a single source.
+    fuentes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

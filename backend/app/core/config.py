@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     jumbo_base_url: str = "https://www.jumbo.cl"
     jumbo_user_agent: str = "TrazApp/2.0 (proyecto academico)"
     jumbo_timeout_seconds: float = 6.0
+    # One deadline for the whole lookup by barcode (Open Food Facts included), HU07.
+    recuperacion_presupuesto_seconds: float = 10.0
 
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import httpx
@@ -70,17 +71,21 @@ class OpenFoodFactsFuente:
         self.timeout = settings.off_timeout_seconds
         self._transport = transport
 
-    def buscar(self, codigo_barras: str) -> ProductoFuente | None:
-        producto = self._buscar_forma(codigo_barras, codigo_barras)
+    def buscar(self, codigo_barras: str, timeout: float | None = None) -> ProductoFuente | None:
+        """`timeout` (optional) is the total time the caller grants, UPC-A retry included."""
+        limite = None if timeout is None else time.monotonic() + timeout
+        producto = self._buscar_forma(codigo_barras, codigo_barras, limite)
         # Open Food Facts usually stores a UPC-A as an EAN-13 with a leading 0: if the code as it
         # was read is unknown, ask once more with that form. Errors are not retried.
         if producto is None and len(codigo_barras) == 12:
-            producto = self._buscar_forma(codigo_barras, "0" + codigo_barras)
+            producto = self._buscar_forma(codigo_barras, "0" + codigo_barras, limite)
         return producto
 
-    def _buscar_forma(self, codigo_barras: str, forma: str) -> ProductoFuente | None:
+    def _buscar_forma(
+        self, codigo_barras: str, forma: str, limite: float | None = None
+    ) -> ProductoFuente | None:
         """Ask for `forma`; the product is reported under the code as the productor read it."""
-        respuesta = self._pedir(forma)
+        respuesta = self._pedir(forma, limite)
         if respuesta.status_code == 404:
             return None
         if respuesta.status_code == 429:
@@ -95,10 +100,15 @@ class OpenFoodFactsFuente:
             raise FuenteNoDisponibleError(MOTIVO_RESPUESTA_INVALIDA) from exc
         return self._interpretar(codigo_barras, forma, cuerpo)
 
-    def _pedir(self, codigo_barras: str) -> httpx.Response:
+    def _pedir(self, codigo_barras: str, limite: float | None = None) -> httpx.Response:
+        timeout = self.timeout
+        if limite is not None:
+            timeout = limite - time.monotonic()
+            if timeout <= 0:
+                raise FuenteNoDisponibleError(MOTIVO_TIMEOUT)
         try:
             with httpx.Client(
-                timeout=httpx.Timeout(self.timeout),
+                timeout=httpx.Timeout(timeout),
                 headers={"User-Agent": self.user_agent, "Accept": "application/json"},
                 transport=self._transport,
             ) as cliente:
