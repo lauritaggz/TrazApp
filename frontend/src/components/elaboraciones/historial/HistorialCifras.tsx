@@ -58,7 +58,7 @@ function Cifra({
   return (
     <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
           <p
             className="text-2xl font-semibold text-text-primary"
             aria-live={cargando ? "polite" : undefined}
@@ -69,7 +69,8 @@ function Cifra({
         </div>
         <span
           aria-hidden="true"
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          data-icono-cifra
+          className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:flex ${
             tono === "positivo" ? "bg-success-bg text-success" : "bg-brand-50 text-accent"
           }`}
         >

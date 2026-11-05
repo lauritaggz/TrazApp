@@ -239,6 +239,20 @@ describe("Historial: fidelidad al diseño", () => {
     expect(within(resumenCifras).getByText("Finalizadas")).toBeInTheDocument();
     expect(within(resumenCifras).getByText("En borrador")).toBeInTheDocument();
   });
+
+  it("tarjetas: el ícono se oculta bajo sm, no se encoge y el texto ocupa el espacio restante", async () => {
+    await abrirHistorial();
+
+    const resumenCifras = screen.getByRole("group", { name: "Resumen de elaboraciones" });
+    const iconos = resumenCifras.querySelectorAll("[data-icono-cifra]");
+    expect(iconos).toHaveLength(3);
+    iconos.forEach((icono) => {
+      expect(icono).toHaveAttribute("aria-hidden", "true");
+      expect(icono).toHaveClass("hidden", "sm:flex", "shrink-0");
+    });
+    const texto = within(resumenCifras).getByText("Elaboraciones totales").parentElement;
+    expect(texto).toHaveClass("min-w-0", "flex-1");
+  });
 });
 
 // --- detalle ---
