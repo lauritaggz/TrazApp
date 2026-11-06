@@ -655,7 +655,7 @@ describe("Formulario de insumo", () => {
 
     expect(await screen.findByText("No pudimos cargar tus ingredientes.")).toBeInTheDocument();
     // T07-07: the choice is a group of options, not a select: while the load failed there is none to choose.
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(within(screen.getByRole("radiogroup", { name: "Ingrediente" })).queryAllByRole("radio")).toHaveLength(0);
 
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
 

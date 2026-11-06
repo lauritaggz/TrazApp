@@ -21,9 +21,11 @@ import {
 } from "@/types/insumo";
 
 const COLUMNAS: { tipo: TipoDeclaracion; titulo: string; otro: string }[] = [
-  { tipo: TIPO_CONTIENE, titulo: "Contiene", otro: "Puede contener (trazas)" },
+  { tipo: TIPO_CONTIENE, titulo: "Contiene", otro: "Puede contener" },
   { tipo: TIPO_TRAZAS, titulo: "Puede contener", otro: "Contiene" },
 ];
+
+const tituloDe = (tipo: TipoDeclaracion) => COLUMNAS.find((columna) => columna.tipo === tipo)?.titulo ?? tipo;
 
 export const NOTA_UNION =
   "Los alérgenos se combinan por unión. Una indicación “libre de” se conserva como dato de origen, pero nunca elimina un alérgeno.";
@@ -61,6 +63,8 @@ export default function AlergenosRevision({
   const [catalogo, setCatalogo] = useState<AlergenoCatalogo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
+  // The class the next added allergen gets: «Contiene» by default (one list of chips for both columns).
+  const [tipoAgregar, setTipoAgregar] = useState<TipoDeclaracion>(TIPO_CONTIENE);
 
   const cargarCatalogo = useCallback(async () => {
     setCargando(true);
@@ -190,37 +194,69 @@ export default function AlergenosRevision({
                 <PreguntaTrazas
                   conFuentes={Boolean(revision)}
                   respuesta={respuestaTrazas}
-                  onResponder={onRespuestaTrazas}
+                  onResponder={(respuesta) => {
+                    onRespuestaTrazas(respuesta);
+                    // «El envase indica…»: the chips below now add traces.
+                    if (respuesta === "indica") setTipoAgregar(TIPO_TRAZAS);
+                  }}
                   disabled={disabled}
                 />
               )}
 
-              {disponibles.length > 0 && (
-                <div className="mt-4 border-t border-border pt-4">
-                  <p className="text-xs font-semibold text-text-primary">Agregar alérgeno</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {disponibles.map((alergeno) => (
-                      <Button
-                        key={alergeno.id}
-                        type="button"
-                        variant="secondary"
-                        className="!px-3"
-                        aria-label={`Agregar ${alergeno.nombre} a ${columna.titulo}`}
-                        disabled={disabled}
-                        onClick={() => agregar(alergeno.id, columna.tipo)}
-                      >
-                        + {alergeno.nombre}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
-      <div className="space-y-4 px-5 pb-5">
+      {disponibles.length > 0 && (
+        <div className="border-t border-border px-5 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-text-primary">Agregar alérgeno</p>
+            <div
+              role="radiogroup"
+              aria-label="Tipo de alérgeno a agregar"
+              className="flex w-fit rounded-lg bg-surface p-1"
+            >
+              {COLUMNAS.map((columna) => (
+                <label
+                  key={columna.tipo}
+                  className={`inline-flex min-h-11 cursor-pointer items-center rounded-md px-3.5 py-2 text-sm font-medium focus-within:ring-2 focus-within:ring-accent ${
+                    tipoAgregar === columna.tipo ? "bg-card text-text-primary shadow-sm" : "text-text-secondary"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="tipo_alergeno_agregar"
+                    value={columna.tipo}
+                    checked={tipoAgregar === columna.tipo}
+                    onChange={() => setTipoAgregar(columna.tipo)}
+                    disabled={disabled}
+                    className="sr-only"
+                  />
+                  {columna.titulo}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {disponibles.map((alergeno) => (
+              <Button
+                key={alergeno.id}
+                type="button"
+                variant="secondary"
+                className="!px-3"
+                aria-label={`Agregar ${alergeno.nombre} a ${tituloDe(tipoAgregar)}`}
+                disabled={disabled}
+                onClick={() => agregar(alergeno.id, tipoAgregar)}
+              >
+                + {alergeno.nombre}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4 px-5 pb-5 pt-1">
         {revision && <NotaUnion />}
 
         {revision && revision.libreDe.length > 0 && (
@@ -310,8 +346,8 @@ function ItemDeAlergeno({
             type="button"
             variant="ghost"
             className="!p-0 min-w-11 text-text-secondary"
-            aria-label={`Cambiar ${nombre} a ${destino}`}
-            title={`Cambiar a ${destino}`}
+            aria-label={`Mover ${nombre} a ${destino}`}
+            title={`Mover a ${destino}`}
             disabled={disabled}
             onClick={onCambiar}
           >
@@ -323,7 +359,7 @@ function ItemDeAlergeno({
             type="button"
             variant="ghost"
             className="!p-0 min-w-11 text-text-secondary"
-            aria-label={`Quitar alérgeno ${nombre}`}
+            aria-label={`Quitar ${nombre}`}
             disabled={disabled}
             onClick={onQuitar}
           >

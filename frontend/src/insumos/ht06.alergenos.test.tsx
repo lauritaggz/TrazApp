@@ -399,6 +399,8 @@ async function llenarDatos(user: Usuario) {
 
 /** T07-07: declares an allergen in the review with the chips of «Agregar alérgeno» of its column. */
 async function agregarEnLaRevision(user: Usuario, nombre: string, columna: "Contiene" | "Puede contener") {
+  // One list of chips for both columns: the class is chosen first (the default is «Contiene»).
+  await user.click(await screen.findByRole("radio", { name: columna }));
   await user.click(await screen.findByRole("button", { name: `Agregar ${nombre} a ${columna}` }));
 }
 

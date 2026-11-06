@@ -434,7 +434,7 @@ describe("Precarga del formulario", () => {
     expect(campo("Código de barras")).toHaveValue(CODIGO);
     expect(campo("Advertencias")).toHaveValue("");
     // The ingredient is for the productor to choose (CA07).
-    expect(screen.queryByRole("radio", { checked: true })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("radiogroup", { name: "Ingrediente" })).queryByRole("radio", { checked: true })).not.toBeInTheDocument();
   });
 
   it("el ingrediente se elige en la revisión, sin pedir confirmación", async () => {
@@ -474,8 +474,8 @@ describe("Precarga del formulario", () => {
     await waitFor(() => expect(campo("Marca u origen")).toHaveValue("Carmencita"));
     expect(campo("Presentación")).toHaveValue("200 g");
     // The allergens of the first product did not stay behind.
-    expect(screen.queryByText("Quitar alérgeno Leche")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Quitar alérgeno Leche" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Quitar Leche")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quitar Leche" })).not.toBeInTheDocument();
   });
 });
 
@@ -522,7 +522,7 @@ describe("Volver a la búsqueda con cambios del productor", () => {
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
     await esperarFormularioConProducto();
-    await user.click(screen.getByRole("button", { name: "Quitar alérgeno Maní" }));
+    await user.click(screen.getByRole("button", { name: "Quitar Maní" }));
 
     await user.click(volverALaBusqueda());
 
@@ -608,7 +608,7 @@ describe("Alérgenos sugeridos", () => {
     await entregarCodigo(user, CODIGO);
     await screen.findByText("Fuentes: Detectado en los ingredientes");
 
-    await user.click(screen.getByRole("button", { name: "Quitar alérgeno Leche" }));
+    await user.click(screen.getByRole("button", { name: "Quitar Leche" }));
 
     expect(screen.queryByText("Fuentes: Detectado en los ingredientes")).not.toBeInTheDocument();
     expect(screen.getByText("Fuentes: Open Food Facts")).toBeInTheDocument();
@@ -780,7 +780,7 @@ describe("El insumo se registra solo al guardar", () => {
   it("buscar, ver las sugerencias y editar no envía nada: ni el insumo ni sus alérgenos", async () => {
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Quitar alérgeno Maní" }));
+    await user.click(screen.getByRole("button", { name: "Quitar Maní" }));
     await user.type(campo("Advertencias"), "Revisar envase");
 
     ningunaEscrituraDeInsumos();
@@ -814,8 +814,8 @@ describe("El insumo se registra solo al guardar", () => {
 
   it("lo que el productor cambia antes de guardar es lo que se envía", async () => {
     const user = await conProductoEncontrado();
-    await user.click(screen.getByRole("button", { name: "Quitar alérgeno Maní" }));
-    await user.click(screen.getByRole("button", { name: "Cambiar Leche a Puede contener (trazas)" }));
+    await user.click(screen.getByRole("button", { name: "Quitar Maní" }));
+    await user.click(screen.getByRole("button", { name: "Mover Leche a Puede contener" }));
     await user.clear(campo("Nombre"));
     await user.type(campo("Nombre"), "Leche sin lactosa 1 L");
     // «Contiene» is now empty: the productor confirms there is nothing in it.

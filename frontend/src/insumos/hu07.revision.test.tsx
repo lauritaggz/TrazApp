@@ -289,7 +289,7 @@ describe("Revisión: fuente de cada campo y de cada alérgeno (CA15)", () => {
     const user = await abrirRevision(COMBINADA);
 
     await user.click(screen.getByRole("button", { name: "Agregar Sésamo a Contiene" }));
-    await user.click(screen.getByRole("button", { name: "Cambiar Soya a Contiene" }));
+    await user.click(screen.getByRole("button", { name: "Mover Soya a Contiene" }));
 
     const contiene = screen.getByRole("group", { name: "Contiene" });
     expect(within(contiene).getByText("Fuentes: Agregado por ti")).toBeInTheDocument();
@@ -420,7 +420,7 @@ describe("Revisión: «libre de», «puede contener» y términos sin reconocer"
 
     expect(screen.getByText("No es un alérgeno")).toBeInTheDocument();
     expect(requisito(/Alérgenos revisados/)).toHaveTextContent("(listo)");
-    expect(screen.queryByRole("button", { name: "Quitar alérgeno Harina" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quitar Harina" })).not.toBeInTheDocument();
   });
 
   it("«no contiene alérgenos» aparece en «Contiene» y, con «Contiene» vacío, es lo que revisa los alérgenos", async () => {
@@ -501,13 +501,52 @@ describe("Revisión: requisitos para confirmar y estructura", () => {
     expect(screen.getAllByText("Opcional")).toHaveLength(3);
   });
 
-  it("«Agregar alérgeno» está en las dos columnas", async () => {
+  it("hay una sola lista de «Agregar alérgeno», debajo de las dos columnas, con «Contiene» por defecto", async () => {
     await abrirRevision(COMBINADA);
 
+    expect(screen.getAllByText("Agregar alérgeno")).toHaveLength(1);
+    const tipo = screen.getByRole("radiogroup", { name: "Tipo de alérgeno a agregar" });
+    expect(within(tipo).getByRole("radio", { name: "Contiene" })).toBeChecked();
+    expect(within(tipo).getByRole("radio", { name: "Puede contener" })).not.toBeChecked();
     for (const columna of ["Contiene", "Puede contener"]) {
-      const grupo = screen.getByRole("group", { name: columna });
-      expect(within(grupo).getByText("Agregar alérgeno")).toBeInTheDocument();
+      expect(within(screen.getByRole("group", { name: columna })).queryByText("Agregar alérgeno")).not.toBeInTheDocument();
     }
+    const columnas = screen.getByRole("group", { name: "Contiene" }).closest(".grid") as HTMLElement;
+    expect(columnas.compareDocumentPosition(tipo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("tocar un chip lo agrega al tipo elegido, y cambiar el tipo cambia el destino de los chips", async () => {
+    const user = await abrirRevision(COMBINADA);
+
+    expect(screen.getByRole("button", { name: "Agregar Sésamo a Contiene" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Agregar .* a Puede contener/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Puede contener" }));
+    expect(screen.getByRole("button", { name: "Agregar Sésamo a Puede contener" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Agregar .* a Contiene/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Agregar Sésamo a Puede contener" }));
+    expect(within(screen.getByRole("group", { name: "Puede contener" })).getByText("Sésamo")).toBeInTheDocument();
+  });
+
+  it("los alérgenos ya presentes en cualquiera de las columnas no se ofrecen", async () => {
+    await abrirRevision(COMBINADA);
+
+    // Leche (Contiene) and Soya (Puede contener) are declared: only Sésamo is left in the catalog.
+    expect(screen.queryByRole("button", { name: /Agregar Leche/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Agregar Soya/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agregar Sésamo a Contiene" })).toBeInTheDocument();
+  });
+
+  it("mover y quitar nombran el alérgeno y la acción", async () => {
+    const user = await abrirRevision(COMBINADA);
+
+    expect(screen.getByRole("button", { name: "Mover Leche a Puede contener" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mover Soya a Contiene" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Quitar Soya" }));
+    expect(screen.queryByRole("button", { name: "Quitar Soya" })).not.toBeInTheDocument();
+    // Soya is offered again, now that it is in neither column.
+    expect(screen.getByRole("button", { name: "Agregar Soya a Contiene" })).toBeInTheDocument();
   });
 
   it("el ingrediente es una lista de opciones de 44 px con altura máxima y desplazamiento", async () => {

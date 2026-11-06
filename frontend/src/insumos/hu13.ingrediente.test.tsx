@@ -225,8 +225,8 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
     expect(campo("Código de barras")).toHaveValue(CODIGO);
     expect(campo("Advertencias")).toHaveValue("Revisar envase");
     // The suggested allergens, their origin and the unrecognized terms stay.
-    expect(screen.getByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Quitar alérgeno Maní" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar Leche" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar Maní" })).toBeInTheDocument();
     expect(screen.getByText(/“harina”/)).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
 
@@ -276,7 +276,7 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
     expect(ingredientService.createIngredient).not.toHaveBeenCalled();
     expect(radioDe("Harina")).toBeChecked();
     expect(campo("Nombre")).toHaveValue("LONCO LECHE SIN LACTOSA");
-    expect(screen.getByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar Leche" })).toBeInTheDocument();
     expect(radioDe("Harina")).toHaveFocus();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });

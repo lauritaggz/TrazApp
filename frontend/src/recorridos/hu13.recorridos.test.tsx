@@ -198,7 +198,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     expect(payload.alergenos).toEqual([]);
   });
 
-  it("a mano, con la misma información que trae el código: 9 interacciones (6 campos y 3 clics; antes 14: los alérgenos son un clic cada uno)", async () => {
+  it("a mano, con la misma información que trae el código: 10 interacciones (6 campos y 4 clics; antes 14: cada alérgeno es un clic y el tipo se elige una vez)", async () => {
     const { r } = await abrirNuevoInsumo("/insumos/nuevo/manual");
 
     await r.escribir("Nombre", screen.getByLabelText("Nombre"), NOMBRE);
@@ -209,11 +209,12 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.escribir("Ingredientes declarados", screen.getByLabelText("Ingredientes declarados"), INGREDIENTES_DECLARADOS);
     // Leche: contains. Maní: traces. One click each, in the column of its class.
     await r.clic("+ Leche (Contiene)", await screen.findByRole("button", { name: "Agregar Leche a Contiene" }));
+    await r.clic("Tipo: Puede contener", screen.getByRole("radio", { name: "Puede contener" }));
     await r.clic("+ Maní (Puede contener)", screen.getByRole("button", { name: "Agregar Maní a Puede contener" }));
     await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     const payload = await guardadoUnaVez();
-    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 6, clics: 3, total: 9 });
+    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 6, clics: 4, total: 10 });
     expect(payload).not.toHaveProperty("fuente");
     expect(payload.alergenos).toEqual([
       { alergeno_id: 1, tipo: "contiene" },
