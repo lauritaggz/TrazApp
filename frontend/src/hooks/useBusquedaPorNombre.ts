@@ -43,6 +43,7 @@ export function useBusquedaPorNombre({ onResultado }: Options = {}) {
   const [duplicado, setDuplicado] = useState<InsumoDuplicateInfo | null>(null);
   const [mensaje, setMensaje] = useState("");
   const ocupadoRef = useRef(false);
+  const resultadosRef = useRef<ResultadoBusquedaNombre[]>([]);
   // An answer that belongs to an older request (or to an unmounted screen) is dropped.
   const vigenteRef = useRef(0);
   const onResultadoRef = useRef(onResultado);
@@ -62,6 +63,7 @@ export function useBusquedaPorNombre({ onResultado }: Options = {}) {
     setEstado("inactivo");
     setTexto("");
     setResultados([]);
+    resultadosRef.current = [];
     setElegido(null);
     setConsulta(null);
     setDuplicado(null);
@@ -89,6 +91,7 @@ export function useBusquedaPorNombre({ onResultado }: Options = {}) {
       const hallados = await buscarPorNombre(limpio);
       if (numero !== vigenteRef.current) return;
       setResultados(hallados);
+      resultadosRef.current = hallados;
       setEstado(hallados.length > 0 ? "con_resultados" : "sin_resultados");
     } catch (error) {
       if (numero !== vigenteRef.current) return;
@@ -141,7 +144,30 @@ export function useBusquedaPorNombre({ onResultado }: Options = {}) {
     }
   }, []);
 
-  return { estado, texto, resultados, elegido, consulta, duplicado, mensaje, buscar, elegir, limpiar };
+  /** Back from the review to the hits: the product that was loaded is no longer the current state. */
+  const volverAResultados = useCallback(() => {
+    vigenteRef.current += 1;
+    ocupadoRef.current = false;
+    setEstado(resultadosRef.current.length > 0 ? "con_resultados" : "inactivo");
+    setElegido(null);
+    setConsulta(null);
+    setDuplicado(null);
+    setMensaje("");
+  }, []);
+
+  return {
+    estado,
+    texto,
+    resultados,
+    elegido,
+    consulta,
+    duplicado,
+    mensaje,
+    buscar,
+    elegir,
+    limpiar,
+    volverAResultados,
+  };
 }
 
 export type BusquedaPorNombre = ReturnType<typeof useBusquedaPorNombre>;

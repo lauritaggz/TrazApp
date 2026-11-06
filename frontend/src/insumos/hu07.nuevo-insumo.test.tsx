@@ -174,9 +174,7 @@ async function abrir(ruta: string) {
 }
 
 async function abrirBusquedaPorNombre() {
-  const user = await abrir("/insumos/nuevo/nombre");
-  await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
-  return user;
+  return abrir("/insumos/nuevo/nombre");
 }
 
 const campo = (nombre: string) => screen.getByLabelText(nombre) as HTMLInputElement;
@@ -195,8 +193,8 @@ async function elegirPrimero(user: ReturnType<typeof userEvent.setup>) {
 }
 
 async function completarYCrear(user: ReturnType<typeof userEvent.setup>) {
-  await user.selectOptions(campo("Ingrediente"), "1");
-  await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+  await user.click(await screen.findByRole("radio", { name: "Leche" }));
+  await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
   await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
   return vi.mocked(insumoService.createInsumo).mock.calls[0][0];
 }
@@ -235,17 +233,17 @@ describe("Pantalla inicial de un nuevo insumo", () => {
     expect(screen.queryByRole("region", { name: "Buscar por nombre o marca" })).not.toBeInTheDocument();
   });
 
-  it("«Escanear código de barras» y «Buscar por nombre o marca» abren el formulario con su bloque", async () => {
+  it("«Escanear código de barras» y «Buscar por nombre o marca» abren la búsqueda, antes de cualquier formulario", async () => {
     const user = await abrir("/insumos/nuevo");
 
     await user.click(await screen.findByRole("link", { name: /Comenzar escaneo/ }));
     expect(await screen.findByRole("region", { name: "Buscar por código de barras" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: /Volver al inicio/ }));
     await user.click(await screen.findByRole("link", { name: /Buscar producto/ }));
     expect(await screen.findByRole("region", { name: "Buscar por nombre o marca" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
   it("un método desconocido en la dirección vuelve a la pantalla inicial", async () => {
@@ -272,7 +270,7 @@ describe("Búsqueda por nombre o marca", () => {
     expect(within(bloque()).getByText("Resultados e imágenes de Jumbo")).toBeInTheDocument();
     // Searching registers nothing and does not touch the form.
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
-    expect(campo("Nombre")).toHaveValue("");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
   it("un texto muy corto no se consulta y lo explica", async () => {
@@ -284,32 +282,30 @@ describe("Búsqueda por nombre o marca", () => {
     expect(insumoService.buscarPorNombre).not.toHaveBeenCalled();
   });
 
-  it("sin resultados: lo dice (CA10) y deja el formulario como estaba", async () => {
+  it("sin resultados: lo dice (CA10), ofrece el ingreso manual y no abre ningún formulario", async () => {
     vi.mocked(insumoService.buscarPorNombre).mockResolvedValue([]);
     const user = await abrirBusquedaPorNombre();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
 
     await buscar(user, "zzzz");
 
     expect(await within(bloque()).findByText(/No encontramos productos con ese texto/)).toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
-  it("Jumbo caído (503): mensaje y formulario manual intacto", async () => {
+  it("Jumbo caído (503): mensaje, y el formulario manual sigue disponible desde «Ingresar manualmente»", async () => {
     vi.mocked(insumoService.buscarPorNombre).mockRejectedValue(
       new ApiError("No pudimos completar la operación.", 503, {}, { mensaje: "x", motivo: "timeout" }),
     );
     const user = await abrirBusquedaPorNombre();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
-    await user.type(campo("Marca u origen"), "Mi marca");
 
     await buscar(user, "queso");
 
     expect(
       await within(bloque()).findByText("No pudimos consultar Jumbo en este momento. Completa los datos manualmente."),
     ).toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
-    expect(campo("Marca u origen")).toHaveValue("Mi marca");
+    await user.click(within(bloque()).getByRole("link", { name: "Ingresar manualmente" }));
+    expect(await screen.findByLabelText("Nombre")).toHaveValue("");
+    expect(screen.getByLabelText("Marca u origen")).toHaveValue("");
   });
 
   it("elegir un resultado precarga el formulario con la ficha, sin registrar nada", async () => {
@@ -323,11 +319,9 @@ describe("Búsqueda por nombre o marca", () => {
     expect(campo("Presentación")).toHaveValue("500 g");
     expect(campo("Código de barras")).toHaveValue("7802900001193");
     expect(campo("Ingredientes declarados")).toHaveValue("Leche natural, sal, cuajo.");
-    expect(
-      await within(bloque()).findByText(
-        "Encontramos este producto en Jumbo. Revisa los datos antes de crear el insumo.",
-      ),
-    ).toBeInTheDocument();
+    // T07-07: the search gives way to the review (the green «Encontramos…» message is gone).
+    expect(screen.getByRole("heading", { name: "Revisar información recuperada", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Buscar por nombre o marca" })).not.toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 
@@ -344,7 +338,7 @@ describe("Búsqueda por nombre o marca", () => {
     expect(campo("Código de barras")).toHaveValue("");
   });
 
-  it("producto ya registrado (409): avisa, ofrece «Usar el insumo existente» y no precarga", async () => {
+  it("producto ya registrado (409): avisa, ofrece «Usar el insumo existente» y no abre la revisión", async () => {
     vi.mocked(insumoService.consultarResultadoDeBusqueda).mockRejectedValue(duplicado(10, true));
     const user = await abrirBusquedaPorNombre();
     await buscar(user, "queso quilque");
@@ -358,7 +352,7 @@ describe("Búsqueda por nombre o marca", () => {
       "href",
       "/insumos/10",
     );
-    expect(campo("Nombre")).toHaveValue("");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
   it("si el insumo repetido está desactivado ofrece reactivarlo", async () => {
@@ -373,7 +367,7 @@ describe("Búsqueda por nombre o marca", () => {
     expect(await within(bloque()).findByRole("button", { name: "Reactivar" })).toBeInTheDocument();
   });
 
-  it("la ficha ya no existe (404): lo dice con el mensaje del servidor y deja el formulario", async () => {
+  it("la ficha ya no existe (404): lo dice con el mensaje del servidor y sigue la búsqueda", async () => {
     vi.mocked(insumoService.consultarResultadoDeBusqueda).mockRejectedValue(
       new ApiError("Este producto ya no está disponible en Jumbo.", 404, {}, {
         mensaje: "Este producto ya no está disponible en Jumbo.",
@@ -387,39 +381,36 @@ describe("Búsqueda por nombre o marca", () => {
     );
 
     expect(await within(bloque()).findByText("Este producto ya no está disponible en Jumbo.")).toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
-  it("con el formulario ya modificado pide confirmar antes de reemplazarlo; conservar no cambia nada", async () => {
+  it("volver a los resultados con cambios pide confirmar; «Seguir editando» no cambia nada", async () => {
     const user = await abrirBusquedaPorNombre();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
     await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+    await user.type(campo("Advertencias"), "Lo que yo escribí");
 
-    await user.click(
-      await within(bloque()).findByRole("button", { name: `Revisar ficha de ${RESULTADOS[0].nombre}` }),
-    );
+    await user.click(screen.getByRole("button", { name: "Volver a resultados" }));
 
-    expect(
-      await screen.findByRole("alertdialog", { name: "Reemplazar los datos del formulario" }),
-    ).toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
-    await user.click(screen.getByRole("button", { name: "Conservar lo escrito" }));
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    expect(await screen.findByRole("alertdialog", { name: "Salir sin guardar" })).toBeInTheDocument();
+    expect(campo("Advertencias")).toHaveValue("Lo que yo escribí");
+    await user.click(screen.getByRole("button", { name: "Seguir editando" }));
+    expect(campo("Advertencias")).toHaveValue("Lo que yo escribí");
+    expect(campo("Nombre")).toHaveValue("Queso Mantecoso Quilque");
   });
 
-  it("«Reemplazar datos» aplica el producto elegido y conserva el ingrediente", async () => {
+  it("«Salir sin guardar» descarta el producto y vuelve a los resultados, que siguen ahí", async () => {
     const user = await abrirBusquedaPorNombre();
-    await user.selectOptions(campo("Ingrediente"), "2");
-    await user.type(campo("Nombre"), "Lo que yo escribí");
     await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+    await user.click(await screen.findByRole("radio", { name: "Harina" }));
 
-    await user.click(
-      await within(bloque()).findByRole("button", { name: `Revisar ficha de ${RESULTADOS[0].nombre}` }),
-    );
-    await user.click(await screen.findByRole("button", { name: "Reemplazar datos" }));
+    await user.click(screen.getByRole("button", { name: "Volver a resultados" }));
+    await user.click(await screen.findByRole("button", { name: "Salir sin guardar" }));
 
-    await waitFor(() => expect(campo("Nombre")).toHaveValue("Queso Mantecoso Quilque"));
-    expect(campo("Ingrediente")).toHaveValue("2");
+    expect(await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 });
 
@@ -472,10 +463,7 @@ describe("Al confirmar un insumo recuperado: el origen de cada dato", () => {
     const user = await abrirBusquedaPorNombre();
     await buscar(user, "queso quilque");
     await elegirPrimero(user);
-    const grupo = screen.getByRole("group", { name: "Alérgenos del insumo" });
-    await user.click(await within(grupo).findByRole("button", { name: "+ Agregar alérgeno" }));
-    await user.selectOptions(within(grupo).getByLabelText("Alérgeno del catálogo"), "4");
-    await user.click(within(grupo).getByRole("button", { name: "Agregar" }));
+    await user.click(await screen.findByRole("button", { name: "Agregar Sésamo a Contiene" }));
 
     const payload = await completarYCrear(user);
 
@@ -486,10 +474,10 @@ describe("Al confirmar un insumo recuperado: el origen de cada dato", () => {
 
   it("un insumo manual no envía ningún campo de origen", async () => {
     const user = await abrir("/insumos/nuevo/manual");
-    await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
     await user.type(campo("Nombre"), "Queso casero");
     await user.type(campo("Marca u origen"), "Casero");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
 
     const payload = await completarYCrear(user);
 
@@ -542,7 +530,10 @@ describe("Miniatura del producto", () => {
     expect(miniaturas(lista)).toHaveLength(3);
   });
 
-  it("en la revisión: la miniatura del producto elegido con su fuente; no viaja en lo que se confirma", async () => {
+  const identificacion = () =>
+    screen.getByRole("heading", { name: "Identificación comercial" }).closest("section") as HTMLElement;
+
+  it("en la revisión: la miniatura a la izquierda del encabezado de «Identificación comercial», con su fuente; no viaja en lo que se confirma", async () => {
     vi.mocked(insumoService.consultarResultadoDeBusqueda).mockResolvedValue({
       ...PROPUESTA,
       imagen_url: "https://imagenes.jumbo.test/quilque-500g-1.jpg",
@@ -552,13 +543,14 @@ describe("Miniatura del producto", () => {
     await buscar(user, "queso quilque");
     await elegirPrimero(user);
 
-    const resumen = document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement;
-    const imagen = within(resumen.parentElement as HTMLElement).getByRole("img", {
-      name: "Queso Mantecoso Quilque",
-    });
+    const tarjeta = identificacion();
+    const imagen = within(tarjeta).getByRole("img", { name: "Queso Mantecoso Quilque" });
     expect(imagen).toHaveAttribute("src", "https://imagenes.jumbo.test/quilque-500g-1.jpg");
     expect(imagen).toHaveAttribute("loading", "lazy");
-    expect(within(resumen.parentElement as HTMLElement).getByText("Imagen: Jumbo")).toBeInTheDocument();
+    expect(within(tarjeta).getByText("Imagen: Jumbo")).toBeInTheDocument();
+    // It is in the header of the card, before the title.
+    const titulo = within(tarjeta).getByRole("heading", { name: "Identificación comercial" });
+    expect(imagen.compareDocumentPosition(titulo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     const payload = await completarYCrear(user);
     expect(JSON.stringify(payload)).not.toContain("imagenes.jumbo.test");
@@ -580,15 +572,15 @@ describe("Miniatura del producto", () => {
     expect(await screen.findByText("Imagen: Open Food Facts")).toBeInTheDocument();
   });
 
-  it("en la revisión, sin imagen o con una que falla: espacio neutro, sin ícono roto", async () => {
+  it("en la revisión, sin imagen: espacio neutro, sin ícono roto", async () => {
     const user = await abrirBusquedaPorNombre();
     await buscar(user, "queso quilque");
     await elegirPrimero(user);
-    const contenedor = (document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement)
-      .parentElement as HTMLElement;
-    expect(miniaturas(contenedor)).toHaveLength(1);
-    expect(within(contenedor).queryByRole("img")).not.toBeInTheDocument();
-    expect(within(contenedor).queryByText(/Imagen:/)).not.toBeInTheDocument();
+
+    const tarjeta = identificacion();
+    expect(miniaturas(tarjeta)).toHaveLength(1);
+    expect(within(tarjeta).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(tarjeta).queryByText(/Imagen:/)).not.toBeInTheDocument();
   });
 
   it("una imagen de la revisión que falla al cargar vuelve al espacio neutro", async () => {
@@ -600,13 +592,13 @@ describe("Miniatura del producto", () => {
     const user = await abrirBusquedaPorNombre();
     await buscar(user, "queso quilque");
     await elegirPrimero(user);
-    const contenedor = (document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement)
-      .parentElement as HTMLElement;
+    const tarjeta = identificacion();
 
-    fireEvent.error(within(contenedor).getByRole("img", { name: "Queso Mantecoso Quilque" }));
+    fireEvent.error(within(tarjeta).getByRole("img", { name: "Queso Mantecoso Quilque" }));
 
-    await waitFor(() => expect(within(contenedor).queryByRole("img")).not.toBeInTheDocument());
-    expect(within(contenedor).queryByText(/Imagen:/)).not.toBeInTheDocument();
+    await waitFor(() => expect(within(tarjeta).queryByRole("img")).not.toBeInTheDocument());
+    expect(within(tarjeta).queryByText(/Imagen:/)).not.toBeInTheDocument();
+    expect(miniaturas(tarjeta)).toHaveLength(1);
   });
 });
 
@@ -677,7 +669,6 @@ describe("Búsqueda por código de barras en la pantalla (T07-07 A)", () => {
       () => new Promise<ConsultaCodigo>((resolver) => (responder = resolver)),
     );
     const user = await abrir("/insumos/nuevo/codigo");
-    await user.type(campo("Nombre"), "Lo que yo escribí");
 
     await buscarCodigo(user, CODIGO);
 
@@ -688,8 +679,8 @@ describe("Búsqueda por código de barras en la pantalla (T07-07 A)", () => {
 
     responder({ ...PROPUESTA, codigo_barras: CODIGO });
     await new Promise((resolver) => setTimeout(resolver, 20));
-    // The late answer is dropped: the form keeps what was typed and nothing is registered.
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    // The late answer is dropped: the search stays, no form opens and nothing is registered.
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 

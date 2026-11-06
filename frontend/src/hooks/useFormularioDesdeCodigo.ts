@@ -28,7 +28,7 @@ export interface EstadoDelFormulario {
   alergenos: AlergenosValue;
 }
 
-const FORMULARIO_VACIO: EstadoDelFormulario = {
+export const FORMULARIO_VACIO: EstadoDelFormulario = {
   dirty: false,
   cambiosSalvoIngrediente: false,
   values: EMPTY_INSUMO_FORM_VALUES,
@@ -91,7 +91,15 @@ export function useFormularioDesdeCodigo(valoresIniciales: Partial<InsumoFormVal
     busquedaNombre.limpiar();
   }
 
-  return { busqueda, busquedaNombre, precarga, formularioRef, porConfirmar, reemplazar, conservar };
+  /** Back from the review to the search: the loaded product and the form are dropped, the hits are kept. */
+  function descartar() {
+    setPrecarga((actual) => ({ ...PRECARGA_INICIAL, valores: valoresIniciales, clave: actual.clave + 1 }));
+    formularioRef.current = FORMULARIO_VACIO;
+    busqueda.limpiar();
+    busquedaNombre.volverAResultados();
+  }
+
+  return { busqueda, busquedaNombre, descartar, precarga, formularioRef, porConfirmar, reemplazar, conservar };
 }
 
 /**

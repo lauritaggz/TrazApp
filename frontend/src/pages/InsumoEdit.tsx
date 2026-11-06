@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import InsumoForm from "@/components/insumos/InsumoForm";
+import EncabezadoNuevoInsumo from "@/components/insumos/EncabezadoNuevoInsumo";
 import InsumoUnavailable from "@/components/insumos/InsumoUnavailable";
+import RevisionInsumo from "@/components/insumos/RevisionInsumo";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import PageHeader from "@/components/ui/PageHeader";
 import { useAppShell } from "@/hooks/useAppShell";
 import { useIngredientesActivos } from "@/hooks/useIngredientesActivos";
 import { insumoToFormValues, useInsumoForm } from "@/hooks/useInsumoForm";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { revisionDeInsumo } from "@/lib/revisionInsumo";
 import { getInsumo } from "@/services/insumoService";
 import type { Insumo } from "@/types/insumo";
 
@@ -60,7 +61,7 @@ export default function InsumoEdit() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         {loading && <p className="text-sm text-text-secondary">Cargando insumo...</p>}
 
         {!loading && unavailable && <InsumoUnavailable onBack={() => navigate("/insumos")} />}
@@ -106,36 +107,35 @@ function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }
 
   return (
     <>
-      <PageHeader
-        title="Editar insumo"
-        description="Actualiza la información del insumo."
-        breadcrumbs={[
-          { label: "Insumos", to: "/insumos" },
-          { label: insumo.nombre, to: `/insumos/${insumo.id}` },
-          { label: "Editar" },
-        ]}
+      <EncabezadoNuevoInsumo
+        etiqueta="Editar insumo"
+        volver={{ to: `/insumos/${insumo.id}`, texto: "Volver al insumo" }}
+        titulo={insumo.nombre}
+        descripcion="Actualiza la información del insumo."
       />
 
       {form.globalError && <Alert type="error">{form.globalError}</Alert>}
 
-      <InsumoForm
-        mode="edit"
+      <RevisionInsumo
+        modo="editar"
         values={form.values}
+        inicial={form.baseline}
         errors={form.errors}
+        onChange={form.handleChange}
+        onSubmit={() => void form.handleSubmit()}
+        onCancel={handleCancel}
+        loading={form.loading}
+        errorFocusToken={form.errorFocusToken}
         ingredientes={ingredientes.ingredientes}
         ingredientesLoading={ingredientes.loading}
         ingredientesError={ingredientes.error}
         onIngredientesRetry={() => void ingredientes.reload()}
         onIngredienteCreado={ingredientes.agregar}
         ingredienteActual={insumo.ingrediente}
-        loading={form.loading}
-        errorFocusToken={form.errorFocusToken}
         duplicate={form.duplicate}
         reactivating={form.reactivating}
         onReactivate={() => void form.handleReactivate()}
-        onChange={form.handleChange}
-        onSubmit={() => void form.handleSubmit()}
-        onCancel={handleCancel}
+        revision={revisionDeInsumo(insumo)}
       />
 
       <ConfirmDialog

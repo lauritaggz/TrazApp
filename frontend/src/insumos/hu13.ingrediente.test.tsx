@@ -143,12 +143,22 @@ beforeEach(() => {
 
 type Usuario = ReturnType<typeof userEvent.setup>;
 
-async function abrirPagina() {
+async function abrirPagina(ruta = "/insumos/nuevo/manual") {
   const user = userEvent.setup();
-  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo/codigo"] });
+  renderWithProviders(<App />, { initialEntries: [ruta] });
   expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
+  // T07-07: the ingredient is chosen on the review, which a manual entry opens at once; a lookup opens it later.
+  if (ruta.endsWith("/manual")) await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
   return user;
+}
+
+const radioDe = (nombre: string) => screen.getByRole("radio", { name: nombre });
+
+/** T07-07: the review asks the productor to decide each term the lookup could not tie to the catalog. */
+async function decidirTerminosSinReconocer(user: Usuario) {
+  for (const boton of await screen.findAllByRole("button", { name: /no es un alérgeno/i })) {
+    await user.click(boton);
+  }
 }
 
 const campo = (nombre: string) => screen.getByLabelText(nombre) as HTMLInputElement;
@@ -192,8 +202,8 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
     await crearIngrediente(user);
 
     expect(ingredientService.createIngredient).toHaveBeenCalledTimes(1);
-    expect(campo("Ingrediente")).toHaveValue("77");
-    expect(within(campo("Ingrediente")).getByRole("option", { name: "Leche sin lactosa" })).toBeInTheDocument();
+    expect(radioDe("Leche sin lactosa")).toBeChecked();
+    expect(within(campo("Ingrediente")).getByRole("radio", { name: "Leche sin lactosa" })).toBeInTheDocument();
     expect(campo("Nombre")).toHaveValue("Leche Colun 1 L");
     expect(campo("Marca u origen")).toHaveValue("Colun");
     expect(campo("Presentación")).toHaveValue("1 L");
@@ -202,13 +212,13 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
   });
 
   it("producto escaneado cuyo ingrediente no existe: todo sigue intacto y al guardar el POST lleva todo", async () => {
-    const user = await abrirPagina();
+    const user = await abrirPagina("/insumos/nuevo/codigo");
     await entregarCodigo(user, CODIGO);
     await user.type(campo("Advertencias"), "Revisar envase");
 
     await crearIngrediente(user);
 
-    expect(campo("Ingrediente")).toHaveValue("77");
+    expect(radioDe("Leche sin lactosa")).toBeChecked();
     expect(campo("Nombre")).toHaveValue("LONCO LECHE SIN LACTOSA");
     expect(campo("Marca u origen")).toHaveValue("Lonco Leche");
     expect(campo("Presentación")).toHaveValue("1L");
@@ -217,10 +227,12 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
     // The suggested allergens, their origin and the unrecognized terms stay.
     expect(screen.getByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Quitar alérgeno Maní" })).toBeInTheDocument();
-    expect(screen.getByText("harina")).toBeInTheDocument();
+    expect(screen.getByText(/“harina”/)).toBeInTheDocument();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    // T07-07: each unrecognized term needs a decision before the confirmation.
+    await decidirTerminosSinReconocer(user);
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith({
@@ -247,13 +259,13 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
 
     await crearIngrediente(user);
 
-    expect(campo("Ingrediente")).toHaveFocus();
+    expect(radioDe("Leche sin lactosa")).toHaveFocus();
   });
 
-  it("cancelar no cambia nada: ni el ingrediente, ni lo escrito, y el foco vuelve al selector", async () => {
-    const user = await abrirPagina();
+  it("cancelar no cambia nada: ni el ingrediente, ni lo escrito, y el foco vuelve al ingrediente elegido", async () => {
+    const user = await abrirPagina("/insumos/nuevo/codigo");
     await entregarCodigo(user, CODIGO);
-    await user.selectOptions(campo("Ingrediente"), "2");
+    await user.click(radioDe("Harina"));
     await user.click(botonCrear());
     const dialogo = await screen.findByRole("dialog", { name: "Nuevo ingrediente" });
     await user.type(dialogo.querySelector<HTMLElement>('[name="nombre"]')!, "Algo a medio escribir");
@@ -262,10 +274,10 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
 
     expect(screen.queryByRole("dialog", { name: "Nuevo ingrediente" })).not.toBeInTheDocument();
     expect(ingredientService.createIngredient).not.toHaveBeenCalled();
-    expect(campo("Ingrediente")).toHaveValue("2");
+    expect(radioDe("Harina")).toBeChecked();
     expect(campo("Nombre")).toHaveValue("LONCO LECHE SIN LACTOSA");
     expect(screen.getByRole("button", { name: "Quitar alérgeno Leche" })).toBeInTheDocument();
-    expect(campo("Ingrediente")).toHaveFocus();
+    expect(radioDe("Harina")).toHaveFocus();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 
@@ -298,7 +310,7 @@ describe("Crear un ingrediente desde «Nuevo insumo»", () => {
 
     await crearIngrediente(user);
 
-    expect(campo("Ingrediente")).toHaveValue("77");
+    expect(radioDe("Leche sin lactosa")).toBeChecked();
   });
 });
 
@@ -312,7 +324,7 @@ describe("Crear un ingrediente al editar un insumo", () => {
 
     await crearIngrediente(user);
 
-    expect(campo("Ingrediente")).toHaveValue("77");
+    expect(radioDe("Leche sin lactosa")).toBeChecked();
     expect(campo("Nombre")).toHaveValue("Leche Colun 1 L");
     expect(insumoService.updateInsumo).not.toHaveBeenCalled();
 

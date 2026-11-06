@@ -1,4 +1,4 @@
-import type { AlergenoDeclaradoInput, AlergenosValue } from "@/types/insumo";
+import { TIPO_TRAZAS, type AlergenoDeclaradoInput, type AlergenosValue } from "@/types/insumo";
 
 export const MENSAJE_ALERGENOS_INVALIDOS =
   "Declara los alérgenos del insumo o confirma que no contiene.";
@@ -8,9 +8,14 @@ export function alergenosValidos(value: AlergenosValue): boolean {
   return value.items.length > 0 || value.sinAlergenos;
 }
 
-/** What is sent to the API: the declared allergens, or [] when the productor confirmed none. */
+/**
+ * What is sent to the API: the declared allergens, or [] when the productor confirmed none. «No contiene» only
+ * speaks about «Contiene»: the traces declared next to it are still sent (they cannot be there in the older
+ * selector, where the confirmation clears every allergen).
+ */
 export function alergenosParaEnviar(value: AlergenosValue): AlergenoDeclaradoInput[] {
-  return value.sinAlergenos ? [] : value.items.map((item) => ({ ...item }));
+  const items = value.sinAlergenos ? value.items.filter((item) => item.tipo === TIPO_TRAZAS) : value.items;
+  return items.map((item) => ({ ...item }));
 }
 
 function clave(value: AlergenosValue): string {

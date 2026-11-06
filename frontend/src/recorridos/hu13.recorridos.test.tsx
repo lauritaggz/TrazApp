@@ -66,8 +66,9 @@ class Recorrido {
     this.pasos.push({ tipo: "campo", paso });
   }
 
-  async elegir(paso: string, elemento: HTMLElement, valor: string) {
-    await this.user.selectOptions(elemento, valor);
+  /** T07-07: the ingredient is a group of options (radio buttons); choosing one counts as filling a field. */
+  async elegir(paso: string, nombre: string) {
+    await this.user.click(await screen.findByRole("radio", { name: nombre }));
     this.pasos.push({ tipo: "campo", paso });
   }
 
@@ -162,11 +163,11 @@ beforeEach(() => {
   vi.mocked(insumoService.createInsumo).mockResolvedValue(INSUMO_CREADO);
 });
 
-async function abrirNuevoInsumo() {
+async function abrirNuevoInsumo(ruta = "/insumos/nuevo/codigo") {
   const user = userEvent.setup();
-  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo/codigo"] });
+  renderWithProviders(<App />, { initialEntries: [ruta] });
   await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 });
-  await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
+  if (ruta.endsWith("/manual")) await screen.findByRole("radio", { name: "Leche" });
   return { user, r: new Recorrido(user) };
 }
 
@@ -179,46 +180,40 @@ async function guardadoUnaVez(): Promise<InsumoCreatePayload> {
 // =============================================================================================
 
 describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
-  it("a mano, solo lo obligatorio: 5 interacciones (3 campos y 2 clics)", async () => {
-    const { r } = await abrirNuevoInsumo();
+  it("a mano, solo lo obligatorio: 6 interacciones (3 campos y 3 clics; antes 5: ahora se responde por «puede contener», CA17)", async () => {
+    const { r } = await abrirNuevoInsumo("/insumos/nuevo/manual");
 
     await r.escribir("Nombre", screen.getByLabelText("Nombre"), NOMBRE);
     await r.escribir("Marca u origen", screen.getByLabelText("Marca u origen"), MARCA);
-    await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
+    await r.elegir("Ingrediente", "Leche");
     await r.clic("«Este insumo no contiene alérgenos»", screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
+    await r.clic("«El envase no indica puede contener»", screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
+    await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     const payload = await guardadoUnaVez();
-    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 2, total: 5 });
+    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 3, total: 6 });
     // And that is all it registers: no presentation, no barcode, no declared ingredients, no allergens.
     expect(payload.codigo_barras).toBeNull();
     expect(payload.ingredientes_declarados).toBeNull();
     expect(payload.alergenos).toEqual([]);
   });
 
-  it("a mano, con la misma información que trae el código: 14 interacciones (9 campos y 5 clics)", async () => {
-    const { r } = await abrirNuevoInsumo();
+  it("a mano, con la misma información que trae el código: 9 interacciones (6 campos y 3 clics; antes 14: los alérgenos son un clic cada uno)", async () => {
+    const { r } = await abrirNuevoInsumo("/insumos/nuevo/manual");
 
     await r.escribir("Nombre", screen.getByLabelText("Nombre"), NOMBRE);
     await r.escribir("Marca u origen", screen.getByLabelText("Marca u origen"), MARCA);
-    await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
+    await r.elegir("Ingrediente", "Leche");
     await r.escribir("Presentación", screen.getByLabelText("Presentación"), PRESENTACION);
     await r.escribir("Código de barras", screen.getByLabelText("Código de barras"), CODIGO);
     await r.escribir("Ingredientes declarados", screen.getByLabelText("Ingredientes declarados"), INGREDIENTES_DECLARADOS);
-    const grupo = screen.getByRole("group", { name: "Alérgenos del insumo" });
-    // Leche: contains.
-    await r.clic("+ Agregar alérgeno", await within(grupo).findByRole("button", { name: "+ Agregar alérgeno" }));
-    await r.elegir("Alérgeno: Leche", within(grupo).getByLabelText("Alérgeno del catálogo"), "1");
-    await r.clic("Agregar", within(grupo).getByRole("button", { name: "Agregar" }));
-    // Maní: traces.
-    await r.clic("+ Agregar alérgeno", within(grupo).getByRole("button", { name: "+ Agregar alérgeno" }));
-    await r.elegir("Alérgeno: Maní", within(grupo).getByLabelText("Alérgeno del catálogo"), "2");
-    await r.elegir("Tipo: puede contener", within(grupo).getByLabelText("Tipo de declaración"), "trazas");
-    await r.clic("Agregar", within(grupo).getByRole("button", { name: "Agregar" }));
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
+    // Leche: contains. Maní: traces. One click each, in the column of its class.
+    await r.clic("+ Leche (Contiene)", await screen.findByRole("button", { name: "Agregar Leche a Contiene" }));
+    await r.clic("+ Maní (Puede contener)", screen.getByRole("button", { name: "Agregar Maní a Puede contener" }));
+    await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     const payload = await guardadoUnaVez();
-    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 9, clics: 5, total: 14 });
+    expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 6, clics: 3, total: 9 });
     expect(payload).not.toHaveProperty("fuente");
     expect(payload.alergenos).toEqual([
       { alergeno_id: 1, tipo: "contiene" },
@@ -234,8 +229,8 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
     await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE));
-    await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
+    await r.elegir("Ingrediente", "Leche");
+    await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 2, clics: 3, total: 5 });
@@ -259,18 +254,19 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     });
   });
 
-  it("por código, con el ingrediente elegido antes: son las mismas 5 interacciones", async () => {
+  it("por código, el ingrediente elegido en la revisión queda marcado al guardar: son las mismas 5 interacciones", async () => {
+    // T07-07: search and review are separate screens, so the ingredient can no longer be chosen BEFORE the lookup;
+    // it is chosen on the review, and the journey costs the same 5 interactions.
     const { r } = await abrirNuevoInsumo();
 
-    await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
     await r.clic("«Abrir cámara»", screen.getByRole("button", { name: "Abrir cámara" }));
     const escaner = await screen.findByRole("dialog", { name: "Escanear código de barras" });
     await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
     await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE));
-    // The ingredient chosen before the lookup stays: it is not asked again.
-    expect(screen.getByLabelText("Ingrediente")).toHaveValue("1");
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
+    await r.elegir("Ingrediente", "Leche");
+    expect(screen.getByRole("radio", { name: "Leche" })).toBeChecked();
+    await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     await guardadoUnaVez();
     expect(r.total).toBe(5);
@@ -298,9 +294,9 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     await r.escribir("Nombre del ingrediente", dialogo.querySelector<HTMLElement>('[name="nombre"]')!, "Leche sin lactosa");
     await r.clic("«Crear ingrediente» (diálogo)", within(dialogo).getByRole("button", { name: "Crear ingrediente" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nuevo ingrediente" })).not.toBeInTheDocument());
-    expect(screen.getByLabelText("Ingrediente")).toHaveValue("5");
+    expect(await screen.findByRole("radio", { name: "Leche sin lactosa" })).toBeChecked();
     expect(screen.getByLabelText("Nombre")).toHaveValue(NOMBRE);
-    await r.clic("«Guardar insumo»", screen.getByRole("button", { name: "Crear insumo" }));
+    await r.clic("«Confirmar registro»", screen.getByRole("button", { name: "Confirmar registro" }));
 
     const payload = await guardadoUnaVez();
     expect({ campos: r.campos, clics: r.clics, total: r.total }).toEqual({ campos: 3, clics: 5, total: 8 });

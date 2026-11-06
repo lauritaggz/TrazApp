@@ -9,7 +9,6 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
-import { MENSAJE_ALERGENOS_INVALIDOS } from "@/lib/alergenosDeclaracion";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as ingredientService from "@/services/ingredientService";
@@ -179,7 +178,6 @@ async function abrirPagina() {
   const user = userEvent.setup();
   renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo/codigo"] });
   expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
   return user;
 }
 
@@ -205,44 +203,66 @@ const MENSAJE_ENCONTRADO =
 const MENSAJE_NO_ENCONTRADO = "No encontramos este código. Completa los datos manualmente.";
 const MENSAJE_NO_DISPONIBLE =
   "No pudimos consultar la fuente en este momento. Completa los datos manualmente.";
-const AVISO_SUGERIDOS =
-  "Alérgenos sugeridos automáticamente. Compáralos con la etiqueta del envase antes de crear el insumo.";
 
-// =============================================================================================
+
+// --- T07-07 (B): búsqueda y revisión son dos pantallas ---------------------------------------------
+// Con un producto encontrado la pantalla pasa a la revisión; con "no encontrado" o fuente no disponible sigue
+// la búsqueda, que ofrece "Ingresar manualmente" (el formulario manual conserva el código).
+
+const TITULO_REVISION = "Revisar información recuperada";
+
+/** From the search to the manual entry (T07-08); the code that was looked up stays in the form. */
+async function irAManual(user: Usuario) {
+  await user.click(await screen.findByRole("link", { name: "Ingresar manualmente" }));
+  await screen.findByRole("heading", { name: "Completar ficha manual", level: 2 });
+}
+
+/** The review of a found product: waits for it, chooses the ingredient and decides every unrecognized term. */
+async function completarRevision(user: Usuario, ingrediente = "Leche") {
+  await user.click(await screen.findByRole("radio", { name: ingrediente }));
+  for (const boton of screen.queryAllByRole("button", { name: /no es un alérgeno/i })) {
+    await user.click(boton);
+  }
+}
+
+const volverALaBusqueda = () => screen.getByRole("button", { name: "Volver a la búsqueda" });
 
 describe("Estados de la búsqueda", () => {
-  it("antes de buscar no hay mensaje ni aviso, y el bloque está sobre el formulario", async () => {
+  it("antes de buscar no hay mensaje ni aviso, y solo está la búsqueda (el formulario viene después)", async () => {
     await abrirPagina();
 
     expect(botonEscanear()).toBeEnabled();
     expect(screen.queryByText(MENSAJE_ENCONTRADO)).not.toBeInTheDocument();
-    const bloque = screen.getByRole("region", { name: "Buscar por código de barras" });
-    const formulario = campo("Nombre").closest("form")!;
-    expect(bloque.compareDocumentPosition(formulario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Buscar por código de barras" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 
-  it("encontrado: avisa que viene de Open Food Facts y que hay que revisar", async () => {
+  it("encontrado: pasa a la revisión, que dice que la información viene de la fuente y hay que revisarla", async () => {
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
-    expect(await screen.findByText(MENSAJE_ENCONTRADO)).toBeInTheDocument();
+    // The green «Encontrado…» message is gone (T07-07); the review says it.
+    expect(await screen.findByRole("heading", { name: TITULO_REVISION, level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("Nada se guardará hasta que confirmes el registro.")).toBeInTheDocument();
+    expect(screen.queryByText(MENSAJE_ENCONTRADO)).not.toBeInTheDocument();
     expect(insumoService.consultarCodigoBarras).toHaveBeenCalledTimes(1);
     expect(insumoService.consultarCodigoBarras).toHaveBeenCalledWith(CODIGO);
   });
 
-  it("no encontrado: lo dice (CA10) y deja el formulario con el código escrito", async () => {
+  it("no encontrado: lo dice (CA10) y ofrece el formulario manual con el código escrito", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
     expect(await screen.findByText(MENSAJE_NO_ENCONTRADO)).toBeInTheDocument();
+    await irAManual(user);
     expect(campo("Código de barras")).toHaveValue(CODIGO);
     expect(campo("Nombre")).toHaveValue("");
   });
 
-  it("fuente no disponible (503): lo dice y deja el formulario con el código escrito", async () => {
+  it("fuente no disponible (503): lo dice y ofrece el formulario manual con el código escrito", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(
       new ApiError("No pudimos completar la operación.", 503, {}, { mensaje: "x", motivo: "timeout" }),
     );
@@ -251,13 +271,13 @@ describe("Estados de la búsqueda", () => {
     await entregarCodigo(user, CODIGO);
 
     expect(await screen.findByText(MENSAJE_NO_DISPONIBLE)).toBeInTheDocument();
+    await irAManual(user);
     expect(campo("Código de barras")).toHaveValue(CODIGO);
   });
 
   it("un conflicto (409) que no dice qué insumo es: mensaje genérico, no «fuente no disponible»", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(new ApiError("Conflicto", 409));
     const user = await abrirPagina();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
 
     await entregarCodigo(user, CODIGO);
 
@@ -267,9 +287,8 @@ describe("Estados de la búsqueda", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(MENSAJE_NO_DISPONIBLE)).not.toBeInTheDocument();
-    // The form is untouched: no code written, nothing replaced, no confirmation.
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
-    expect(campo("Código de barras")).toHaveValue("");
+    // Nothing was loaded: still the search, no form, no confirmation.
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(botonEscanear()).toBeEnabled();
   });
@@ -281,6 +300,7 @@ describe("Estados de la búsqueda", () => {
     await entregarCodigo(user, CODIGO);
 
     expect(await screen.findByText(MENSAJE_NO_DISPONIBLE)).toBeInTheDocument();
+    await irAManual(user);
     expect(campo("Código de barras")).toHaveValue(CODIGO);
   });
 
@@ -291,13 +311,15 @@ describe("Estados de la búsqueda", () => {
     preparar();
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
+    await irAManual(user);
     await waitFor(() => expect(campo("Código de barras")).toHaveValue(CODIGO));
     await user.type(campo("Nombre"), "Leche Colun");
     await user.type(campo("Marca u origen"), "Colun");
-    await user.selectOptions(campo("Ingrediente"), "1");
+    await user.click(await screen.findByRole("radio", { name: "Leche" }));
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(insumoService.createInsumo).mock.calls[0][0];
@@ -307,7 +329,7 @@ describe("Estados de la búsqueda", () => {
     expect(payload).not.toHaveProperty("ficha");
   });
 
-  it("código inválido que rechaza el servidor (422): muestra su mensaje y no toca el formulario", async () => {
+  it("código inválido que rechaza el servidor (422): muestra su mensaje y no pasa a ningún formulario", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(
       new ApiError("El dígito verificador del código de barras no es válido.", 422, {}, {
         mensaje: "El dígito verificador del código de barras no es válido.",
@@ -320,7 +342,7 @@ describe("Estados de la búsqueda", () => {
     expect(
       await screen.findByText("El dígito verificador del código de barras no es válido."),
     ).toBeInTheDocument();
-    expect(campo("Código de barras")).toHaveValue("");
+    expect(screen.queryByLabelText("Código de barras")).not.toBeInTheDocument();
   });
 
   it("un código con dígito verificador inválido ni siquiera se consulta", async () => {
@@ -334,7 +356,7 @@ describe("Estados de la búsqueda", () => {
     expect(insumoService.consultarCodigoBarras).not.toHaveBeenCalled();
   });
 
-  it("mientras busca lo dice y no deja abrir otro escaneo; al terminar vuelve a permitirlo", async () => {
+  it("mientras busca lo dice y no deja abrir otro escaneo; al terminar pasa a la revisión", async () => {
     let responder: (consulta: ConsultaCodigo) => void = () => {};
     vi.mocked(insumoService.consultarCodigoBarras).mockImplementation(
       () => new Promise<ConsultaCodigo>((resolver) => (responder = resolver)),
@@ -349,8 +371,8 @@ describe("Estados de la búsqueda", () => {
     expect(screen.queryByRole("dialog", { name: "Escanear código de barras" })).not.toBeInTheDocument();
 
     responder(LONCOLECHE);
-    expect(await screen.findByText(MENSAJE_ENCONTRADO)).toBeInTheDocument();
-    expect(botonEscanear()).toBeEnabled();
+    expect(await screen.findByRole("heading", { name: TITULO_REVISION, level: 2 })).toBeInTheDocument();
+    await esperarFormularioConProducto();
   });
 
   it("el panel del escáner se cierra al entregar el código y la consulta se hace una sola vez", async () => {
@@ -369,12 +391,13 @@ describe("Estados de la búsqueda", () => {
     expect(insumoService.consultarCodigoBarras).toHaveBeenCalledTimes(1);
   });
 
-  it("se puede volver a buscar otro código después de un resultado", async () => {
+  it("se puede volver a buscar otro código después de un resultado (volviendo a la búsqueda)", async () => {
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
     await esperarFormularioConProducto();
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
 
+    await user.click(volverALaBusqueda());
     await entregarCodigo(user, OTRO_CODIGO);
 
     await waitFor(() => expect(campo("Nombre")).toHaveValue("Bicarbonato sódico"));
@@ -382,16 +405,15 @@ describe("Estados de la búsqueda", () => {
     expect(insumoService.consultarCodigoBarras).toHaveBeenLastCalledWith(OTRO_CODIGO);
   });
 
-  it("cerrar el escáner sin entregar un código no consulta nada ni toca el formulario", async () => {
+  it("cerrar el escáner sin entregar un código no consulta nada ni abre ningún formulario", async () => {
     const user = await abrirPagina();
-    await user.type(campo("Nombre"), "Mi insumo");
 
     await user.click(botonEscanear());
     await user.click(within(panel()).getByRole("button", { name: "Cerrar" }));
 
     expect(screen.queryByRole("dialog", { name: "Escanear código de barras" })).not.toBeInTheDocument();
     expect(insumoService.consultarCodigoBarras).not.toHaveBeenCalled();
-    expect(campo("Nombre")).toHaveValue("Mi insumo");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
   });
 });
 
@@ -412,28 +434,31 @@ describe("Precarga del formulario", () => {
     expect(campo("Código de barras")).toHaveValue(CODIGO);
     expect(campo("Advertencias")).toHaveValue("");
     // The ingredient is for the productor to choose (CA07).
-    expect(campo("Ingrediente")).toHaveValue("");
+    expect(screen.queryByRole("radio", { checked: true })).not.toBeInTheDocument();
   });
 
-  it("conserva el ingrediente que ya se había elegido, sin pedir confirmación", async () => {
+  it("el ingrediente se elige en la revisión, sin pedir confirmación", async () => {
     const user = await abrirPagina();
-    await user.selectOptions(campo("Ingrediente"), "2");
-
     await entregarCodigo(user, CODIGO);
-
     await esperarFormularioConProducto();
-    expect(campo("Ingrediente")).toHaveValue("2");
+
+    await user.click(screen.getByRole("radio", { name: "Harina" }));
+
+    expect(screen.getByRole("radio", { name: "Harina" })).toBeChecked();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("sin ingrediente no se puede registrar: lo exige y no envía nada (CA07)", async () => {
+  it("sin ingrediente no se puede registrar: «Ingrediente asociado» queda pendiente y no se envía nada (CA07)", async () => {
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
     await esperarFormularioConProducto();
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
-
-    expect(await screen.findByText("Selecciona el ingrediente que abastece este insumo.")).toBeInTheDocument();
+    const confirmar = screen.getByRole("button", { name: "Confirmar registro" });
+    // T07-07: the button works only with every requirement done, so «Selecciona el ingrediente…» is not reachable.
+    expect(confirmar).toBeDisabled();
+    const requisitos = within(screen.getByRole("list", { name: "Requisitos para confirmar" }));
+    expect(requisitos.getByText(/Ingrediente asociado/)).toHaveTextContent("(pendiente)");
+    await user.click(confirmar);
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
   });
 
@@ -443,6 +468,7 @@ describe("Precarga del formulario", () => {
     await esperarFormularioConProducto();
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
 
+    await user.click(volverALaBusqueda());
     await entregarCodigo(user, OTRO_CODIGO);
 
     await waitFor(() => expect(campo("Marca u origen")).toHaveValue("Carmencita"));
@@ -453,72 +479,85 @@ describe("Precarga del formulario", () => {
   });
 });
 
-describe("Formulario con cambios del productor", () => {
+describe("Volver a la búsqueda con cambios del productor", () => {
   async function conCambios() {
     const user = await abrirPagina();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
-    await user.selectOptions(campo("Ingrediente"), "2");
     await entregarCodigo(user, CODIGO);
+    await esperarFormularioConProducto();
+    await user.type(campo("Advertencias"), "Lo que yo escribí");
+    await user.click(volverALaBusqueda());
     return user;
   }
 
-  it("pide confirmación antes de reemplazarlos y no cambia nada mientras tanto", async () => {
+  it("pide confirmación antes de descartarlos y no cambia nada mientras tanto", async () => {
     await conCambios();
 
-    const confirmacion = await screen.findByRole("alertdialog", { name: "Reemplazar los datos del formulario" });
+    const confirmacion = await screen.findByRole("alertdialog", { name: "Salir sin guardar" });
     expect(confirmacion).toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    expect(campo("Advertencias")).toHaveValue("Lo que yo escribí");
   });
 
-  it("«Reemplazar datos» aplica el producto y conserva el ingrediente elegido", async () => {
+  it("«Salir sin guardar» descarta el producto y vuelve a la búsqueda", async () => {
     const user = await conCambios();
 
-    await user.click(await screen.findByRole("button", { name: "Reemplazar datos" }));
+    await user.click(await screen.findByRole("button", { name: "Salir sin guardar" }));
 
-    await esperarFormularioConProducto();
-    expect(campo("Ingrediente")).toHaveValue("2");
+    expect(await screen.findByRole("region", { name: "Buscar por código de barras" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+  });
+
+  it("«Seguir editando» deja el formulario como estaba", async () => {
+    const user = await conCambios();
+
+    await user.click(await screen.findByRole("button", { name: "Seguir editando" }));
+
+    expect(campo("Advertencias")).toHaveValue("Lo que yo escribí");
+    expect(campo("Nombre")).toHaveValue("LONCO LECHE SIN LACTOSA");
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("«Conservar lo escrito» deja el formulario como estaba y retira el mensaje de producto encontrado", async () => {
-    const user = await conCambios();
-
-    await user.click(await screen.findByRole("button", { name: "Conservar lo escrito" }));
-
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
-    expect(campo("Código de barras")).toHaveValue("");
-    expect(screen.queryByText(MENSAJE_ENCONTRADO)).not.toBeInTheDocument();
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-  });
-
-  it("alérgenos declarados por el productor también cuentan como cambios", async () => {
+  it("alérgenos quitados por el productor también cuentan como cambios", async () => {
     const user = await abrirPagina();
-    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-
     await entregarCodigo(user, CODIGO);
+    await esperarFormularioConProducto();
+    await user.click(screen.getByRole("button", { name: "Quitar alérgeno Maní" }));
 
-    expect(await screen.findByRole("alertdialog", { name: "Reemplazar los datos del formulario" })).toBeInTheDocument();
+    await user.click(volverALaBusqueda());
+
+    expect(await screen.findByRole("alertdialog", { name: "Salir sin guardar" })).toBeInTheDocument();
   });
 
-  it("no encontrado: conserva lo escrito y solo agrega el código, sin pedir confirmación", async () => {
+  it("sin cambios vuelve a la búsqueda sin preguntar", async () => {
+    const user = await abrirPagina();
+    await entregarCodigo(user, CODIGO);
+    await esperarFormularioConProducto();
+
+    await user.click(volverALaBusqueda());
+
+    expect(await screen.findByRole("region", { name: "Buscar por código de barras" })).toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("no encontrado: el formulario manual conserva el código y no pide confirmación", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
     const user = await abrirPagina();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
-    await user.selectOptions(campo("Ingrediente"), "2");
 
     await entregarCodigo(user, CODIGO);
+    await irAManual(user);
 
     await waitFor(() => expect(campo("Código de barras")).toHaveValue(CODIGO));
-    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
-    expect(campo("Ingrediente")).toHaveValue("2");
+    expect(campo("Nombre")).toHaveValue("");
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("no encontrado: lo escrito sigue protegido al salir de la página", async () => {
+  it("no encontrado: lo escrito en el formulario manual sigue protegido al salir de la página", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
     const user = await abrirPagina();
-    await user.type(campo("Nombre"), "Lo que yo escribí");
     await entregarCodigo(user, CODIGO);
+    await irAManual(user);
+    await user.type(campo("Nombre"), "Lo que yo escribí");
     await waitFor(() => expect(campo("Código de barras")).toHaveValue(CODIGO));
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -530,12 +569,14 @@ describe("Formulario con cambios del productor", () => {
 // =============================================================================================
 
 describe("Alérgenos sugeridos", () => {
-  it("avisa que son sugeridos y que hay que compararlos con el envase", async () => {
+  it("la revisión pide revisar los alérgenos con el envase a la vista", async () => {
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
-    expect(await screen.findByText(AVISO_SUGERIDOS)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Revisa esta sección con el envase a la vista. Es obligatoria antes de confirmar."),
+    ).toBeInTheDocument();
   });
 
   it("carga los alérgenos con su tipo y muestra de dónde viene cada uno", async () => {
@@ -543,12 +584,12 @@ describe("Alérgenos sugeridos", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    const contiene = await screen.findByRole("region", { name: "Contiene" });
+    const contiene = await screen.findByRole("group", { name: "Contiene" });
     expect(within(contiene).getByText("Leche")).toBeInTheDocument();
-    expect(within(contiene).getByText("(según el texto de ingredientes)")).toBeInTheDocument();
-    const trazas = screen.getByRole("region", { name: "Puede contener" });
+    expect(within(contiene).getByText("Fuentes: Detectado en los ingredientes")).toBeInTheDocument();
+    const trazas = screen.getByRole("group", { name: "Puede contener" });
     expect(within(trazas).getByText("Maní")).toBeInTheDocument();
-    expect(within(trazas).getByText("(según la etiqueta de la fuente)")).toBeInTheDocument();
+    expect(within(trazas).getByText("Fuentes: Open Food Facts")).toBeInTheDocument();
   });
 
   it("lista lo que no pudo asociar para que el productor lo asigne a mano (CA06)", async () => {
@@ -556,49 +597,49 @@ describe("Alérgenos sugeridos", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    expect(await screen.findByText("No pudimos asociar:")).toBeInTheDocument();
-    const lista = screen.getByText("No pudimos asociar:").parentElement!;
-    const items = within(lista).getAllByRole("listitem").map((item) => item.textContent);
-    expect(items).toEqual(["en:tree-nuts", "harina"]);
+    expect(await screen.findByText("Términos sin reconocer")).toBeInTheDocument();
+    expect(screen.getByText("“en:tree-nuts”")).toBeInTheDocument();
+    expect(screen.getByText("“harina”")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Asignar “.*” a un alérgeno/ })).toHaveLength(2);
   });
 
-  it("el origen deja de mostrarse al quitar el alérgeno, y quitarlo no cambia la validación", async () => {
+  it("el origen deja de mostrarse al quitar el alérgeno", async () => {
     const user = await abrirPagina();
     await entregarCodigo(user, CODIGO);
-    await screen.findByText("(según el texto de ingredientes)");
+    await screen.findByText("Fuentes: Detectado en los ingredientes");
 
     await user.click(screen.getByRole("button", { name: "Quitar alérgeno Leche" }));
 
-    expect(screen.queryByText("(según el texto de ingredientes)")).not.toBeInTheDocument();
-    expect(screen.getByText("(según la etiqueta de la fuente)")).toBeInTheDocument();
+    expect(screen.queryByText("Fuentes: Detectado en los ingredientes")).not.toBeInTheDocument();
+    expect(screen.getByText("Fuentes: Open Food Facts")).toBeInTheDocument();
   });
 
-  it("sin sugerencias: el selector queda vacío, no hay aviso, y hay que declarar o marcar «no contiene»", async () => {
+  it("sin sugerencias: nadie informa alérgenos, no hay términos y hay que declarar o marcar «no contiene»", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
     const user = await abrirPagina();
-    await user.selectOptions(campo("Ingrediente"), "1");
 
     await entregarCodigo(user, OTRO_CODIGO);
 
     await waitFor(() => expect(campo("Nombre")).toHaveValue("Bicarbonato sódico"));
-    expect(screen.queryByText(AVISO_SUGERIDOS)).not.toBeInTheDocument();
-    expect(screen.queryByText("No pudimos asociar:")).not.toBeInTheDocument();
-    expect(screen.getByText("Aún no declaraste alérgenos.")).toBeInTheDocument();
+    expect(screen.queryByText("Términos sin reconocer")).not.toBeInTheDocument();
+    expect(screen.getByText("Ninguna fuente informa alérgenos que contiene.")).toBeInTheDocument();
     expect(screen.getByLabelText("Este insumo no contiene alérgenos")).not.toBeChecked();
+    await user.click(await screen.findByRole("radio", { name: "Leche" }));
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
-
-    expect(await screen.findByText(MENSAJE_ALERGENOS_INVALIDOS)).toBeInTheDocument();
+    // T07-07: the message of the failed save is not reachable; the button stays disabled until it is declared.
+    const confirmar = screen.getByRole("button", { name: "Confirmar registro" });
+    expect(confirmar).toBeDisabled();
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
 
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
+    await user.click(confirmar);
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(vi.mocked(insumoService.createInsumo).mock.calls[0][0].alergenos).toEqual([]);
   });
 
-  it("solo hay términos sin reconocer: se listan, sin aviso de sugeridos, y el selector sigue vacío", async () => {
+  it("solo hay términos sin reconocer: se listan, sin alérgenos declarados, y cada uno exige una decisión", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue({
       ...SIN_ALERGENOS,
       alergenos: { contiene: [], trazas: [], sin_reconocer: ["en:novel-food"] },
@@ -607,18 +648,26 @@ describe("Alérgenos sugeridos", () => {
 
     await entregarCodigo(user, OTRO_CODIGO);
 
-    expect(await screen.findByText("en:novel-food")).toBeInTheDocument();
-    expect(screen.queryByText(AVISO_SUGERIDOS)).not.toBeInTheDocument();
-    expect(screen.getByText("Aún no declaraste alérgenos.")).toBeInTheDocument();
+    expect(await screen.findByText("“en:novel-food”")).toBeInTheDocument();
+    expect(screen.getByText("Ninguna fuente informa alérgenos que contiene.")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Leche" }));
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
+    // The term has no decision yet: «Alérgenos revisados» is pending.
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: /“en:novel-food” no es un alérgeno/ }));
+
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeEnabled();
   });
 });
 
 // =============================================================================================
 
-describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloque 3)", () => {
-  const resumen = () => document.querySelector<HTMLElement>("[data-resumen-producto-encontrado]");
+describe("Revisión de lo encontrado (HT07, T07-07)", () => {
+  const revision = () => document.querySelector<HTMLElement>("[data-revision-recuperada]");
 
-  it("con el formulario vacío, «Abrir cámara» es el botón principal y ocupa todo el ancho en el celular", async () => {
+  it("en la búsqueda, «Abrir cámara» es el botón principal y ocupa todo el ancho en el celular", async () => {
     await abrirPagina();
 
     const boton = botonEscanear();
@@ -627,29 +676,29 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
     expect(screen.getByLabelText("Código de barras del envase")).toBeInTheDocument();
   });
 
-  it("después de encontrar el producto muestra el resumen junto al formulario (el botón de la cámara sigue siendo el principal)", async () => {
+  it("después de encontrar el producto pasa a la revisión, sin el mensaje verde «Encontrado…»", async () => {
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
-    await waitFor(() => expect(resumen()).not.toBeNull());
-    expect(resumen()).toHaveTextContent("Encontrado: LONCO LECHE SIN LACTOSA · sugerimos Leche, Maní");
-    // T07-07 (design): the camera button is the primary action of its banner at every moment.
-    expect(botonEscanear()).toHaveClass("bg-brand-600");
-    // El resumen va antes del formulario (T07-07: ahora la búsqueda también tiene un <form>, el del código).
-    const formulario = campo("Nombre").closest("form") as HTMLElement;
-    expect(resumen()!.compareDocumentPosition(formulario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await waitFor(() => expect(revision()).not.toBeNull());
+    // T07-07: the green summary is gone; the sources and the allergens in the review say what it said.
+    expect(document.querySelector("[data-resumen-producto-encontrado]")).toBeNull();
+    expect(screen.queryByText(/Encontrado: /)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Buscar por código de barras" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar insumo" })).not.toBeInTheDocument();
   });
 
-  it("la vista se desplaza al inicio del formulario precargado, suave salvo con prefers-reduced-motion", async () => {
+  it("la vista se desplaza al inicio de la revisión, suave salvo con prefers-reduced-motion", async () => {
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
-    await waitFor(() => expect(resumen()).not.toBeNull());
+    await waitFor(() => expect(revision()).not.toBeNull());
     const desplazar = vi.mocked(Element.prototype.scrollIntoView);
     expect(desplazar).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
-    expect(desplazar.mock.contexts.at(-1)).toBe(resumen());
+    expect(desplazar.mock.contexts.at(-1)).toBe(revision());
   });
 
   it("con prefers-reduced-motion el desplazamiento no es suave", async () => {
@@ -673,16 +722,17 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
     }
   });
 
-  it("un producto sin alérgenos sugeridos lo dice en el resumen", async () => {
+  it("un producto sin alérgenos sugeridos lo dice en la columna «Contiene»", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(SIN_ALERGENOS);
     const user = await abrirPagina();
 
     await entregarCodigo(user, OTRO_CODIGO);
 
-    await waitFor(() => expect(resumen()).toHaveTextContent("Encontrado: Bicarbonato sódico · sin alérgenos sugeridos"));
+    await waitFor(() => expect(campo("Nombre")).toHaveValue("Bicarbonato sódico"));
+    expect(screen.getByText("Ninguna fuente informa alérgenos que contiene.")).toBeInTheDocument();
   });
 
-  it("si no lo encuentra, no hay resumen ni desplazamiento, y se ofrece buscar por nombre o ingresar a mano (T07-08)", async () => {
+  it("si no lo encuentra, no hay revisión ni desplazamiento, y se ofrece buscar por nombre o ingresar a mano (T07-08)", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
     const user = await abrirPagina();
     vi.mocked(Element.prototype.scrollIntoView).mockClear();
@@ -690,16 +740,18 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
     await entregarCodigo(user, CODIGO);
 
     await screen.findByText(MENSAJE_NO_ENCONTRADO);
-    expect(resumen()).toBeNull();
+    expect(revision()).toBeNull();
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "Buscar por nombre" })).toHaveAttribute("href", "/insumos/nuevo/nombre");
     expect(screen.getByRole("link", { name: "Ingresar manualmente" })).toHaveAttribute("href", "/insumos/nuevo/manual");
   });
 
-  it("el formulario dice «Crear insumo» al crear (y «Guardar cambios» al editar)", async () => {
-    await abrirPagina();
+  it("el formulario dice «Confirmar registro» al crear (y «Guardar cambios» al editar)", async () => {
+    const user = await abrirPagina();
+    await entregarCodigo(user, CODIGO);
+    await esperarFormularioConProducto();
 
-    expect(screen.getByRole("button", { name: "Crear insumo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Guardar insumo" })).not.toBeInTheDocument();
   });
 });
@@ -709,10 +761,9 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
 describe("El insumo se registra solo al guardar", () => {
   async function conProductoEncontrado() {
     const user = await abrirPagina();
-    await user.selectOptions(campo("Ingrediente"), "1");
     await entregarCodigo(user, CODIGO);
     await esperarFormularioConProducto();
-    await screen.findByText(AVISO_SUGERIDOS);
+    await completarRevision(user, "Leche");
     return user;
   }
 
@@ -738,7 +789,7 @@ describe("El insumo se registra solo al guardar", () => {
   it("al guardar envía el insumo con alérgenos, fuente, fecha de recuperación y ficha", async () => {
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith({
@@ -764,11 +815,13 @@ describe("El insumo se registra solo al guardar", () => {
   it("lo que el productor cambia antes de guardar es lo que se envía", async () => {
     const user = await conProductoEncontrado();
     await user.click(screen.getByRole("button", { name: "Quitar alérgeno Maní" }));
-    await user.click(screen.getByRole("button", { name: "Cambiar Leche a Puede contener" }));
+    await user.click(screen.getByRole("button", { name: "Cambiar Leche a Puede contener (trazas)" }));
     await user.clear(campo("Nombre"));
     await user.type(campo("Nombre"), "Leche sin lactosa 1 L");
+    // «Contiene» is now empty: the productor confirms there is nothing in it.
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(insumoService.createInsumo).mock.calls[0][0];
@@ -779,7 +832,9 @@ describe("El insumo se registra solo al guardar", () => {
   });
 
   it("cancelar después de buscar no registra nada (PT13-12)", async () => {
-    const user = await conProductoEncontrado();
+    const user = await abrirPagina();
+    await entregarCodigo(user, CODIGO);
+    await esperarFormularioConProducto();
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -793,7 +848,7 @@ describe("El insumo se registra solo al guardar", () => {
   it("al guardar con éxito vuelve al listado", async () => {
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
   });
@@ -802,7 +857,7 @@ describe("El insumo se registra solo al guardar", () => {
     vi.mocked(insumoService.createInsumo).mockRejectedValue(duplicado(10, true));
     const user = await conProductoEncontrado();
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toHaveAttribute("href", "/insumos/10");
   });
@@ -818,11 +873,10 @@ describe("El código ya está registrado (409)", () => {
     await entregarCodigo(user, CODIGO);
 
     expect(await screen.findByText(/Ya tienes este insumo/)).toBeInTheDocument();
-    const aviso = screen.getByText(/Ya tienes este insumo/).closest("div")!;
+    const aviso = screen.getByText(/Ya tienes este insumo/).closest("div")!.parentElement!;
     expect(within(aviso).getByRole("link", { name: "Ver insumo" })).toHaveAttribute("href", "/insumos/10");
     expect(within(aviso).queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
-    expect(campo("Nombre")).toHaveValue("");
-    expect(campo("Código de barras")).toHaveValue("");
+    expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     expect(screen.queryByText(MENSAJE_ENCONTRADO)).not.toBeInTheDocument();
   });
 
@@ -832,7 +886,7 @@ describe("El código ya está registrado (409)", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    const aviso = (await screen.findByText(/Ya tienes este insumo/)).closest("div")!;
+    const aviso = (await screen.findByText(/Ya tienes este insumo/)).closest("div")!.parentElement!;
     expect(within(aviso).getByRole("link", { name: "Ver insumo" })).toBeInTheDocument();
     expect(within(aviso).getByRole("button", { name: "Reactivar" })).toBeInTheDocument();
   });

@@ -10,6 +10,7 @@ import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
+import { elegirIngrediente, responderSinTrazas } from "@/test/formularioInsumo";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type { AlergenoCatalogo, Ingrediente } from "@/types/ingredient";
@@ -167,12 +168,14 @@ function openPage(path: string) {
 }
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
-  await screen.findByRole("option", { name: "Leche" });
+  await screen.findByRole("radio", { name: "Leche" });
   await user.type(screen.getByLabelText("Nombre"), "Leche Colun Entera 1 L");
   await user.type(screen.getByLabelText("Marca u origen"), "Colun");
-  await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+  await elegirIngrediente(user, "Leche");
   // HT06: the allergens must be declared; the supplies of these tests contain none.
   await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+  // T07-07: and the productor answers about «puede contener» (CA17) before confirming.
+  await responderSinTrazas(user);
 }
 
 // --- menú ---
@@ -472,11 +475,11 @@ describe("Presentación del insumo en el listado", () => {
 // --- formulario ---
 
 describe("Formulario de insumo", () => {
-  it("muestra todos los campos, el selector de ingredientes activos y los textos de ayuda", async () => {
+  it("muestra todos los campos, las opciones de ingredientes activos y solo la ayuda que previene errores", async () => {
     openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
     for (const label of [
       "Nombre",
       "Marca u origen",
@@ -489,32 +492,60 @@ describe("Formulario de insumo", () => {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
     expect(screen.getByRole("checkbox", { name: "Insumo habitual" })).not.toBeChecked();
-    expect(screen.getByText("Por ejemplo, la marca del producto o 'Feria local'.")).toBeInTheDocument();
-    expect(screen.getByText("Se preselecciona al crear una elaboración.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Marca u origen")).toHaveAccessibleDescription(
-      "Por ejemplo, la marca del producto o 'Feria local'.",
+    // T07-07: the help texts that did not prevent an error are gone; the barcode format stays.
+    expect(screen.queryByText("Por ejemplo, la marca del producto o 'Feria local'.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Se preselecciona al crear una elaboración.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Código de barras")).toHaveAccessibleDescription(
+      "EAN-8, UPC-A o EAN-13 (8, 12 o 13 dígitos).",
     );
-    expect(screen.getByRole("checkbox", { name: "Insumo habitual" })).toHaveAccessibleDescription(
-      "Se preselecciona al crear una elaboración.",
-    );
+    // «Opcional» is a label beside the name of the optional fields.
+    expect(screen.getAllByText("Opcional").length).toBeGreaterThanOrEqual(3);
     const opciones = within(screen.getByLabelText("Ingrediente"))
-      .getAllByRole("option")
-      .map((option) => option.textContent);
-    expect(opciones).toEqual(["Selecciona un ingrediente", "Chocolate", "Leche"]);
+      .getAllByRole("radio")
+      .map((radio) => radio.closest("label")?.textContent);
+    expect(opciones).toEqual(["Chocolate", "Leche"]);
   });
 
-  it("valida los campos obligatorios y no envía", async () => {
+  it("sin los datos obligatorios el botón no se habilita y no envía (los requisitos quedan pendientes)", async () => {
     const user = userEvent.setup();
     openPage("/insumos/nuevo/manual");
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
-
-    expect(await screen.findByText("El nombre es obligatorio.")).toBeInTheDocument();
-    expect(screen.getByText("La marca u origen es obligatoria.")).toBeInTheDocument();
-    expect(screen.getByText("Selecciona el ingrediente que abastece este insumo.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre")).toHaveFocus();
+    // T07-07: the button only works with every requirement done, so the messages of the empty form
+    // («El nombre es obligatorio.»…) are not reachable here; validateInsumoForm still builds them (lib tests).
+    const confirmar = screen.getByRole("button", { name: "Confirmar registro" });
+    expect(confirmar).toBeDisabled();
+    const requisitos = within(screen.getByRole("list", { name: "Requisitos para confirmar" }));
+    expect(requisitos.getByText(/Información comercial revisada/)).toHaveTextContent("(pendiente)");
+    expect(requisitos.getByText(/Ingrediente asociado/)).toHaveTextContent("(pendiente)");
+    await user.click(confirmar);
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Nombre"), "Leche");
+    await user.type(screen.getByLabelText("Marca u origen"), "Colun");
+    await elegirIngrediente(user, "Leche");
+    expect(requisitos.getByText(/Información comercial revisada/)).toHaveTextContent("(listo)");
+    expect(requisitos.getByText(/Ingrediente asociado/)).toHaveTextContent("(listo)");
+    expect(requisitos.getByText(/Trazas verificadas/)).toHaveTextContent("(pendiente)");
+    expect(requisitos.getByText(/Alérgenos revisados/)).toHaveTextContent("(pendiente)");
+    expect(confirmar).toBeDisabled();
+  });
+
+  it("el botón se habilita solo con las 4 filas: información, ingrediente, trazas y alérgenos", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos/nuevo/manual");
+    await screen.findByRole("radio", { name: "Leche" });
+    const confirmar = screen.getByRole("button", { name: "Confirmar registro" });
+    await user.type(screen.getByLabelText("Nombre"), "Leche");
+    await user.type(screen.getByLabelText("Marca u origen"), "Colun");
+    await elegirIngrediente(user, "Leche");
+    expect(confirmar).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    expect(confirmar).toBeDisabled();
+
+    await responderSinTrazas(user);
+    expect(confirmar).toBeEnabled();
   });
 
   it("informa el dígito verificador inválido en el campo y no envía", async () => {
@@ -523,7 +554,7 @@ describe("Formulario de insumo", () => {
     await fillValidForm(user);
 
     await user.type(screen.getByLabelText("Código de barras"), "7802910000972");
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(
       await screen.findByText("El dígito verificador del código de barras no es válido."),
@@ -541,7 +572,7 @@ describe("Formulario de insumo", () => {
     await user.type(screen.getByLabelText("Advertencias"), "Contiene leche");
     await user.click(screen.getByRole("checkbox", { name: "Insumo habitual" }));
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith({
@@ -572,7 +603,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(await screen.findByText("Revisa la marca u origen.")).toBeInTheDocument();
     expect(screen.getByLabelText("Marca u origen")).toHaveAttribute("aria-invalid", "true");
@@ -587,7 +618,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(await screen.findByText("Ingrediente no válido")).toBeInTheDocument();
     expect(screen.getByLabelText("Ingrediente")).toHaveAttribute("aria-invalid", "true");
@@ -599,7 +630,7 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(
       await screen.findByText("No pudimos guardar el insumo. Revisa tu conexión e inténtalo de nuevo."),
@@ -623,18 +654,18 @@ describe("Formulario de insumo", () => {
     openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByText("No pudimos cargar tus ingredientes.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Ingrediente")).toBeDisabled();
+    // T07-07: the choice is a group of options, not a select: while the load failed there is none to choose.
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
 
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
 
-    expect(await screen.findByRole("option", { name: "Leche" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Ingrediente")).toBeEnabled();
+    expect(await screen.findByRole("radio", { name: "Leche" })).toBeEnabled();
   });
 
   it("avisa antes de salir con cambios sin guardar", async () => {
     const user = userEvent.setup();
     openPage("/insumos/nuevo/manual");
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
     await user.type(screen.getByLabelText("Nombre"), "Algo");
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -655,7 +686,7 @@ describe("Código de barras repetido (409)", () => {
     openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
     await user.type(screen.getByLabelText("Código de barras"), EAN_13);
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
   }
 
   it("si el existente está activo muestra el mensaje con un enlace a ese insumo", async () => {
@@ -736,10 +767,10 @@ describe("Edición de insumo", () => {
     openPage("/insumos/10/editar");
 
     expect(await screen.findByRole("heading", { name: "Editar insumo", level: 1 })).toBeInTheDocument();
-    await screen.findByRole("option", { name: "Chocolate" });
+    await screen.findByRole("radio", { name: "Chocolate" });
     expect(screen.getByLabelText("Nombre")).toHaveValue("Leche Colun Semidescremada 1 L");
     expect(screen.getByLabelText("Marca u origen")).toHaveValue("Colun");
-    expect(screen.getByLabelText("Ingrediente")).toHaveValue("1");
+    expect(screen.getByRole("radio", { name: "Leche" })).toBeChecked();
     expect(screen.getByLabelText("Código de barras")).toHaveValue(EAN_13);
     expect(screen.getByRole("checkbox", { name: "Insumo habitual" })).toBeChecked();
 
@@ -756,7 +787,7 @@ describe("Edición de insumo", () => {
   it("sin cambios no envía nada y vuelve al detalle", async () => {
     const user = userEvent.setup();
     openPage("/insumos/10/editar");
-    await screen.findByRole("option", { name: "Chocolate" });
+    await screen.findByRole("radio", { name: "Chocolate" });
 
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
@@ -770,8 +801,7 @@ describe("Edición de insumo", () => {
     );
     openPage("/insumos/10/editar");
 
-    expect(await screen.findByRole("option", { name: "Azúcar (desactivado)" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Ingrediente")).toHaveValue("9");
+    expect(await screen.findByRole("radio", { name: "Azúcar (desactivado)" })).toBeChecked();
   });
 
   it("un código repetido de un insumo inactivo permite reactivarlo desde la edición", async () => {
@@ -779,7 +809,7 @@ describe("Edición de insumo", () => {
     vi.mocked(insumoService.updateInsumo).mockRejectedValueOnce(duplicateError(12, false));
     vi.mocked(insumoService.reactivateInsumo).mockResolvedValue({ ...INS_INACTIVO, activo: true });
     openPage("/insumos/10/editar");
-    await screen.findByRole("option", { name: "Chocolate" });
+    await screen.findByRole("radio", { name: "Chocolate" });
 
     await user.clear(screen.getByLabelText("Código de barras"));
     await user.type(screen.getByLabelText("Código de barras"), OTRO_EAN_13);
@@ -1167,13 +1197,14 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
       insumo({ id: 21, nombre: "Huevos de campo", marca_origen: "Feria local", codigo_barras: null }),
     );
     openPage("/insumos/nuevo/manual");
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
 
     await user.type(screen.getByLabelText("Nombre"), "Huevos de campo");
     await user.type(screen.getByLabelText("Marca u origen"), "Feria local");
-    await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await elegirIngrediente(user, "Leche");
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await responderSinTrazas(user);
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1218,7 +1249,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -1231,7 +1262,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.updateInsumo).mockResolvedValue({ ...INS_CHOCOLATE, habitual: true });
     openPage("/insumos/11/editar");
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
     const casilla = screen.getByRole("checkbox", { name: "Insumo habitual" });
     expect(casilla).not.toBeChecked();
 
@@ -1255,7 +1286,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.updateInsumo).mockResolvedValue({ ...INS_LECHE, habitual: false });
     openPage("/insumos/10/editar");
-    await screen.findByRole("option", { name: "Chocolate" });
+    await screen.findByRole("radio", { name: "Chocolate" });
 
     await user.click(screen.getByRole("checkbox", { name: "Insumo habitual" }));
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
@@ -1270,19 +1301,22 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
 describe("PT04-13: adaptación a dispositivos móviles (verificación estructural)", () => {
   it("el formulario usa campos y botones a ancho completo en celular y en fila desde sm", async () => {
     openPage("/insumos/nuevo/manual");
-    await screen.findByRole("option", { name: "Leche" });
+    await screen.findByRole("radio", { name: "Leche" });
 
-    for (const label of ["Nombre", "Marca u origen", "Ingrediente", "Código de barras", "Advertencias"]) {
+    for (const label of ["Nombre", "Marca u origen", "Código de barras", "Advertencias"]) {
       expect(screen.getByLabelText(label)).toHaveClass("w-full");
     }
-    const guardar = screen.getByRole("button", { name: "Crear insumo" });
+    const guardar = screen.getByRole("button", { name: "Confirmar registro" });
     const cancelar = screen.getByRole("button", { name: "Cancelar" });
     for (const boton of [guardar, cancelar]) {
-      expect(boton).toHaveClass("w-full", "sm:w-auto", "min-h-11");
+      expect(boton).toHaveClass("w-full", "min-h-11");
     }
-    // HT07: Cancelar y Guardar van lado a lado también en el celular (dos columnas), en fila desde sm.
-    expect(guardar.parentElement).toHaveClass("grid", "grid-cols-2", "sm:flex", "sm:flex-row");
-    expect(guardar.closest("form")).toHaveClass("max-w-2xl");
+    // T07-07: the review is one column on a phone and two from xl (the aside with the confirmation on the right).
+    expect(guardar.closest(".grid")).toHaveClass("grid-cols-1", "xl:grid-cols-[minmax(0,1fr)_20rem]");
+    // The ingredient is a group of options of 44 px.
+    for (const radio of screen.getAllByRole("radio")) {
+      expect(radio.closest("label")).toHaveClass("min-h-11");
+    }
   });
 
   it("el listado muestra tarjetas en celular y tabla desde md", async () => {

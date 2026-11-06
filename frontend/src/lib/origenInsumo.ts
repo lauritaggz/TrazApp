@@ -27,6 +27,7 @@ export type CampoDelProducto = (typeof CAMPOS_DEL_PRODUCTO)[number];
 export interface AlergenoPropuesto {
   alergeno_id: number;
   codigo: string;
+  nombre?: string;
   tipo: typeof TIPO_CONTIENE | typeof TIPO_TRAZAS;
   fuentes: string[];
 }

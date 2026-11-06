@@ -1,4 +1,5 @@
 import { origenDeConsulta, type OrigenPropuesta } from "@/lib/origenInsumo";
+import { revisionDeConsulta, type DatosRevision } from "@/lib/revisionInsumo";
 import type { ConsultaCodigo, SugerenciasAlergenos } from "@/types/consultaCodigo";
 import {
   TIPO_CONTIENE,
@@ -24,6 +25,8 @@ export interface PrecargaInsumo {
   origen?: OrigenPropuesta;
   /** HU07: the product's thumbnail (address and source), for presentation only: it is never sent or saved. */
   imagen?: { url: string | null; fuente: string };
+  /** HU07: what the review shows about where each field and allergen came from; absent for a manual entry. */
+  revision?: DatosRevision;
   /** The allergens that were suggested, for presentation only. */
   sugerencias?: SugerenciasAlergenos;
   /** «Encontrado: … · sugerimos …»: a line next to the form that says what was found (HT07). */
@@ -97,6 +100,7 @@ export function precargaDeProducto(consulta: ConsultaCodigo, ingredienteId: stri
       ficha: consulta.ficha,
     },
     origen: origenDeConsulta(consulta),
+    revision: fuenteDeConsulta(consulta.fuente) === "manual" ? undefined : revisionDeConsulta(consulta),
     imagen: { url: consulta.imagen_url ?? null, fuente: consulta.imagen_fuente ?? consulta.fuente },
     sugerencias: sugerenciasDeConsulta(consulta),
     resumen: resumenDeConsulta(consulta),
