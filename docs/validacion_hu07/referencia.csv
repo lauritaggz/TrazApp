@@ -1,0 +1,3 @@
+id,nombre,marca,codigo_barras,contiene,puede_contener,tiene_ingredientes,tipo_referencia,fecha,notas
+ejemplo-1,Queso mantecoso laminado,Quilque,7802900001193,lacteos,no_indica,si,envase,2026-11-06,ejemplo: fila de muestra del formato; se omite al medir
+ejemplo-2,Leche proteína capuccino,Loncoleche,,lacteos,soja;gluten,si,foto,2026-11-06,ejemplo: sin código de barras se mide por búsqueda por nombre; se omite al medir
