@@ -144,6 +144,9 @@ class FuenteCombinada:
             fuente=NOMBRE_FUENTE,
             fuentes_campos=_con_alergenos(campos, base, trazas_texto=bool(trazas_texto)),
             ficha=ficha,
+            # The picture: Jumbo's first, else Open Food Facts'. Each one carries its own attribution.
+            imagen_url=jumbo.imagen_url or base.imagen_url,
+            imagen_fuente=(jumbo.imagen_fuente if jumbo.imagen_url else base.imagen_fuente),
         )
 
 

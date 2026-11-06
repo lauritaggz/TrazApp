@@ -62,7 +62,7 @@ def test_la_busqueda_responde_nombre_marca_presentacion_e_id_de_hasta_10_resulta
     resultados = respuesta.json()
     assert len(resultados) == 10
     primero = resultados[0]
-    assert set(primero) == {"id", "nombre", "marca", "presentacion", "url"}
+    assert set(primero) == {"id", "nombre", "marca", "presentacion", "url", "imagen_url"}
     assert primero["id"] == "queso-mantecoso-las-parcelas-valdivia-granel"
     assert primero["nombre"] == "Queso Mantecoso Las Parcelas de Valdivia Trozo Granel"
     assert primero["marca"] == "Las Parcelas de Valdivia"

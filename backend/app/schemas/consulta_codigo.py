@@ -64,7 +64,12 @@ class ProductoPropuestoRead(BaseModel):
 
 
 class ConsultaCodigoRead(_OmiteOpcionalesVacios):
-    OPCIONALES: ClassVar[tuple[str, ...]] = ("fuentes_campos", "fuentes_sin_respuesta")
+    OPCIONALES: ClassVar[tuple[str, ...]] = (
+        "fuentes_campos",
+        "fuentes_sin_respuesta",
+        "imagen_url",
+        "imagen_fuente",
+    )
 
     """A proposal for the supply form. Nothing is registered until the productor confirms."""
 
@@ -79,6 +84,9 @@ class ConsultaCodigoRead(_OmiteOpcionalesVacios):
     # which source supplied each field of `producto`, and the sources that did not answer in time.
     fuentes_campos: dict[str, str] | None = None
     fuentes_sin_respuesta: list[str] | None = None
+    # HU07: thumbnail of the product and who it comes from (attribution). Only addresses, never saved.
+    imagen_url: str | None = None
+    imagen_fuente: str | None = None
 
 
 
@@ -90,3 +98,4 @@ class ResultadoBusquedaRead(BaseModel):
     marca: str | None = None
     presentacion: str | None = None
     url: str | None = None
+    imagen_url: str | None = None

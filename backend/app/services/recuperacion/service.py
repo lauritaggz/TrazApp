@@ -112,6 +112,8 @@ class RecuperacionService:
             }
             or None,
             fuentes_sin_respuesta=list(producto.fuentes_sin_respuesta) or None,
+            imagen_url=producto.imagen_url,
+            imagen_fuente=producto.imagen_fuente if producto.imagen_url else None,
         )
 
     def buscar_por_nombre(self, texto: str) -> list[ResultadoBusquedaRead]:
@@ -124,7 +126,12 @@ class RecuperacionService:
         resultados = self._fuente_nombre().buscar_por_nombre(limpio)
         return [
             ResultadoBusquedaRead(
-                id=r.id, nombre=r.nombre, marca=r.marca, presentacion=r.presentacion, url=r.url
+                id=r.id,
+                nombre=r.nombre,
+                marca=r.marca,
+                presentacion=r.presentacion,
+                url=r.url,
+                imagen_url=r.imagen_url,
             )
             for r in resultados
         ]

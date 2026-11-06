@@ -22,6 +22,8 @@ export interface PrecargaInsumo {
   extra?: Partial<InsumoCreatePayload>;
   /** HU07: where each field and allergen came from, to record it (and what was edited) on confirming. */
   origen?: OrigenPropuesta;
+  /** HU07: the product's thumbnail (address and source), for presentation only: it is never sent or saved. */
+  imagen?: { url: string | null; fuente: string };
   /** The allergens that were suggested, for presentation only. */
   sugerencias?: SugerenciasAlergenos;
   /** «Encontrado: … · sugerimos …»: a line next to the form that says what was found (HT07). */
@@ -95,6 +97,7 @@ export function precargaDeProducto(consulta: ConsultaCodigo, ingredienteId: stri
       ficha: consulta.ficha,
     },
     origen: origenDeConsulta(consulta),
+    imagen: { url: consulta.imagen_url ?? null, fuente: consulta.imagen_fuente ?? consulta.fuente },
     sugerencias: sugerenciasDeConsulta(consulta),
     resumen: resumenDeConsulta(consulta),
   };

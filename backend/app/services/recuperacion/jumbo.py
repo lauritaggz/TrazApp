@@ -30,7 +30,7 @@ from app.services.recuperacion.base import (
     MOTIVO_TIMEOUT,
     FuenteNoDisponibleError,
 )
-from app.services.recuperacion.modelos import ProductoFuente, ResultadoBusqueda
+from app.services.recuperacion.modelos import ProductoFuente, ResultadoBusqueda, url_de_imagen
 
 NOMBRE_FUENTE = "jumbo"
 MAX_RESULTADOS = 10
@@ -233,6 +233,7 @@ class JumboFuente:
             marca=_texto(producto.get("brand")),
             presentacion=_presentacion_de_busqueda(item, nombre),
             url=f"{self.base_url}/{slug}/p",
+            imagen_url=url_de_imagen(item.get("images")),
         )
 
     def obtener(
@@ -271,6 +272,7 @@ class JumboFuente:
             "condiciones_alimentarias": _propiedades(producto, "alimentaryConditions"),
             "puede_contener": puede_contener,
         }
+        imagen = url_de_imagen(producto.get("image"))
         return ProductoFuente(
             codigo_barras=codigo,
             nombre=nombre,
@@ -281,6 +283,8 @@ class JumboFuente:
             url=url,
             fuente=NOMBRE_FUENTE,
             ficha=ficha,
+            imagen_url=imagen,
+            imagen_fuente=NOMBRE_FUENTE if imagen else None,
         )
 
     def _pedir(

@@ -19,7 +19,10 @@
           "measurementUnit": "un",
           "unitMultiplier": 1,
           "price": 5900,
-          "stock": true
+          "stock": true,
+          "images": [
+            "https://imagenes.jumbo.test/quilque-500g-1.jpg"
+          ]
         }
       ]
     },
@@ -39,7 +42,10 @@
           "measurementUnit": "un",
           "unitMultiplier": 1,
           "price": 4170,
-          "stock": true
+          "stock": true,
+          "images": [
+            "http://inseguro.jumbo.test/quilque-250g.jpg"
+          ]
         }
       ]
     },
@@ -204,5 +210,5 @@
       ]
     }
   ],
-  "_nota": "Grabado de POST https://www.jumbo.cl/api/catalog {\"fullText\":\"quilque\"} el 2026-11-05; reducido a 10 productos y a los campos usados."
+  "_nota": "Grabado de POST https://www.jumbo.cl/api/catalog {\"fullText\":\"quilque\"} el 2026-11-05; reducido a 10 productos y a los campos usados. Se agregó el campo images (valores de prueba, no grabados) en dos productos; la forma real no está verificada."
 }

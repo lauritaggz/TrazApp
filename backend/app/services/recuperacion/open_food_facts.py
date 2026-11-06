@@ -12,7 +12,7 @@ from app.services.recuperacion.base import (
     MOTIVO_TIMEOUT,
     FuenteNoDisponibleError,
 )
-from app.services.recuperacion.modelos import ProductoFuente
+from app.services.recuperacion.modelos import ProductoFuente, url_de_imagen
 
 NOMBRE_FUENTE = "open_food_facts"
 
@@ -30,6 +30,8 @@ CAMPOS = (
     "countries_tags",
     "last_modified_t",
 )
+# Also requested, but only to show the thumbnail (HU07): it is not kept in the supply's `ficha`.
+CAMPO_IMAGEN = "image_url"
 
 
 def construir_url(base_url: str, codigo: str) -> str:
@@ -114,7 +116,7 @@ class OpenFoodFactsFuente:
             ) as cliente:
                 return cliente.get(
                     construir_url(self.base_url, codigo_barras),
-                    params={"fields": ",".join(CAMPOS)},
+                    params={"fields": ",".join((*CAMPOS, CAMPO_IMAGEN))},
                 )
         except httpx.TimeoutException as exc:
             raise FuenteNoDisponibleError(MOTIVO_TIMEOUT) from exc
@@ -133,6 +135,8 @@ class OpenFoodFactsFuente:
         url = f"{self.base_url.rstrip('/')}/product/{forma}"
         ficha = {campo: producto[campo] for campo in CAMPOS if campo in producto}
         ficha["url"] = url
+        # The picture address is for showing; it is not in the record that the supply keeps.
+        imagen = url_de_imagen(producto.get(CAMPO_IMAGEN))
         return ProductoFuente(
             codigo_barras=codigo_barras,
             nombre=_texto(producto.get("product_name_es")) or _texto(producto.get("product_name")),
@@ -144,4 +148,6 @@ class OpenFoodFactsFuente:
             etiquetas_trazas=_etiquetas(producto.get("traces_tags")),
             url=url,
             ficha=ficha,
+            imagen_url=imagen,
+            imagen_fuente=NOMBRE_FUENTE if imagen else None,
         )

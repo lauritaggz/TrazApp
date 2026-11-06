@@ -47,6 +47,9 @@ export interface ConsultaCodigo {
   fuentes_campos?: Record<string, string>;
   /** HU07: the sources that did not answer in time (the answer is the rest's alone). */
   fuentes_sin_respuesta?: string[];
+  /** HU07: address of the product's thumbnail and its source (attribution). Never saved with the supply. */
+  imagen_url?: string;
+  imagen_fuente?: string;
 }
 
 /** One hit of the search by name (HU07 / CA3): GET /gestion/insumos/busqueda?texto=. */
@@ -56,6 +59,8 @@ export interface ResultadoBusquedaNombre {
   marca: string | null;
   presentacion: string | null;
   url: string | null;
+  /** Address of the thumbnail (Jumbo); absent or null if the hit has none. */
+  imagen_url?: string | null;
 }
 
 /** Presentation of the allergens that were suggested (HU13): where each one comes from, and what is left. */

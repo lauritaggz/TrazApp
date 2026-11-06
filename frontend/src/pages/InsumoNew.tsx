@@ -148,7 +148,11 @@ function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef }: Formul
     <>
       {form.globalError && <Alert type="error">{form.globalError}</Alert>}
 
-      <ResumenProductoEncontrado resumen={precarga.resumen} />
+      <ResumenProductoEncontrado
+        resumen={precarga.resumen}
+        imagen={precarga.imagen}
+        nombreProducto={precarga.valores.nombre}
+      />
 
       <InsumoForm
         mode="create"

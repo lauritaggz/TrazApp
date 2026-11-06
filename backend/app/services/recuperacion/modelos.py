@@ -25,6 +25,10 @@ class ProductoFuente:
     fuentes_sin_respuesta: tuple[str, ...] = ()
     # Raw subset of what the source returned; it ends up in the supply's `ficha`.
     ficha: dict[str, Any] = field(default_factory=dict)
+    # Thumbnail of the product (HU07): only the address, never downloaded or saved, and NOT part of `ficha`.
+    imagen_url: str | None = None
+    # The source of `imagen_url` ("jumbo" or "open_food_facts"), shown next to it as attribution.
+    imagen_fuente: str | None = None
 
 
 @dataclass(frozen=True)
@@ -36,3 +40,26 @@ class ResultadoBusqueda:
     marca: str | None
     presentacion: str | None
     url: str | None = None
+    # Thumbnail address (HU07), shown in the list of hits; never downloaded or saved.
+    imagen_url: str | None = None
+
+
+IMAGEN_MAX_LARGO = 500
+
+
+def url_de_imagen(valor: Any) -> str | None:
+    """The first usable picture address of what a source gave: a string or a list of them.
+
+    Only https addresses of a sensible length are kept: the address ends up in an `<img>` of the page, so
+    `javascript:`, `data:` and plain `http:` (mixed content) are dropped. Nothing is downloaded here.
+    """
+    candidatos = valor if isinstance(valor, list) else [valor]
+    for candidato in candidatos:
+        if isinstance(candidato, dict):
+            candidato = candidato.get("url") or candidato.get("imageUrl")
+        if not isinstance(candidato, str):
+            continue
+        candidato = candidato.strip()
+        if candidato.startswith("https://") and len(candidato) <= IMAGEN_MAX_LARGO and " " not in candidato:
+            return candidato
+    return None

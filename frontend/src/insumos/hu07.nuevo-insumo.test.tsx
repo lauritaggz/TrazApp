@@ -3,7 +3,7 @@
  * search by name or brand in Jumbo, the hit that preloads the form, the duplicate notice and the origin of
  * what the productor confirms (fuentes_campos, campos_editados, fuentes_por_alergeno).
  */
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
@@ -57,6 +57,7 @@ const RESULTADOS: ResultadoBusquedaNombre[] = [
     marca: "Quilque",
     presentacion: "500 g",
     url: `https://www.jumbo.cl/${SLUG}/p`,
+    imagen_url: "https://imagenes.jumbo.test/quilque-500g-1.jpg",
   },
   {
     id: "queso-mantecoso-quilque-250-g-2",
@@ -497,5 +498,115 @@ describe("Al confirmar un insumo recuperado: el origen de cada dato", () => {
       expect(payload).not.toHaveProperty(clave);
     }
     expect(payload).not.toHaveProperty("fuente");
+  });
+});
+
+describe("Miniatura del producto", () => {
+  const miniaturas = (contenedor: HTMLElement) =>
+    Array.from(contenedor.querySelectorAll<HTMLElement>("[data-miniatura-producto]"));
+
+  it("en los resultados: imagen diferida con el nombre del producto como descripción y la fuente al lado", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+    const imagen = within(lista).getByRole("img", { name: RESULTADOS[0].nombre });
+    expect(imagen).toHaveAttribute("src", RESULTADOS[0].imagen_url);
+    expect(imagen).toHaveAttribute("loading", "lazy");
+    expect(Number(imagen.getAttribute("width"))).toBeGreaterThanOrEqual(48);
+    expect(Number(imagen.getAttribute("width"))).toBeLessThanOrEqual(64);
+    expect(within(lista).getByText("Imagen: Jumbo")).toBeInTheDocument();
+  });
+
+  it("un resultado sin imagen deja un espacio neutro: sin <img>, sin ícono roto y sin atribución", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+    const filas = within(lista).getAllByRole("listitem");
+    expect(miniaturas(filas[1])).toHaveLength(1);
+    expect(within(filas[1]).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(filas[1]).queryByText(/Imagen:/)).not.toBeInTheDocument();
+    // Only the first hit has a picture, so there is a single attribution.
+    expect(within(lista).getAllByText("Imagen: Jumbo")).toHaveLength(1);
+  });
+
+  it("una imagen que no carga se reemplaza por el espacio neutro y retira la atribución", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+
+    fireEvent.error(within(lista).getByRole("img", { name: RESULTADOS[0].nombre }));
+
+    await waitFor(() => expect(within(lista).queryByRole("img")).not.toBeInTheDocument());
+    expect(within(lista).queryByText(/Imagen:/)).not.toBeInTheDocument();
+    expect(miniaturas(lista)).toHaveLength(3);
+  });
+
+  it("en la revisión: la miniatura del producto elegido con su fuente; no viaja en lo que se confirma", async () => {
+    vi.mocked(insumoService.consultarResultadoDeBusqueda).mockResolvedValue({
+      ...PROPUESTA,
+      imagen_url: "https://imagenes.jumbo.test/quilque-500g-1.jpg",
+      imagen_fuente: "jumbo",
+    });
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+
+    const resumen = document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement;
+    const imagen = within(resumen.parentElement as HTMLElement).getByRole("img", {
+      name: "Queso Mantecoso Quilque",
+    });
+    expect(imagen).toHaveAttribute("src", "https://imagenes.jumbo.test/quilque-500g-1.jpg");
+    expect(imagen).toHaveAttribute("loading", "lazy");
+    expect(within(resumen.parentElement as HTMLElement).getByText("Imagen: Jumbo")).toBeInTheDocument();
+
+    const payload = await completarYCrear(user);
+    expect(JSON.stringify(payload)).not.toContain("imagenes.jumbo.test");
+    expect(payload).not.toHaveProperty("imagen_url");
+    expect(payload).not.toHaveProperty("imagen_fuente");
+  });
+
+  it("la fuente de la imagen de una ficha combinada puede ser Open Food Facts", async () => {
+    vi.mocked(insumoService.consultarResultadoDeBusqueda).mockResolvedValue({
+      ...PROPUESTA,
+      fuente: "combinada",
+      imagen_url: "https://imagenes.fuente-b.test/x.jpg",
+      imagen_fuente: "open_food_facts",
+    });
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+
+    expect(await screen.findByText("Imagen: Open Food Facts")).toBeInTheDocument();
+  });
+
+  it("en la revisión, sin imagen o con una que falla: espacio neutro, sin ícono roto", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+    const contenedor = (document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement)
+      .parentElement as HTMLElement;
+    expect(miniaturas(contenedor)).toHaveLength(1);
+    expect(within(contenedor).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(contenedor).queryByText(/Imagen:/)).not.toBeInTheDocument();
+  });
+
+  it("una imagen de la revisión que falla al cargar vuelve al espacio neutro", async () => {
+    vi.mocked(insumoService.consultarResultadoDeBusqueda).mockResolvedValue({
+      ...PROPUESTA,
+      imagen_url: "https://imagenes.jumbo.test/rota.jpg",
+      imagen_fuente: "jumbo",
+    });
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+    await elegirPrimero(user);
+    const contenedor = (document.querySelector("[data-resumen-producto-encontrado]") as HTMLElement)
+      .parentElement as HTMLElement;
+
+    fireEvent.error(within(contenedor).getByRole("img", { name: "Queso Mantecoso Quilque" }));
+
+    await waitFor(() => expect(within(contenedor).queryByRole("img")).not.toBeInTheDocument());
+    expect(within(contenedor).queryByText(/Imagen:/)).not.toBeInTheDocument();
   });
 });

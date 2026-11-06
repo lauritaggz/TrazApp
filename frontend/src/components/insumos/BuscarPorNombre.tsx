@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { AccionesExistente } from "@/components/insumos/BuscarPorCodigo";
+import MiniaturaProducto from "@/components/insumos/MiniaturaProducto";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { BusquedaPorNombre, EstadoBusquedaNombre } from "@/hooks/useBusquedaPorNombre";
@@ -164,12 +165,15 @@ export default function BuscarPorNombre({ busqueda, existente }: BuscarPorNombre
             >
               {resultados.map((resultado) => (
                 <li key={resultado.id} className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-text-primary">{resultado.nombre}</p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      <strong className="font-medium text-text-primary">{resultado.marca ?? "Sin marca"}</strong>
-                      {resultado.presentacion ? ` · ${resultado.presentacion}` : ""}
-                    </p>
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <MiniaturaProducto src={resultado.imagen_url} nombre={resultado.nombre} fuente="jumbo" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text-primary">{resultado.nombre}</p>
+                      <p className="mt-0.5 text-xs text-text-secondary">
+                        <strong className="font-medium text-text-primary">{resultado.marca ?? "Sin marca"}</strong>
+                        {resultado.presentacion ? ` · ${resultado.presentacion}` : ""}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     type="button"
