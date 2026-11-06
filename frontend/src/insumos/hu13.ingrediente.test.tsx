@@ -156,7 +156,7 @@ const botonCrear = () => screen.getByRole("button", { name: "Crear ingrediente" 
 const dialogoIngrediente = () => screen.getByRole("dialog", { name: "Nuevo ingrediente" });
 
 async function entregarCodigo(user: Usuario, codigo: string) {
-  await user.click(screen.getByRole("button", { name: "Escanear código de barras" }));
+  await user.click(screen.getByRole("button", { name: "Abrir cámara" }));
   const abierto = await screen.findByRole("dialog", { name: "Escanear código de barras" });
   await user.type(within(abierto).getByLabelText("Número del código de barras"), codigo);
   await user.click(within(abierto).getByRole("button", { name: "Buscar" }));

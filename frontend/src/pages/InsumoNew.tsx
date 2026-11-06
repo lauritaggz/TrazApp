@@ -1,15 +1,15 @@
 import { useState, type MutableRefObject } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import BuscarPorCodigo from "@/components/insumos/BuscarPorCodigo";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import BuscarPorNombre from "@/components/insumos/BuscarPorNombre";
+import EncabezadoNuevoInsumo from "@/components/insumos/EncabezadoNuevoInsumo";
 import ConfirmarReemplazoDatos from "@/components/insumos/ConfirmarReemplazoDatos";
 import InicioNuevoInsumo, { esMetodoNuevoInsumo } from "@/components/insumos/InicioNuevoInsumo";
 import InsumoForm from "@/components/insumos/InsumoForm";
+import PasoBusquedaCodigo from "@/components/insumos/PasoBusquedaCodigo";
 import ResumenProductoEncontrado from "@/components/insumos/ResumenProductoEncontrado";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import PageHeader from "@/components/ui/PageHeader";
 import { useAppShell } from "@/hooks/useAppShell";
 import {
   useFormularioDesdeCodigo,
@@ -22,11 +22,28 @@ import { useInsumoForm } from "@/hooks/useInsumoForm";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import type { PrecargaInsumo } from "@/lib/precargaInsumo";
 
-const DESCRIPCION_INICIO = "Crea un insumo: un producto que compras y usas en tus elaboraciones.";
-const DESCRIPCIONES: Record<string, string> = {
-  codigo: "Escanea el código del envase y revisa los datos antes de crear el insumo.",
-  nombre: "Busca el producto por nombre o marca y revisa los datos antes de crear el insumo.",
-  manual: "Completa la ficha mirando el envase del producto.",
+/** The title and the help line of each screen, as in the design. */
+const ENCABEZADOS: Record<string, { paso?: string; titulo: string; descripcion: string }> = {
+  inicio: {
+    titulo: "¿Cómo quieres registrar el insumo?",
+    descripcion:
+      "Puedes recuperar información pública o completar la ficha manualmente. Nada se guardará sin tu confirmación.",
+  },
+  codigo: {
+    paso: "Búsqueda",
+    titulo: "Buscar producto comercial",
+    descripcion: "Recupera información pública para evitar transcribir la ficha manualmente.",
+  },
+  nombre: {
+    paso: "Búsqueda",
+    titulo: "Buscar producto comercial",
+    descripcion: "Recupera información pública para evitar transcribir la ficha manualmente.",
+  },
+  manual: {
+    paso: "Revisión final",
+    titulo: "Completar ficha manual",
+    descripcion: "Nada se guardará hasta que confirmes el registro.",
+  },
 };
 
 /**
@@ -66,30 +83,22 @@ function PaginaNuevoInsumo({ metodo }: { metodo: string | undefined }) {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <PageHeader
-          title="Nuevo insumo"
-          description={metodo ? DESCRIPCIONES[metodo] : DESCRIPCION_INICIO}
-          breadcrumbs={[{ label: "Insumos", to: "/insumos" }, { label: "Nuevo insumo" }]}
+      <div className="mx-auto max-w-5xl">
+        <EncabezadoNuevoInsumo
+          volver={
+            metodo === undefined
+              ? { to: "/insumos", texto: "Volver a Insumos" }
+              : { to: "/insumos/nuevo", texto: "Volver al inicio" }
+          }
+          {...ENCABEZADOS[metodo ?? "inicio"]}
         />
 
         {metodo === undefined ? (
           <InicioNuevoInsumo />
         ) : (
-          <>
-            <Link
-              to="/insumos/nuevo"
-              className="inline-flex min-h-11 items-center text-sm font-medium text-accent-strong hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-            >
-              ← Volver al inicio
-            </Link>
-
-            {metodo === "codigo" && (
-              <BuscarPorCodigo busqueda={busqueda} existente={accionesExistente} />
-            )}
-            {metodo === "nombre" && (
-              <BuscarPorNombre busqueda={busquedaNombre} existente={accionesExistente} />
-            )}
+          <div className="space-y-6">
+            {metodo === "codigo" && <PasoBusquedaCodigo busqueda={busqueda} existente={accionesExistente} />}
+            {metodo === "nombre" && <BuscarPorNombre busqueda={busquedaNombre} existente={accionesExistente} />}
 
             <FormularioNuevoInsumo
               key={precarga.clave}
@@ -97,7 +106,7 @@ function PaginaNuevoInsumo({ metodo }: { metodo: string | undefined }) {
               ingredientes={ingredientes}
               formularioRef={formularioRef}
             />
-          </>
+          </div>
         )}
       </div>
 

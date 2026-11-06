@@ -229,7 +229,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
   it("por código de barras: 5 interacciones (2 campos y 3 clics) y trae toda la información", async () => {
     const { r } = await abrirNuevoInsumo();
 
-    await r.clic("«Escanear código de barras»", screen.getByRole("button", { name: "Escanear código de barras" }));
+    await r.clic("«Abrir cámara»", screen.getByRole("button", { name: "Abrir cámara" }));
     const escaner = await screen.findByRole("dialog", { name: "Escanear código de barras" });
     await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
@@ -263,7 +263,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     const { r } = await abrirNuevoInsumo();
 
     await r.elegir("Ingrediente", screen.getByLabelText("Ingrediente"), "1");
-    await r.clic("«Escanear código de barras»", screen.getByRole("button", { name: "Escanear código de barras" }));
+    await r.clic("«Abrir cámara»", screen.getByRole("button", { name: "Abrir cámara" }));
     const escaner = await screen.findByRole("dialog", { name: "Escanear código de barras" });
     await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
@@ -286,7 +286,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
     });
     const { r } = await abrirNuevoInsumo();
 
-    await r.clic("«Escanear código de barras»", screen.getByRole("button", { name: "Escanear código de barras" }));
+    await r.clic("«Abrir cámara»", screen.getByRole("button", { name: "Abrir cámara" }));
     const escaner = await screen.findByRole("dialog", { name: "Escanear código de barras" });
     await r.escribir("Número del código", within(escaner).getByLabelText("Número del código de barras"), CODIGO);
     await r.clic("«Buscar»", within(escaner).getByRole("button", { name: "Buscar" }));
@@ -312,7 +312,7 @@ describe("Insumo nuevo: por código de barras vs a mano (HU13)", () => {
   it("el escáner es opcional: el camino a mano no tiene ningún paso más por existir el bloque", async () => {
     const { r } = await abrirNuevoInsumo();
     // The block is there, but the manual journey above (5 interactions) never has to touch it.
-    expect(screen.getByRole("button", { name: "Escanear código de barras" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Abrir cámara" })).toBeEnabled();
     expect(r.total).toBe(0);
     expect(insumoService.consultarCodigoBarras).not.toHaveBeenCalled();
   });

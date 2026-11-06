@@ -184,7 +184,7 @@ const bloque = () => screen.getByRole("region", { name: "Buscar por nombre o mar
 
 async function buscar(user: ReturnType<typeof userEvent.setup>, texto: string) {
   await user.type(within(bloque()).getByLabelText("Nombre o marca"), texto);
-  await user.click(within(bloque()).getByRole("button", { name: "Buscar" }));
+  await user.click(within(bloque()).getByRole("button", { name: "Buscar en Jumbo" }));
 }
 
 async function elegirPrimero(user: ReturnType<typeof userEvent.setup>) {
@@ -208,18 +208,16 @@ describe("Pantalla inicial de un nuevo insumo", () => {
     await abrir("/insumos/nuevo");
 
     expect(await screen.findByText("¿Cómo quieres registrar el insumo?")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Escanear código de barras/ })).toHaveAttribute(
-      "href",
-      "/insumos/nuevo/codigo",
-    );
-    expect(screen.getByRole("link", { name: /Buscar por nombre o marca/ })).toHaveAttribute(
-      "href",
-      "/insumos/nuevo/nombre",
-    );
-    expect(screen.getByRole("link", { name: /Ingresar manualmente/ })).toHaveAttribute(
-      "href",
-      "/insumos/nuevo/manual",
-    );
+    for (const titulo of ["Escanear código de barras", "Buscar por nombre o marca", "Ingresar manualmente"]) {
+      expect(screen.getByRole("heading", { name: titulo, level: 3 })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: /Comenzar escaneo/ })).toHaveAttribute("href", "/insumos/nuevo/codigo");
+    expect(screen.getByRole("link", { name: /Buscar producto/ })).toHaveAttribute("href", "/insumos/nuevo/nombre");
+    expect(screen.getByRole("link", { name: /Crear ficha manual/ })).toHaveAttribute("href", "/insumos/nuevo/manual");
+    // The header, as in the design: back button, «Nuevo insumo» (h1) and the title (h2).
+    expect(screen.getByRole("link", { name: /Volver a Insumos/ })).toHaveAttribute("href", "/insumos");
+    expect(screen.getByRole("heading", { name: "¿Cómo quieres registrar el insumo?", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Ruta de navegación" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     // Starting does not ask any source and saves nothing (CA9).
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
@@ -230,7 +228,7 @@ describe("Pantalla inicial de un nuevo insumo", () => {
   it("«Ingresar manualmente» abre el formulario sin ningún bloque de búsqueda", async () => {
     const user = await abrir("/insumos/nuevo");
 
-    await user.click(await screen.findByRole("link", { name: /Ingresar manualmente/ }));
+    await user.click(await screen.findByRole("link", { name: /Crear ficha manual/ }));
 
     expect(await screen.findByLabelText("Nombre")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Buscar por código de barras" })).not.toBeInTheDocument();
@@ -240,12 +238,12 @@ describe("Pantalla inicial de un nuevo insumo", () => {
   it("«Escanear código de barras» y «Buscar por nombre o marca» abren el formulario con su bloque", async () => {
     const user = await abrir("/insumos/nuevo");
 
-    await user.click(await screen.findByRole("link", { name: /Escanear código de barras/ }));
+    await user.click(await screen.findByRole("link", { name: /Comenzar escaneo/ }));
     expect(await screen.findByRole("region", { name: "Buscar por código de barras" })).toBeInTheDocument();
     expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: /Volver al inicio/ }));
-    await user.click(await screen.findByRole("link", { name: /Buscar por nombre o marca/ }));
+    await user.click(await screen.findByRole("link", { name: /Buscar producto/ }));
     expect(await screen.findByRole("region", { name: "Buscar por nombre o marca" })).toBeInTheDocument();
     expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
   });
@@ -608,5 +606,171 @@ describe("Miniatura del producto", () => {
 
     await waitFor(() => expect(within(contenedor).queryByRole("img")).not.toBeInTheDocument());
     expect(within(contenedor).queryByText(/Imagen:/)).not.toBeInTheDocument();
+  });
+});
+
+// --- Entrega A de T07-07: pantalla inicial, búsqueda por código y T07-08 ---
+
+describe("Búsqueda por código de barras en la pantalla (T07-07 A)", () => {
+  const CODIGO = "7802910000971";
+  const campoCodigo = () => screen.getByLabelText("Código de barras del envase") as HTMLInputElement;
+
+  async function buscarCodigo(user: ReturnType<typeof userEvent.setup>, codigo: string) {
+    await user.type(campoCodigo(), codigo);
+    await user.click(screen.getByRole("button", { name: "Buscar en fuentes" }));
+  }
+
+  it("encabezado del diseño: «Volver al inicio», «Nuevo insumo · Búsqueda» (h1 y paso), título como h2", async () => {
+    await abrir("/insumos/nuevo/codigo");
+
+    expect(screen.getByRole("link", { name: /Volver al inicio/ })).toHaveAttribute("href", "/insumos/nuevo");
+    expect(screen.getByRole("heading", { name: "Buscar producto comercial", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("· Búsqueda")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Ruta de navegación" })).not.toBeInTheDocument();
+  });
+
+  it("muestra el método de búsqueda, el recorrido de las fuentes y el estado vacío", async () => {
+    await abrir("/insumos/nuevo/codigo");
+
+    const metodos = screen.getByRole("navigation", { name: "Método de búsqueda" });
+    expect(within(metodos).getByRole("link", { name: "Código de barras" })).toHaveAttribute("aria-current", "page");
+    expect(within(metodos).getByRole("link", { name: "Nombre o marca" })).toHaveAttribute(
+      "href",
+      "/insumos/nuevo/nombre",
+    );
+    const region = screen.getByRole("region", { name: "Buscar por código de barras" });
+    expect(within(region).getByText("Open Food Facts")).toBeInTheDocument();
+    expect(within(region).getByText("Jumbo.cl")).toBeInTheDocument();
+    expect(within(region).getByText("Ingresa el código del envase")).toBeInTheDocument();
+    expect(screen.getByText("Tú mantienes el control")).toBeInTheDocument();
+  });
+
+  it("el código escrito en el campo se consulta igual que el de la cámara", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue({
+      ...PROPUESTA,
+      codigo_barras: CODIGO,
+      fuente: "open_food_facts",
+    });
+    const user = await abrir("/insumos/nuevo/codigo");
+
+    await buscarCodigo(user, CODIGO);
+
+    expect(insumoService.consultarCodigoBarras).toHaveBeenCalledWith(CODIGO);
+    await waitFor(() => expect(campo("Nombre")).toHaveValue("Queso Mantecoso Quilque"));
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+  });
+
+  it("sin texto el botón «Buscar en fuentes» no se puede usar; un código inválido ni se consulta", async () => {
+    const user = await abrir("/insumos/nuevo/codigo");
+    expect(screen.getByRole("button", { name: "Buscar en fuentes" })).toBeDisabled();
+
+    await buscarCodigo(user, "7802910000972");
+
+    expect(await screen.findByText("El dígito verificador del código de barras no es válido.")).toBeInTheDocument();
+    expect(insumoService.consultarCodigoBarras).not.toHaveBeenCalled();
+  });
+
+  it("mientras consulta: tarjeta con el texto fijo y «Cancelar consulta»; cancelar descarta la respuesta", async () => {
+    let responder: (consulta: ConsultaCodigo) => void = () => {};
+    vi.mocked(insumoService.consultarCodigoBarras).mockImplementation(
+      () => new Promise<ConsultaCodigo>((resolver) => (responder = resolver)),
+    );
+    const user = await abrir("/insumos/nuevo/codigo");
+    await user.type(campo("Nombre"), "Lo que yo escribí");
+
+    await buscarCodigo(user, CODIGO);
+
+    expect(await screen.findByText("Consultando Open Food Facts y Jumbo")).toBeInTheDocument();
+    expect(screen.getByText("Estamos preparando la ficha")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar consulta" }));
+    expect(await screen.findByRole("button", { name: "Buscar en fuentes" })).toBeInTheDocument();
+
+    responder({ ...PROPUESTA, codigo_barras: CODIGO });
+    await new Promise((resolver) => setTimeout(resolver, 20));
+    // The late answer is dropped: the form keeps what was typed and nothing is registered.
+    expect(campo("Nombre")).toHaveValue("Lo que yo escribí");
+    expect(insumoService.createInsumo).not.toHaveBeenCalled();
+  });
+
+  it("código no encontrado (T07-08): ofrece buscar por nombre o ingresar manualmente", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue({
+      ...PROPUESTA,
+      encontrado: false,
+      producto: null,
+      ficha: null,
+      codigo_barras: CODIGO,
+    });
+    const user = await abrir("/insumos/nuevo/codigo");
+
+    await buscarCodigo(user, CODIGO);
+
+    expect(await screen.findByText("No encontramos este código. Completa los datos manualmente.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Buscar por nombre" })).toHaveAttribute("href", "/insumos/nuevo/nombre");
+    expect(screen.getByRole("link", { name: "Ingresar manualmente" })).toHaveAttribute(
+      "href",
+      "/insumos/nuevo/manual",
+    );
+  });
+
+  it("fuente no disponible (T07-08): ofrece las mismas dos salidas", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockRejectedValue(
+      new ApiError("No pudimos completar la operación.", 503, {}, { mensaje: "x", motivo: "timeout" }),
+    );
+    const user = await abrir("/insumos/nuevo/codigo");
+
+    await buscarCodigo(user, CODIGO);
+
+    expect(
+      await screen.findByText("No pudimos consultar la fuente en este momento. Completa los datos manualmente."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Buscar por nombre" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ingresar manualmente" })).toBeInTheDocument();
+  });
+
+  it("«Ingresar manualmente» conserva el código escrito en el formulario y quita el bloque de búsqueda", async () => {
+    vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue({
+      ...PROPUESTA,
+      encontrado: false,
+      producto: null,
+      ficha: null,
+      codigo_barras: CODIGO,
+    });
+    const user = await abrir("/insumos/nuevo/codigo");
+    await buscarCodigo(user, CODIGO);
+    await user.click(await screen.findByRole("link", { name: "Ingresar manualmente" }));
+
+    expect(await screen.findByRole("heading", { name: "Completar ficha manual", level: 2 })).toBeInTheDocument();
+    expect(campo("Código de barras")).toHaveValue(CODIGO);
+    expect(screen.queryByRole("region", { name: "Buscar por código de barras" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Búsqueda por nombre en la pantalla (T07-07 A)", () => {
+  it("muestra el método, la fuente (solo Jumbo), el estado vacío y la nota de control", async () => {
+    await abrirBusquedaPorNombre();
+
+    const metodos = screen.getByRole("navigation", { name: "Método de búsqueda" });
+    expect(within(metodos).getByRole("link", { name: "Nombre o marca" })).toHaveAttribute("aria-current", "page");
+    expect(within(bloque()).getByText("Jumbo.cl")).toBeInTheDocument();
+    expect(within(bloque()).queryByText("Open Food Facts")).not.toBeInTheDocument();
+    expect(within(bloque()).getByText("Busca por nombre comercial o marca")).toBeInTheDocument();
+    expect(screen.getByText("Tú mantienes el control")).toBeInTheDocument();
+  });
+
+  it("sin resultados o con Jumbo caído ofrece «Ingresar manualmente»", async () => {
+    vi.mocked(insumoService.buscarPorNombre).mockResolvedValueOnce([]);
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "zzzz");
+    expect(await within(bloque()).findByRole("link", { name: "Ingresar manualmente" })).toHaveAttribute(
+      "href",
+      "/insumos/nuevo/manual",
+    );
+
+    vi.mocked(insumoService.buscarPorNombre).mockRejectedValueOnce(
+      new ApiError("No pudimos completar la operación.", 503, {}, { mensaje: "x", motivo: "timeout" }),
+    );
+    await user.click(within(bloque()).getByRole("button", { name: "Buscar en Jumbo" }));
+    await within(bloque()).findByText(/No pudimos consultar Jumbo/);
+    expect(within(bloque()).getByRole("link", { name: "Ingresar manualmente" })).toBeInTheDocument();
   });
 });

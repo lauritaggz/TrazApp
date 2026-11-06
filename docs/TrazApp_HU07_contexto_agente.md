@@ -174,6 +174,22 @@ Hallazgos de Jumbo: la búsqueda con el código de barras como texto devuelve 0 
 8. **Duplicado por nombre:** "Usar el insumo existente" es un enlace al detalle en la página; en el diálogo de la elaboración se mantiene "Usar este insumo".
 9. **Miniatura del producto (cambio de alcance menor):** campo opcional `imagen_url` (y `imagen_fuente` en la propuesta) con solo la dirección; no se descarga ni se guarda, y no forma parte de `ficha`. Solo `https`. Jumbo la entrega en el JSON-LD (`image`) y, por resultado, en `items[0].images`; OFF en `image_url` (que ahora se pide en `fields`). La combinada prioriza Jumbo. **Sin verificar con Jumbo real:** el nombre y la forma de esos campos se tomaron del estándar schema.org y quedaron como valores de prueba en las fixtures; confirmar en T07-09.
 
+### Decisiones confirmadas en T07-07 (06-11-2026): fidelidad al diseño de "Nuevo insumo"
+
+Referencia: `docs/diseno/DISEÑOS SPRINT 3/` (NewSupply.tsx). Se entrega en tres partes: A) pantalla inicial, búsqueda y T07-08; B) revisión; C) pantalla de éxito.
+
+1. **Encabezado:** botón "Volver a Insumos" (en la pantalla inicial) o "Volver al inicio" (en los pasos), en lugar de las migas; h1 "Nuevo insumo" con el estilo de etiqueta del diseño (más el paso, "· Búsqueda"); título como h2.
+2. **"Alérgenos revisados":** cuarta fila de "Confirmar registro" (HT06): hay alérgenos en "Contiene" o el productor confirma "no contiene", y todos los términos no reconocidos tienen decisión. El botón se habilita solo con las 4 filas.
+3. **Textos de fuente:** "Jumbo", "Open Food Facts", "Detectado en los ingredientes"; lo manual se muestra como "Agregado por ti" o "Modificado por ti".
+4. **Código de barras:** campo en la pantalla de búsqueda (la cámara no es confiable en PC).
+5. **Carga:** tarjeta con el texto fijo "Consultando Open Food Facts y Jumbo" y "Cancelar consulta" real; sin pasos ni barra simulados.
+6. **Términos no reconocidos:** cada uno exige decisión ("Asignar a…" del catálogo o "No es un alérgeno") y cuenta para "Alérgenos revisados".
+7. **Ingrediente:** opciones de 44 px con altura máxima y desplazamiento, más "Crear ingrediente"; el diálogo de la elaboración conserva su `<select>`.
+8. **Pantalla de éxito:** se implementa, con datos reales y el origen de la ficha.
+9. **"Información comercial revisada":** todos los campos obligatorios del backend completos.
+10. **Mensaje verde "Encontrado…":** se quita.
+11. **T07-08** queda incluida: "Buscar por nombre" e "Ingresar manualmente" cuando el código no se encuentra y cuando la fuente no está disponible.
+
 ---
 
 ## 6. Tareas

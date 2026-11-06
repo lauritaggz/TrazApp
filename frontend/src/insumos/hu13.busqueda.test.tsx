@@ -183,7 +183,7 @@ async function abrirPagina() {
   return user;
 }
 
-const botonEscanear = () => screen.getByRole("button", { name: "Escanear código de barras" });
+const botonEscanear = () => screen.getByRole("button", { name: "Abrir cámara" });
 const panel = () => screen.getByRole("dialog", { name: "Escanear código de barras" });
 
 /** Opens the scanner and delivers a code through its field to type the number. */
@@ -343,8 +343,9 @@ describe("Estados de la búsqueda", () => {
 
     await entregarCodigo(user, CODIGO);
 
-    expect(await screen.findByText("Buscando el producto…")).toBeInTheDocument();
-    expect(botonEscanear()).toBeDisabled();
+    // T07-07 (design): while it looks, the loading card replaces the search; the camera cannot be opened again.
+    expect(await screen.findByText("Consultando Open Food Facts y Jumbo")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abrir cámara" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Escanear código de barras" })).not.toBeInTheDocument();
 
     responder(LONCOLECHE);
@@ -617,26 +618,26 @@ describe("Alérgenos sugeridos", () => {
 describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloque 3)", () => {
   const resumen = () => document.querySelector<HTMLElement>("[data-resumen-producto-encontrado]");
 
-  it("con el formulario vacío, «Escanear código de barras» es el botón principal y ocupa todo el ancho en el celular", async () => {
+  it("con el formulario vacío, «Abrir cámara» es el botón principal y ocupa todo el ancho en el celular", async () => {
     await abrirPagina();
 
     const boton = botonEscanear();
     expect(boton).toHaveClass("bg-brand-600", "w-full");
-    expect(
-      screen.getByText(/si no lo lee, puedes escribir el número/i),
-    ).toBeInTheDocument();
+    // T07-07 (design): the typed alternative is a field on the screen, not a sentence about the scanner.
+    expect(screen.getByLabelText("Código de barras del envase")).toBeInTheDocument();
   });
 
-  it("después de encontrar el producto pasa a ser secundario, y muestra el resumen junto al formulario", async () => {
+  it("después de encontrar el producto muestra el resumen junto al formulario (el botón de la cámara sigue siendo el principal)", async () => {
     const user = await abrirPagina();
 
     await entregarCodigo(user, CODIGO);
 
     await waitFor(() => expect(resumen()).not.toBeNull());
     expect(resumen()).toHaveTextContent("Encontrado: LONCO LECHE SIN LACTOSA · sugerimos Leche, Maní");
-    expect(botonEscanear()).not.toHaveClass("bg-brand-600");
-    // El resumen va antes del formulario.
-    const formulario = document.querySelector("form") as HTMLElement;
+    // T07-07 (design): the camera button is the primary action of its banner at every moment.
+    expect(botonEscanear()).toHaveClass("bg-brand-600");
+    // El resumen va antes del formulario (T07-07: ahora la búsqueda también tiene un <form>, el del código).
+    const formulario = campo("Nombre").closest("form") as HTMLElement;
     expect(resumen()!.compareDocumentPosition(formulario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -681,7 +682,7 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
     await waitFor(() => expect(resumen()).toHaveTextContent("Encontrado: Bicarbonato sódico · sin alérgenos sugeridos"));
   });
 
-  it("si no lo encuentra, no hay resumen ni desplazamiento, y el botón sigue siendo secundario", async () => {
+  it("si no lo encuentra, no hay resumen ni desplazamiento, y se ofrece buscar por nombre o ingresar a mano (T07-08)", async () => {
     vi.mocked(insumoService.consultarCodigoBarras).mockResolvedValue(noEncontrado(CODIGO));
     const user = await abrirPagina();
     vi.mocked(Element.prototype.scrollIntoView).mockClear();
@@ -691,7 +692,8 @@ describe("Escanear como acción principal y resumen de lo encontrado (HT07, Bloq
     await screen.findByText(MENSAJE_NO_ENCONTRADO);
     expect(resumen()).toBeNull();
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
-    expect(botonEscanear()).not.toHaveClass("bg-brand-600");
+    expect(screen.getByRole("link", { name: "Buscar por nombre" })).toHaveAttribute("href", "/insumos/nuevo/nombre");
+    expect(screen.getByRole("link", { name: "Ingresar manualmente" })).toHaveAttribute("href", "/insumos/nuevo/manual");
   });
 
   it("el formulario dice «Crear insumo» al crear (y «Guardar cambios» al editar)", async () => {
