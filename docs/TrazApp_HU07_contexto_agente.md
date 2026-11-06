@@ -189,6 +189,7 @@ Referencia: `docs/diseno/DISEÑOS SPRINT 3/` (NewSupply.tsx). Se entrega en tres
 9. **"Información comercial revisada":** todos los campos obligatorios del backend completos.
 10. **Mensaje verde "Encontrado…":** se quita.
 11. **T07-08** queda incluida: "Buscar por nombre" e "Ingresar manualmente" cuando el código no se encuentra y cuando la fuente no está disponible.
+12. **Resultados de la búsqueda por nombre (diferencia aprobada con el diseño):** en escritorio (`lg`+) grilla de tarjetas, 3 columnas (4 desde `2xl`), con imagen de unos 120 px arriba (`object-contain`, fondo neutro; espacio neutro si no hay imagen), nombre (máx. 2 líneas), "marca · presentación" y botón "Revisar ficha" de ancho completo abajo, alineado entre tarjetas. En celular, lista de una columna con miniatura de 72 px donde toda la fila es el botón, con flecha. La atribución va una sola vez, en el encabezado ("Resultados e imágenes de Jumbo para “…”"); no se repite "Imagen: Jumbo" en cada resultado. Se mantienen el `alt` con el nombre del producto, las áreas táctiles de 44 px y los textos de al menos 12 px.
 
 ---
 

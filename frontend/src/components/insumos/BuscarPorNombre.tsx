@@ -201,42 +201,60 @@ export default function BuscarPorNombre({ busqueda, existente }: BuscarPorNombre
 
         {resultados.length > 0 && (
           <div>
-            <div className="flex flex-col justify-between gap-1 border-y border-border bg-surface px-5 py-3 sm:flex-row sm:items-center">
+            <div className="border-y border-border bg-surface px-5 py-3">
               <p className="text-xs text-text-secondary">
-                <strong className="font-semibold text-text-primary">Resultados de Jumbo</strong> para “
+                <strong className="font-semibold text-text-primary">Resultados e imágenes de Jumbo</strong> para “
                 {busqueda.texto}”
               </p>
-              <p className="text-xs text-text-secondary">Fuente: Jumbo</p>
             </div>
-            <ul className="divide-y divide-border" aria-label="Resultados de la búsqueda">
-              {resultados.map((resultado) => (
-                <li
-                  key={resultado.id}
-                  className="flex flex-col gap-4 p-4 transition-colors hover:bg-surface sm:flex-row sm:items-center sm:p-5"
-                >
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <MiniaturaProducto src={resultado.imagen_url} nombre={resultado.nombre} fuente="jumbo" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-text-primary">{resultado.nombre}</p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        <strong className="font-medium text-text-primary">{resultado.marca ?? "Sin marca"}</strong>
-                        {resultado.presentacion ? ` · ${resultado.presentacion}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    className="w-full shrink-0 sm:w-auto"
-                    aria-label={`Revisar ficha de ${resultado.nombre}`}
-                    disabled={ocupado}
-                    loading={estado === "cargando_ficha" && busqueda.elegido === resultado.id}
-                    onClick={() => void busqueda.elegir(resultado)}
-                  >
-                    Revisar ficha
-                    <IconoFlechaDerecha />
-                  </Button>
-                </li>
-              ))}
+            {/* Phone: one column, the whole row is the button. From lg: a grid of cards (3 columns, 4 from 2xl). */}
+            <ul
+              className="divide-y divide-border lg:grid lg:grid-cols-3 lg:gap-4 lg:divide-y-0 lg:p-5 2xl:grid-cols-4"
+              aria-label="Resultados de la búsqueda"
+            >
+              {resultados.map((resultado) => {
+                const cargando = estado === "cargando_ficha" && busqueda.elegido === resultado.id;
+                return (
+                  <li key={resultado.id} className="lg:flex">
+                    <button
+                      type="button"
+                      aria-label={`Revisar ficha de ${resultado.nombre}`}
+                      aria-busy={cargando || undefined}
+                      disabled={ocupado}
+                      onClick={() => void busqueda.elegir(resultado)}
+                      className="flex min-h-11 w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent disabled:opacity-60 lg:flex-col lg:items-stretch lg:gap-3 lg:rounded-xl lg:border lg:border-border lg:bg-card lg:p-4 lg:focus-visible:ring-inset"
+                    >
+                      <MiniaturaProducto
+                        src={resultado.imagen_url}
+                        nombre={resultado.nombre}
+                        fuente="jumbo"
+                        tamano={72}
+                        atribucion={false}
+                        clase="h-[72px] w-[72px] lg:h-[120px] lg:w-full"
+                      />
+                      <span className="min-w-0 flex-1 lg:flex-none">
+                        <span className="line-clamp-2 block text-sm font-semibold text-text-primary">
+                          {resultado.nombre}
+                        </span>
+                        <span className="mt-1 block text-xs text-text-secondary">
+                          <strong className="font-medium text-text-primary">{resultado.marca ?? "Sin marca"}</strong>
+                          {resultado.presentacion ? ` · ${resultado.presentacion}` : ""}
+                        </span>
+                      </span>
+                      <span aria-hidden="true" className="shrink-0 text-text-secondary lg:hidden">
+                        <IconoFlechaDerecha size={16} />
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="hidden min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white lg:mt-auto lg:flex"
+                      >
+                        {cargando ? "Recuperando…" : "Revisar ficha"}
+                        <IconoFlechaDerecha />
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

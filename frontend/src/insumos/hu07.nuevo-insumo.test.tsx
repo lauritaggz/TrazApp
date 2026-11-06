@@ -255,7 +255,7 @@ describe("Pantalla inicial de un nuevo insumo", () => {
 });
 
 describe("Búsqueda por nombre o marca", () => {
-  it("lista los resultados con nombre, marca y presentación, y dice que la fuente es Jumbo", async () => {
+  it("lista los resultados con nombre, marca y presentación, y dice una sola vez que los resultados y las imágenes son de Jumbo", async () => {
     const user = await abrirBusquedaPorNombre();
 
     await buscar(user, "queso quilque");
@@ -268,7 +268,8 @@ describe("Búsqueda por nombre o marca", () => {
     expect(within(filas[0]).getByText("Quilque")).toBeInTheDocument();
     expect(within(filas[0]).getByText(/· 500 g/)).toBeInTheDocument();
     expect(within(filas[2]).getByText("Sin marca")).toBeInTheDocument();
-    expect(within(bloque()).getByText(/Fuente: Jumbo/)).toBeInTheDocument();
+    // Ajuste de diseño: la atribución va una sola vez, en el encabezado de los resultados.
+    expect(within(bloque()).getByText("Resultados e imágenes de Jumbo")).toBeInTheDocument();
     // Searching registers nothing and does not touch the form.
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
     expect(campo("Nombre")).toHaveValue("");
@@ -503,7 +504,7 @@ describe("Miniatura del producto", () => {
   const miniaturas = (contenedor: HTMLElement) =>
     Array.from(contenedor.querySelectorAll<HTMLElement>("[data-miniatura-producto]"));
 
-  it("en los resultados: imagen diferida con el nombre del producto como descripción y la fuente al lado", async () => {
+  it("en los resultados: imagen diferida con el nombre del producto como descripción; la atribución no se repite en cada resultado", async () => {
     const user = await abrirBusquedaPorNombre();
     await buscar(user, "queso quilque");
 
@@ -511,9 +512,9 @@ describe("Miniatura del producto", () => {
     const imagen = within(lista).getByRole("img", { name: RESULTADOS[0].nombre });
     expect(imagen).toHaveAttribute("src", RESULTADOS[0].imagen_url);
     expect(imagen).toHaveAttribute("loading", "lazy");
-    expect(Number(imagen.getAttribute("width"))).toBeGreaterThanOrEqual(48);
-    expect(Number(imagen.getAttribute("width"))).toBeLessThanOrEqual(64);
-    expect(within(lista).getByText("Imagen: Jumbo")).toBeInTheDocument();
+    // Ajuste de diseño: 72 px en celular (120 px de alto en la tarjeta de escritorio).
+    expect(Number(imagen.getAttribute("width"))).toBe(72);
+    expect(within(lista).queryByText(/Imagen:/)).not.toBeInTheDocument();
   });
 
   it("un resultado sin imagen deja un espacio neutro: sin <img>, sin ícono roto y sin atribución", async () => {
@@ -525,8 +526,8 @@ describe("Miniatura del producto", () => {
     expect(miniaturas(filas[1])).toHaveLength(1);
     expect(within(filas[1]).queryByRole("img")).not.toBeInTheDocument();
     expect(within(filas[1]).queryByText(/Imagen:/)).not.toBeInTheDocument();
-    // Only the first hit has a picture, so there is a single attribution.
-    expect(within(lista).getAllByText("Imagen: Jumbo")).toHaveLength(1);
+    // Ajuste de diseño: ningún resultado repite la atribución; está en el encabezado.
+    expect(within(lista).queryAllByText(/Imagen:/)).toHaveLength(0);
   });
 
   it("una imagen que no carga se reemplaza por el espacio neutro y retira la atribución", async () => {
@@ -772,5 +773,53 @@ describe("Búsqueda por nombre en la pantalla (T07-07 A)", () => {
     await user.click(within(bloque()).getByRole("button", { name: "Buscar en Jumbo" }));
     await within(bloque()).findByText(/No pudimos consultar Jumbo/);
     expect(within(bloque()).getByRole("link", { name: "Ingresar manualmente" })).toBeInTheDocument();
+  });
+});
+
+describe("Resultados de la búsqueda por nombre: tarjetas en escritorio, filas en celular", () => {
+  it("la lista es una grilla de 3 columnas (4 desde 2xl) en escritorio y una columna en celular", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+
+    expect(lista).toHaveClass("lg:grid", "lg:grid-cols-3", "2xl:grid-cols-4");
+  });
+
+  it("cada resultado es un solo botón (toda la fila o tarjeta), con el nombre completo como nombre accesible", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+    const filas = within(lista).getAllByRole("listitem");
+    for (const [indice, fila] of filas.entries()) {
+      const botones = within(fila).getAllByRole("button");
+      expect(botones).toHaveLength(1);
+      expect(botones[0]).toHaveAccessibleName(`Revisar ficha de ${RESULTADOS[indice].nombre}`);
+      expect(botones[0]).toHaveClass("min-h-11");
+    }
+  });
+
+  it("el nombre se limita a 2 líneas y la imagen cambia de 72 px (celular) a 120 px (escritorio)", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    const lista = await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+    const fila = within(lista).getAllByRole("listitem")[0];
+
+    expect(within(fila).getByText(RESULTADOS[0].nombre)).toHaveClass("line-clamp-2");
+    const caja = fila.querySelector("[data-miniatura-producto]") as HTMLElement;
+    expect(caja).toHaveClass("h-[72px]", "w-[72px]", "lg:h-[120px]", "lg:w-full");
+    expect(within(fila).getByRole("img", { name: RESULTADOS[0].nombre })).toHaveClass("object-contain");
+  });
+
+  it("el encabezado atribuye resultados e imágenes a Jumbo, con el texto buscado", async () => {
+    const user = await abrirBusquedaPorNombre();
+    await buscar(user, "queso quilque");
+
+    await within(bloque()).findByRole("list", { name: "Resultados de la búsqueda" });
+
+    const encabezado = within(bloque()).getByText("Resultados e imágenes de Jumbo").parentElement as HTMLElement;
+    expect(encabezado).toHaveTextContent("Resultados e imágenes de Jumbo para “queso quilque”");
   });
 });

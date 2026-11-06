@@ -12,6 +12,11 @@ interface MiniaturaProductoProps {
   tamano?: number;
   /** Show the attribution under the picture. Off when the screen already says it in its own way. */
   atribucion?: boolean;
+  /**
+   * Classes for the size of the box, when it changes with the screen (the list of hits). They replace the fixed
+   * `tamano` box; `tamano` is then only the intrinsic size of the picture (width and height attributes).
+   */
+  clase?: string;
 }
 
 /**
@@ -25,17 +30,21 @@ export default function MiniaturaProducto({
   fuente,
   tamano = 56,
   atribucion = true,
+  clase,
 }: MiniaturaProductoProps) {
   const [fallo, setFallo] = useState<string | null>(null);
   // A new address gets a new chance: the failure belongs to the address that failed.
   const mostrar = Boolean(src) && fallo !== src;
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1" style={{ width: Math.max(tamano, 72) }}>
+    <div
+      className={clase ? "flex shrink-0 flex-col items-center gap-1 lg:w-full" : "flex shrink-0 flex-col items-center gap-1"}
+      style={clase ? undefined : { width: Math.max(tamano, 72) }}
+    >
       <div
         data-miniatura-producto
-        className="overflow-hidden rounded-lg border border-border bg-surface"
-        style={{ width: tamano, height: tamano }}
+        className={`overflow-hidden rounded-lg border border-border bg-surface ${clase ?? ""}`}
+        style={clase ? undefined : { width: tamano, height: tamano }}
       >
         {mostrar && (
           <img
