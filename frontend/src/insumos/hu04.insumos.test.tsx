@@ -587,8 +587,9 @@ describe("Formulario de insumo", () => {
         alergenos: [],
       }),
     );
-    expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    // T07-07 C: the confirmation screen replaces the list and the «Insumo creado.» message.
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/La información fue confirmada y asociada a/)).toBeInTheDocument();
     // HT06: the allergens were declared in the form itself, so there is nothing left to declare.
     expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
@@ -1216,7 +1217,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
         }),
       ),
     );
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
   });
 
   it("PT04-07: varios insumos de un mismo ingrediente se listan y el filtro por ingrediente los muestra todos", async () => {

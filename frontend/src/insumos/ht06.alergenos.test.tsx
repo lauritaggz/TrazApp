@@ -476,7 +476,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
         ],
       }),
     );
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
   });
 
   it("con «Este insumo no contiene alérgenos» envía una lista vacía", async () => {
@@ -505,7 +505,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
 
     await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
 

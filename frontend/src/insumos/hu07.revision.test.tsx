@@ -630,3 +630,158 @@ describe("Editar un insumo con el mismo diseño", () => {
     await waitFor(() => expect(insumoService.updateInsumo).toHaveBeenCalledWith(10, { nombre: "Otro" }));
   });
 });
+
+// --- Entrega C de T07-07: la pantalla de éxito ---
+
+describe("Insumo registrado: la pantalla de confirmación", () => {
+  const GUARDADO = insumo({
+    id: 30,
+    nombre: "Queso Mantecoso Quilque",
+    marca_origen: "Quilque",
+    presentacion: "500 g",
+    codigo_barras: "7802900001193",
+    ingredientes_declarados: "Leche natural, sal, cuajo.",
+    ingrediente: { id: 1, nombre: "Leche" },
+    fuente: "combinada",
+    ficha: {
+      fuentes: [
+        { fuente: "open_food_facts", fecha: "2026-11-06T15:00:00+00:00", campos: ["nombre", "marca_origen"] },
+        { fuente: "jumbo", fecha: "2026-11-06T15:00:00+00:00", campos: ["ingredientes_declarados", "alergenos"] },
+        { fuente: "manual", fecha: "2026-11-06T16:00:00+00:00", campos: ["presentacion"] },
+      ],
+      fuentes_por_alergeno: {
+        lacteos: { tipo: "contiene", fuentes: ["open_food_facts", "ingredientes"] },
+        soja: { tipo: "traza", fuentes: ["jumbo"] },
+      },
+    },
+    alergenos_declarados: [
+      { alergeno_id: 1, codigo: "lacteos", nombre: "Leche", obligatorio_chile: true, tipo: "contiene" },
+      { alergeno_id: 2, codigo: "soja", nombre: "Soya", obligatorio_chile: true, tipo: "trazas" },
+    ],
+  });
+
+  async function registrar(user: Awaited<ReturnType<typeof abrirRevision>>) {
+    await user.click(screen.getByRole("radio", { name: "Leche" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
+    return screen.findByRole("heading", { name: "Insumo registrado", level: 1 });
+  }
+
+  it("muestra el insumo guardado, con el ingrediente asociado y sin el aviso de lista", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision(COMBINADA);
+
+    await registrar(user);
+
+    expect(screen.getByRole("heading", { name: "Queso Mantecoso Quilque", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("La información fue confirmada y asociada a Leche.")).toBeInTheDocument();
+    const identificacion = screen.getByRole("heading", { name: "Identificación comercial" }).closest("section") as HTMLElement;
+    expect(within(identificacion).getByText("Quilque")).toBeInTheDocument();
+    expect(within(identificacion).getByText("500 g")).toBeInTheDocument();
+    expect(within(identificacion).getByText("7802900001193")).toBeInTheDocument();
+    expect(screen.getByText("Leche natural, sal, cuajo.")).toBeInTheDocument();
+    expect(screen.queryByText("Insumo creado.")).not.toBeInTheDocument();
+    // The confirmation is read from what the server saved: nothing is sent again.
+    expect(insumoService.createInsumo).toHaveBeenCalledTimes(1);
+  });
+
+  it("los alérgenos guardados, separados en «Contiene» y «Puede contener», con las fuentes de cada uno (CA15)", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision(COMBINADA);
+
+    await registrar(user);
+
+    const declaraciones = screen.getByRole("heading", { name: "Declaraciones del envase" }).closest("section") as HTMLElement;
+    expect(within(declaraciones).getByText("Leche")).toBeInTheDocument();
+    expect(within(declaraciones).getByText("Fuentes: Open Food Facts · Detectado en los ingredientes")).toBeInTheDocument();
+    expect(within(declaraciones).getByText("Soya")).toBeInTheDocument();
+    expect(within(declaraciones).getByText("Fuentes: Jumbo")).toBeInTheDocument();
+  });
+
+  it("el origen de la información: cada fuente con su fecha y lo que aportó, y lo que cambió el productor (CA11)", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision(COMBINADA);
+
+    await registrar(user);
+
+    const origen = screen.getByRole("heading", { name: "Origen de la información" }).closest("div") as HTMLElement;
+    expect(within(origen).getByText("Fuente: Open Food Facts")).toBeInTheDocument();
+    expect(within(origen).getByText("Fuente: Jumbo")).toBeInTheDocument();
+    expect(within(origen).getAllByText("Recuperado el 6 de noviembre de 2026")).toHaveLength(2);
+    expect(within(origen).getByText("Aportó: Nombre, Marca")).toBeInTheDocument();
+    expect(within(origen).getByText("Aportó: Ingredientes declarados, Alérgenos")).toBeInTheDocument();
+    expect(within(origen).getByText("Cambios del productor")).toBeInTheDocument();
+    expect(within(origen).getByText("Presentación")).toBeInTheDocument();
+  });
+
+  it("un insumo manual dice que la ficha fue ingresada manualmente", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(
+      insumo({ id: 31, nombre: "Queso casero", ficha: null, fuente: "manual", alergenos_declarados: [] }),
+    );
+    const user = await abrir("/insumos/nuevo/manual");
+    await user.type(campo("Nombre"), "Queso casero");
+    await user.type(campo("Marca u origen"), "Casero");
+    await user.click(await screen.findByRole("radio", { name: "Leche" }));
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
+
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
+
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("Ficha ingresada manualmente.")).toBeInTheDocument();
+    expect(screen.queryByText(/^Fuente:/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Ninguno.")).toHaveLength(2);
+  });
+
+  it("la miniatura revisada se muestra con su fuente, sin guardarse", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision({
+      ...COMBINADA,
+      imagen_url: "https://imagenes.jumbo.test/quilque-500g-1.jpg",
+      imagen_fuente: "jumbo",
+    });
+
+    await registrar(user);
+
+    const identificacion = screen.getByRole("heading", { name: "Identificación comercial" }).closest("section") as HTMLElement;
+    expect(within(identificacion).getByRole("img", { name: "Queso Mantecoso Quilque" })).toHaveAttribute(
+      "src",
+      "https://imagenes.jumbo.test/quilque-500g-1.jpg",
+    );
+    expect(within(identificacion).getByText("Imagen: Jumbo")).toBeInTheDocument();
+    expect(JSON.stringify(vi.mocked(insumoService.createInsumo).mock.calls[0][0])).not.toContain("imagenes.jumbo.test");
+  });
+
+  it("«Volver a Insumos» abre el listado", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision(COMBINADA);
+    await registrar(user);
+
+    await user.click(screen.getByRole("button", { name: "Volver a Insumos" }));
+
+    expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
+  });
+
+  it("«Registrar otro insumo» vuelve a la pantalla de tres opciones con todo limpio", async () => {
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(GUARDADO);
+    const user = await abrirRevision(COMBINADA);
+    await registrar(user);
+
+    await user.click(screen.getByRole("button", { name: "Registrar otro insumo" }));
+
+    expect(await screen.findByRole("heading", { name: "¿Cómo quieres registrar el insumo?", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Insumo registrado" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: /Crear ficha manual/ }));
+    expect(await screen.findByLabelText("Nombre")).toHaveValue("");
+  });
+
+  it("si el servidor rechaza el registro no hay confirmación: sigue la revisión", async () => {
+    vi.mocked(insumoService.createInsumo).mockRejectedValue(new Error("caído"));
+    const user = await abrirRevision(COMBINADA);
+    await user.click(screen.getByRole("radio", { name: "Leche" }));
+
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
+
+    expect(await screen.findByText(/No pudimos guardar el insumo/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Insumo registrado" })).not.toBeInTheDocument();
+  });
+});

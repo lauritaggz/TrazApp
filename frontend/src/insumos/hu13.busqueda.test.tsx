@@ -845,11 +845,13 @@ describe("El insumo se registra solo al guardar", () => {
     ningunaEscrituraDeInsumos();
   });
 
-  it("al guardar con éxito vuelve al listado", async () => {
+  it("al guardar con éxito muestra la confirmación y «Volver a Insumos» vuelve al listado", async () => {
     const user = await conProductoEncontrado();
 
     await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Volver a Insumos" }));
     expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import BuscarPorNombre from "@/components/insumos/BuscarPorNombre";
 import ConfirmarReemplazoDatos from "@/components/insumos/ConfirmarReemplazoDatos";
 import EncabezadoNuevoInsumo from "@/components/insumos/EncabezadoNuevoInsumo";
+import InsumoRegistrado from "@/components/insumos/InsumoRegistrado";
 import InicioNuevoInsumo, { esMetodoNuevoInsumo } from "@/components/insumos/InicioNuevoInsumo";
 import PasoBusquedaCodigo from "@/components/insumos/PasoBusquedaCodigo";
 import RevisionInsumo from "@/components/insumos/RevisionInsumo";
@@ -21,6 +22,7 @@ import { useInsumoForm } from "@/hooks/useInsumoForm";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import type { PrecargaInsumo } from "@/lib/precargaInsumo";
 import { nombreDeOrigen } from "@/lib/revisionInsumo";
+import type { Insumo } from "@/types/insumo";
 
 /** The title and the help line of each screen, as in the design. */
 const ENCABEZADOS: Record<string, { paso?: string; titulo: string; descripcion: string }> = {
@@ -72,6 +74,8 @@ function PaginaNuevoInsumo({ metodo }: { metodo: string | undefined }) {
     conservar,
   } = useFormularioDesdeCodigo();
   const [confirmarVolver, setConfirmarVolver] = useState(false);
+  // The supply that was just registered (and the thumbnail that was reviewed): the confirmation screen.
+  const [creado, setCreado] = useState<{ insumo: Insumo; imagen?: { url: string | null; fuente: string } } | null>(null);
   // The supply that already has the scanned code: here it is viewed or, if inactive, reactivated.
   const existente = useInsumoExistente({
     onReactivado: (insumo) => navigate(`/insumos/${insumo.id}`, { state: { insumoReactivated: true } }),
@@ -125,6 +129,22 @@ function PaginaNuevoInsumo({ metodo }: { metodo: string | undefined }) {
       producerName={producerName}
       businessName={businessName}
     >
+      {creado && (
+        <div className="mx-auto max-w-6xl">
+          <InsumoRegistrado
+            insumo={creado.insumo}
+            imagen={creado.imagen}
+            onVolver={() => navigate("/insumos")}
+            onOtro={() => {
+              setCreado(null);
+              descartar();
+              navigate("/insumos/nuevo");
+            }}
+          />
+        </div>
+      )}
+
+      {!creado && (
       <div className={`mx-auto ${enRevision ? "max-w-6xl" : "max-w-5xl"}`}>
         <EncabezadoNuevoInsumo {...encabezado} />
 
@@ -143,9 +163,11 @@ function PaginaNuevoInsumo({ metodo }: { metodo: string | undefined }) {
             precarga={precarga}
             ingredientes={ingredientes}
             formularioRef={formularioRef}
+            onCreado={(insumo) => setCreado({ insumo, imagen: precarga.revision?.imagen })}
           />
         )}
       </div>
+      )}
 
       <ConfirmarReemplazoDatos open={porConfirmar !== null} onConfirm={reemplazar} onCancel={conservar} />
 
@@ -194,10 +216,12 @@ interface FormularioNuevoInsumoProps {
   precarga: PrecargaInsumo;
   ingredientes: ReturnType<typeof useIngredientesActivos>;
   formularioRef: MutableRefObject<EstadoDelFormulario>;
+  /** The supply was registered: the page shows the confirmation instead of the review. */
+  onCreado: (insumo: Insumo) => void;
 }
 
 /** The review of a new supply. Mounted with `key`, so each lookup starts it again from its new data. */
-function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef }: FormularioNuevoInsumoProps) {
+function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef, onCreado }: FormularioNuevoInsumoProps) {
   const navigate = useNavigate();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
@@ -207,7 +231,7 @@ function FormularioNuevoInsumo({ precarga, ingredientes, formularioRef }: Formul
     initialAlergenos: precarga.alergenos,
     extraPayload: precarga.extra,
     origenPropuesta: precarga.origen,
-    onSaved: () => navigate("/insumos", { state: { insumoCreated: true } }),
+    onSaved: onCreado,
     onReactivated: (insumo) =>
       navigate(`/insumos/${insumo.id}`, { state: { insumoReactivated: true } }),
   });

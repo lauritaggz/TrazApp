@@ -173,7 +173,7 @@ async function abrirNuevoInsumo(ruta = "/insumos/nuevo/codigo") {
 
 async function guardadoUnaVez(): Promise<InsumoCreatePayload> {
   await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
-  expect(await screen.findByRole("heading", { name: "Insumos", level: 1 })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
   return vi.mocked(insumoService.createInsumo).mock.calls[0][0];
 }
 
