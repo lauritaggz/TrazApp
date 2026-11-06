@@ -25,7 +25,7 @@ from app.services.insumo_service import InsumoService
 from app.services.product_image_service import ProductImageService
 from app.services.producto_formulacion_service import ProductoFormulacionService
 from app.services.producto_service import ProductoService
-from app.services.recuperacion.base import FuenteProducto
+from app.services.recuperacion.base import FuenteBusquedaNombre, FuenteProducto
 from app.services.recuperacion.combinada import FuenteCombinada
 from app.services.recuperacion.jumbo import JumboFuente
 from app.services.recuperacion.open_food_facts import OpenFoodFactsFuente
@@ -82,11 +82,16 @@ def get_fuente_producto() -> FuenteProducto:
     )
 
 
+def get_fuente_busqueda_nombre() -> FuenteBusquedaNombre:
+    return JumboFuente(get_settings())
+
+
 def get_recuperacion_service(
     db: Session = Depends(get_db),
     fuente: FuenteProducto = Depends(get_fuente_producto),
+    busqueda_nombre: FuenteBusquedaNombre = Depends(get_fuente_busqueda_nombre),
 ) -> RecuperacionService:
-    return RecuperacionService(InsumoRepository(db), fuente)
+    return RecuperacionService(InsumoRepository(db), fuente, busqueda_nombre=busqueda_nombre)
 
 
 def get_product_image_service(db: Session = Depends(get_db)) -> ProductImageService:

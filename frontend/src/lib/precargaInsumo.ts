@@ -1,3 +1,4 @@
+import { origenDeConsulta, type OrigenPropuesta } from "@/lib/origenInsumo";
 import type { ConsultaCodigo, SugerenciasAlergenos } from "@/types/consultaCodigo";
 import {
   TIPO_CONTIENE,
@@ -6,6 +7,7 @@ import {
   type AlergenosValue,
   type InsumoCreatePayload,
   type InsumoFormValues,
+  type InsumoFuente,
 } from "@/types/insumo";
 
 /**
@@ -18,6 +20,8 @@ export interface PrecargaInsumo {
   alergenos?: AlergenosValue;
   /** `fuente`, `fecha_recuperacion` and `ficha`, which travel with the payload but are not fields. */
   extra?: Partial<InsumoCreatePayload>;
+  /** HU07: where each field and allergen came from, to record it (and what was edited) on confirming. */
+  origen?: OrigenPropuesta;
   /** The allergens that were suggested, for presentation only. */
   sugerencias?: SugerenciasAlergenos;
   /** «Encontrado: … · sugerimos …»: a line next to the form that says what was found (HT07). */
@@ -64,6 +68,11 @@ export function resumenDeConsulta(consulta: ConsultaCodigo): string {
   }`;
 }
 
+/** The `fuente` of a supply from the source of its proposal; an unknown source is recorded as manual. */
+function fuenteDeConsulta(fuente: string): InsumoFuente {
+  return fuente === "open_food_facts" || fuente === "jumbo" || fuente === "combinada" ? fuente : "manual";
+}
+
 /**
  * A product that was found: its data, the suggested allergens and the retrieval record. The
  * ingredient the productor had already chosen stays (CA07); everything else comes from the source.
@@ -81,10 +90,11 @@ export function precargaDeProducto(consulta: ConsultaCodigo, ingredienteId: stri
     },
     alergenos: alergenosDeConsulta(consulta),
     extra: {
-      fuente: consulta.fuente === "open_food_facts" ? "open_food_facts" : "manual",
+      fuente: fuenteDeConsulta(consulta.fuente),
       fecha_recuperacion: consulta.fecha_recuperacion,
       ficha: consulta.ficha,
     },
+    origen: origenDeConsulta(consulta),
     sugerencias: sugerenciasDeConsulta(consulta),
     resumen: resumenDeConsulta(consulta),
   };

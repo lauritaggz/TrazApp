@@ -145,7 +145,7 @@ type Usuario = ReturnType<typeof userEvent.setup>;
 
 async function abrirPagina() {
   const user = userEvent.setup();
-  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo"] });
+  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo/codigo"] });
   expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
   await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
   return user;

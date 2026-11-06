@@ -80,3 +80,13 @@ class ConsultaCodigoRead(_OmiteOpcionalesVacios):
     fuentes_campos: dict[str, str] | None = None
     fuentes_sin_respuesta: list[str] | None = None
 
+
+
+class ResultadoBusquedaRead(BaseModel):
+    """One hit of the search by name (HU07 / CA3): enough to show it and to ask for its sheet."""
+
+    id: str
+    nombre: str
+    marca: str | None = None
+    presentacion: str | None = None
+    url: str | None = None

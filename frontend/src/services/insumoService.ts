@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/apiClient";
-import type { ConsultaCodigo } from "@/types/consultaCodigo";
+import type { ConsultaCodigo, ResultadoBusquedaNombre } from "@/types/consultaCodigo";
 import type {
   AlergenoDeclarado,
   AlergenoDeclaradoInput,
@@ -37,6 +37,30 @@ export async function getInsumo(id: number): Promise<Insumo> {
 export async function consultarCodigoBarras(codigo: string): Promise<ConsultaCodigo> {
   return apiRequest<ConsultaCodigo>(
     `/gestion/insumos/consulta-codigo/${encodeURIComponent(codigo)}`,
+    { method: "GET" },
+    true,
+  );
+}
+
+/**
+ * Hits of the search by name or brand in Jumbo (HU07). It only reads. 200 with the hits (maybe none);
+ * 422 if the text is too short or long; 503 if the source cannot answer.
+ */
+export async function buscarPorNombre(texto: string): Promise<ResultadoBusquedaNombre[]> {
+  return apiRequest<ResultadoBusquedaNombre[]>(
+    `/gestion/insumos/busqueda?texto=${encodeURIComponent(texto)}`,
+    { method: "GET" },
+    true,
+  );
+}
+
+/**
+ * The proposal for one hit of the search by name, with the format of the barcode lookup (HU07). It only
+ * reads. 409 if the productor already has its barcode; 404 if the product is gone; 503 if Jumbo is down.
+ */
+export async function consultarResultadoDeBusqueda(id: string): Promise<ConsultaCodigo> {
+  return apiRequest<ConsultaCodigo>(
+    `/gestion/insumos/busqueda/${encodeURIComponent(id)}`,
     { method: "GET" },
     true,
   );

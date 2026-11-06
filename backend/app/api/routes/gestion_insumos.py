@@ -6,7 +6,7 @@ from app.api.dependencies import (
     get_recuperacion_service,
 )
 from app.models import Productor
-from app.schemas.consulta_codigo import ConsultaCodigoRead
+from app.schemas.consulta_codigo import ConsultaCodigoRead, ResultadoBusquedaRead
 from app.schemas.insumo import (
     AlergenoDeclaradoRead,
     InsumoAlergenoCreate,
@@ -29,7 +29,12 @@ from app.services.insumo_service import (
     InvalidInsumoError,
 )
 from app.services.recuperacion.base import FuenteNoDisponibleError
-from app.services.recuperacion.service import CodigoInvalidoError, RecuperacionService
+from app.services.recuperacion.service import (
+    BusquedaInvalidaError,
+    CodigoInvalidoError,
+    RecuperacionService,
+    ResultadoNoDisponibleError,
+)
 
 router = APIRouter(prefix="/gestion/insumos", tags=["gestion-insumos"])
 
@@ -104,6 +109,55 @@ def consultar_codigo_barras(
     except CodigoInvalidoError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+        ) from exc
+    except DuplicateCodigoBarrasError as exc:
+        raise _duplicate_codigo_error(exc) from exc
+    except FuenteNoDisponibleError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"mensaje": str(exc), "motivo": exc.motivo},
+        ) from exc
+
+
+@router.get("/busqueda", response_model=list[ResultadoBusquedaRead])
+def buscar_por_nombre(
+    texto: str = Query(default=""),
+    current_productor: Productor = Depends(get_current_productor),
+    service: RecuperacionService = Depends(get_recuperacion_service),
+) -> list[ResultadoBusquedaRead]:
+    """Hits of a search by name or brand in Jumbo (HU07). Read-only; no hits is an empty list."""
+    try:
+        return service.buscar_por_nombre(texto)
+    except BusquedaInvalidaError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+        ) from exc
+    except FuenteNoDisponibleError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"mensaje": str(exc), "motivo": exc.motivo},
+        ) from exc
+
+
+@router.get("/busqueda/{resultado_id}", response_model=ConsultaCodigoRead)
+def consultar_resultado_de_busqueda(
+    resultado_id: str,
+    current_productor: Productor = Depends(get_current_productor),
+    service: RecuperacionService = Depends(get_recuperacion_service),
+) -> ConsultaCodigoRead:
+    """Proposal for a new supply from one hit of the search by name. Read-only (HU07, CA9)."""
+    try:
+        return service.consultar_por_nombre(current_productor, resultado_id)
+    except BusquedaInvalidaError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+        ) from exc
+    except ResultadoNoDisponibleError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail={"mensaje": str(exc)},
         ) from exc
     except DuplicateCodigoBarrasError as exc:

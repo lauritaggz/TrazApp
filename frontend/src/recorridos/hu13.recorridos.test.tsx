@@ -164,7 +164,7 @@ beforeEach(() => {
 
 async function abrirNuevoInsumo() {
   const user = userEvent.setup();
-  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo"] });
+  renderWithProviders(<App />, { initialEntries: ["/insumos/nuevo/codigo"] });
   await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 });
   await waitFor(() => expect(screen.getByLabelText("Ingrediente")).toBeEnabled());
   return { user, r: new Recorrido(user) };

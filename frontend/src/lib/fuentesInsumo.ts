@@ -10,6 +10,8 @@ export const FUENTE_MANUAL = "manual";
 const NOMBRES: Record<string, string> = {
   [FUENTE_MANUAL]: "Registro manual",
   open_food_facts: "Open Food Facts",
+  jumbo: "Jumbo",
+  combinada: "Jumbo y Open Food Facts",
 };
 
 /** The visible name of a source; an unknown value is shown as it came. */

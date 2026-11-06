@@ -398,7 +398,7 @@ async function llenarDatos(user: Usuario) {
 
 describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("incluye el selector de alérgenos", async () => {
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByRole("group", { name: "Alérgenos del insumo" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Alérgenos", level: 2 })).toBeInTheDocument();
@@ -406,7 +406,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
 
   it("no guarda sin declarar los alérgenos ni confirmar que no contiene: muestra el mensaje y enfoca la casilla", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -419,7 +419,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("envía la lista de alérgenos declarados en el mismo POST", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
     await declarar(user, grupo(), "1");
     await declarar(user, grupo(), "2", "trazas");
@@ -442,7 +442,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("con «Este insumo no contiene alérgenos» envía una lista vacía", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
@@ -457,7 +457,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("tras crear, el aviso no manda a declarar los alérgenos después", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
 
@@ -469,7 +469,7 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
 
   it("agregar un alérgeno cuenta como cambio sin guardar al salir", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await screen.findByRole("option", { name: "Leche" });
     await declarar(user, grupo(), "1");
 

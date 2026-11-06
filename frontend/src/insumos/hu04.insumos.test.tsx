@@ -473,7 +473,7 @@ describe("Presentación del insumo en el listado", () => {
 
 describe("Formulario de insumo", () => {
   it("muestra todos los campos, el selector de ingredientes activos y los textos de ayuda", async () => {
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByRole("heading", { name: "Nuevo insumo", level: 1 })).toBeInTheDocument();
     await screen.findByRole("option", { name: "Leche" });
@@ -505,7 +505,7 @@ describe("Formulario de insumo", () => {
 
   it("valida los campos obligatorios y no envía", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await screen.findByRole("option", { name: "Leche" });
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -519,7 +519,7 @@ describe("Formulario de insumo", () => {
 
   it("informa el dígito verificador inválido en el campo y no envía", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
     await user.type(screen.getByLabelText("Código de barras"), "7802910000972");
@@ -535,7 +535,7 @@ describe("Formulario de insumo", () => {
   it("crea el insumo con la carga normalizada, con sus alérgenos, y avisa sin pedir declararlos después", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
     await user.type(screen.getByLabelText("Código de barras"), " 780 291 0000971 ");
     await user.type(screen.getByLabelText("Advertencias"), "Contiene leche");
@@ -569,7 +569,7 @@ describe("Formulario de insumo", () => {
         marca_origen: "Revisa la marca u origen.",
       }),
     );
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -584,7 +584,7 @@ describe("Formulario de insumo", () => {
     vi.mocked(insumoService.createInsumo).mockRejectedValueOnce(
       new ApiError("Ingrediente no válido", 422),
     );
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -596,7 +596,7 @@ describe("Formulario de insumo", () => {
   it("un error inesperado muestra un mensaje general", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockRejectedValueOnce(new Error("caído"));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -608,7 +608,7 @@ describe("Formulario de insumo", () => {
 
   it("sin ingredientes activos ofrece crear uno", async () => {
     vi.mocked(ingredientService.listIngredients).mockResolvedValue([]);
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByText(/Aún no tienes ingredientes activos\./)).toBeInTheDocument();
     // T13-09: el enlace a /ingredientes/nuevo (que hacía perder lo escrito) pasó a ser un botón
@@ -620,7 +620,7 @@ describe("Formulario de insumo", () => {
   it("si falla la carga de ingredientes permite reintentar", async () => {
     const user = userEvent.setup();
     vi.mocked(ingredientService.listIngredients).mockRejectedValueOnce(new Error("fallo"));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByText("No pudimos cargar tus ingredientes.")).toBeInTheDocument();
     expect(screen.getByLabelText("Ingrediente")).toBeDisabled();
@@ -633,7 +633,7 @@ describe("Formulario de insumo", () => {
 
   it("avisa antes de salir con cambios sin guardar", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await screen.findByRole("option", { name: "Leche" });
     await user.type(screen.getByLabelText("Nombre"), "Algo");
 
@@ -652,7 +652,7 @@ describe("Formulario de insumo", () => {
 describe("Código de barras repetido (409)", () => {
   async function submitWithDuplicate(user: ReturnType<typeof userEvent.setup>, error: ApiError) {
     vi.mocked(insumoService.createInsumo).mockRejectedValueOnce(error);
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
     await user.type(screen.getByLabelText("Código de barras"), EAN_13);
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -1166,7 +1166,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
     vi.mocked(insumoService.createInsumo).mockResolvedValue(
       insumo({ id: 21, nombre: "Huevos de campo", marca_origen: "Feria local", codigo_barras: null }),
     );
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await screen.findByRole("option", { name: "Leche" });
 
     await user.type(screen.getByLabelText("Nombre"), "Huevos de campo");
@@ -1215,7 +1215,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
   it("PT04-07: se puede registrar un segundo insumo para un ingrediente que ya tiene uno", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 22, habitual: false }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await fillValidForm(user);
 
     await user.click(screen.getByRole("button", { name: "Crear insumo" }));
@@ -1269,7 +1269,7 @@ describe("Plan de pruebas HU04: casos de la interfaz", () => {
 // (PT04-13) queda como prueba manual pendiente.
 describe("PT04-13: adaptación a dispositivos móviles (verificación estructural)", () => {
   it("el formulario usa campos y botones a ancho completo en celular y en fila desde sm", async () => {
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await screen.findByRole("option", { name: "Leche" });
 
     for (const label of ["Nombre", "Marca u origen", "Ingrediente", "Código de barras", "Advertencias"]) {

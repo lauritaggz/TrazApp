@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useBusquedaCodigoBarras, type ResultadoBusqueda } from "@/hooks/useBusquedaCodigoBarras";
+import { useBusquedaPorNombre } from "@/hooks/useBusquedaPorNombre";
 import type { useInsumoForm } from "@/hooks/useInsumoForm";
 import { isInsumoFormDirtyComparedTo } from "@/lib/insumoFormValidation";
 import {
@@ -71,6 +72,8 @@ export function useFormularioDesdeCodigo(valoresIniciales: Partial<InsumoFormVal
   }
 
   const busqueda = useBusquedaCodigoBarras({ onResultado: handleResultado });
+  // HU07: a hit of the search by name preloads the form the same way a barcode does.
+  const busquedaNombre = useBusquedaPorNombre({ onResultado: handleResultado });
 
   /** The productor accepts replacing what they typed with the product that was found. */
   function reemplazar() {
@@ -85,9 +88,10 @@ export function useFormularioDesdeCodigo(valoresIniciales: Partial<InsumoFormVal
     setPorConfirmar(null);
     // Do not leave the message that says the product was found.
     busqueda.limpiar();
+    busquedaNombre.limpiar();
   }
 
-  return { busqueda, precarga, formularioRef, porConfirmar, reemplazar, conservar };
+  return { busqueda, busquedaNombre, precarga, formularioRef, porConfirmar, reemplazar, conservar };
 }
 
 /**

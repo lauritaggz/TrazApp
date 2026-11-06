@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { duplicadoDe } from "@/lib/insumoDuplicado";
+import { origenParaEnviar, type OrigenPropuesta } from "@/lib/origenInsumo";
 import {
   alergenosCambiaron,
   alergenosParaEnviar,
@@ -13,6 +14,7 @@ import {
   validateInsumoForm,
   type InsumoFormFieldErrors,
 } from "@/lib/insumoFormValidation";
+import { listAlergenosCatalog } from "@/services/ingredientService";
 import {
   createInsumo,
   reactivateInsumo,
@@ -22,6 +24,7 @@ import { ApiError } from "@/types/auth";
 import {
   ALERGENOS_VACIOS,
   EMPTY_INSUMO_FORM_VALUES,
+  type AlergenoDeclaradoInput,
   type AlergenosValue,
   type Insumo,
   type InsumoCreatePayload,
@@ -51,11 +54,34 @@ interface UseInsumoFormOptions {
    * HU13 uses it for `fuente`, `ficha` and `fecha_recuperacion` of a retrieved supply.
    */
   extraPayload?: Partial<InsumoCreatePayload>;
+  /**
+   * Create mode, HU07: where the retrieved data came from. On saving, what the productor changed from it is
+   * detected and sent with the payload so the supply records the origin of each field and allergen.
+   */
+  origenPropuesta?: OrigenPropuesta;
   onSaved: (insumo: Insumo) => void;
   /** Edit mode: nothing changed, so nothing is sent. */
   onNoChanges?: () => void;
   /** The barcode belonged to a deactivated supply and the productor reactivated it. */
   onReactivated?: (insumo: Insumo) => void;
+}
+
+/**
+ * The code of the allergens the productor added by hand (not in the proposal), to record them as «manual».
+ * It reads the catalog only when there is one; if it cannot, the detail by allergen is left out.
+ */
+async function codigosDeAlergenosNoSugeridos(
+  origen: OrigenPropuesta,
+  alergenos: AlergenoDeclaradoInput[],
+): Promise<Record<number, string>> {
+  const sugeridos = new Set(origen.alergenos.map((a) => a.alergeno_id));
+  if (alergenos.every((a) => sugeridos.has(a.alergeno_id))) return {};
+  try {
+    const catalogo = await listAlergenosCatalog();
+    return Object.fromEntries(catalogo.map((a) => [a.id, a.codigo]));
+  } catch {
+    return {};
+  }
 }
 
 /** State, validation and saving of the supply form, for creating and for editing. */
@@ -65,6 +91,7 @@ export function useInsumoForm({
   initialAlergenos,
   insumoId,
   extraPayload,
+  origenPropuesta,
   onSaved,
   onNoChanges,
   onReactivated,
@@ -165,9 +192,21 @@ export function useInsumoForm({
     } else {
       setLoading(true);
       try {
+        const alergenosEnviados = alergenosParaEnviar(alergenos);
+        const origen = origenPropuesta
+          ? origenParaEnviar(
+              origenPropuesta,
+              baseline,
+              values,
+              alergenosEnviados,
+              alergenosCambiaron(alergenos, alergenosBase),
+              await codigosDeAlergenosNoSugeridos(origenPropuesta, alergenosEnviados),
+            )
+          : {};
         saved = await createInsumo({
           ...toCreatePayload(values, extraPayload),
-          alergenos: alergenosParaEnviar(alergenos),
+          alergenos: alergenosEnviados,
+          ...origen,
         });
       } catch (err) {
         handleSaveError(err);

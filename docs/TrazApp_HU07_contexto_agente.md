@@ -162,6 +162,14 @@ Hallazgos de Jumbo: la búsqueda con el código de barras como texto devuelve 0 
 8. **Pendiente para T07-10:** agregar a la sección de riesgos de `docs/hu07-test-results.md` la fragilidad del HTML de Jumbo (el bloque "Puede contener" depende del marcado del servidor y puede cambiar sin aviso).
 9. **Condiciones de uso (ai.txt/robots.txt):** solo `/api/catalog` y `/{slug}/p` sin query strings; atribución "Fuente: Jumbo" visible; `User-Agent` genérico; una consulta por acción del usuario.
 
+### Decisiones confirmadas en T07-06 (06-11-2026)
+
+1. **Interfaz:** el diseño vigente es `docs/diseno/DISEÑOS SPRINT 3/` (la copia `sprint3/` es antigua). El registro de insumos empieza en una pantalla de tres opciones (escanear, buscar por nombre o marca, ingresar manualmente); cada una abre el formulario de HU04 con su bloque, en `/insumos/nuevo/{codigo|nombre|manual}`.
+2. **Endpoints:** `GET /gestion/insumos/busqueda?texto=` (hasta 10 resultados, tope de `JumboFuente`; sin resultados = 200 con lista vacía) y `GET /gestion/insumos/busqueda/{id}` (propuesta con el formato de `ConsultaCodigoRead`, `fuente: "jumbo"`). 409 como en HU13 si el `gtin` es válido y ya existe; 404 si el producto ya no existe; 503 si Jumbo falla.
+3. **Granel / `gtin` no válido:** no hay detección de duplicados y la respuesta lleva `codigo_barras: ""`; el `gtin` crudo queda solo en la ficha.
+4. **Tamaño de página de Jumbo:** la búsqueda se hace con `POST /api/catalog` y solo `{"fullText": ...}`; no se envió ningún parámetro de tamaño. El tope de 10 es el de nuestro adaptador; el tamaño real de la respuesta de Jumbo no se verificó (queda para T07-09).
+5. **Campos editados:** el cliente compara lo confirmado con lo precargado (después de `trim`) y envía `campos_editados`, `fuentes_campos`, `fuentes_alergenos` y `fuentes_por_alergeno` (T07-05).
+
 ---
 
 ## 6. Tareas

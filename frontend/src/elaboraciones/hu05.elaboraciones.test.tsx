@@ -1747,7 +1747,7 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
       { id: 1, productor_id: 1, codigo_interno: "H", nombre: "Harina", descripcion: null, tipo: null, activo: true, created_at: "" },
     ]);
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     await screen.findByRole("option", { name: "Harina" });
     expect(screen.getByLabelText("Ingrediente")).not.toBeDisabled();

@@ -132,6 +132,7 @@ function FormularioEnDialogo({
     initialValues: precarga.valores,
     initialAlergenos: precarga.alergenos,
     extraPayload: precarga.extra,
+    origenPropuesta: precarga.origen,
     onSaved: onAssigned,
   });
   usePublicarFormulario(form, precarga, formularioRef);
