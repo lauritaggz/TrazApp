@@ -169,6 +169,9 @@ Hallazgos de Jumbo: la búsqueda con el código de barras como texto devuelve 0 
 3. **Granel / `gtin` no válido:** no hay detección de duplicados y la respuesta lleva `codigo_barras: ""`; el `gtin` crudo queda solo en la ficha.
 4. **Tamaño de página de Jumbo:** la búsqueda se hace con `POST /api/catalog` y solo `{"fullText": ...}`; no se envió ningún parámetro de tamaño. El tope de 10 es el de nuestro adaptador; el tamaño real de la respuesta de Jumbo no se verificó (queda para T07-09).
 5. **Campos editados:** el cliente compara lo confirmado con lo precargado (después de `trim`) y envía `campos_editados`, `fuentes_campos`, `fuentes_alergenos` y `fuentes_por_alergeno` (T07-05).
+6. **Limitación aprobada (granel):** un producto de Jumbo sin `gtin` válido (granel con PLU, números de circulación restringida) **no tiene detección de duplicados**: se puede registrar dos veces como insumo. No se agrega criterio por nombre y marca. Debe figurar en la sección de limitaciones de `docs/hu07-test-results.md` (pendiente para T07-10, el archivo aún no existe).
+7. **Tope de 10 resultados:** aprobado. La verificación con una consulta real (tamaño de página por defecto y si el cuerpo admite un parámetro de tamaño) queda para T07-09.
+8. **Duplicado por nombre:** "Usar el insumo existente" es un enlace al detalle en la página; en el diálogo de la elaboración se mantiene "Usar este insumo".
 
 ---
 
