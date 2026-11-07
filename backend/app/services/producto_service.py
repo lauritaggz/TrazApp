@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from app.core.publicacion import generar_id_publico
 from app.models import Producto, Productor
-from app.repositories.producto_repository import ProductoRepository
+from app.repositories.producto_repository import IdPublicoDuplicadoError, ProductoRepository
 from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
     ProductoGestionUpdate,
+    PublicacionRead,
 )
 
 if TYPE_CHECKING:
@@ -16,6 +19,23 @@ if TYPE_CHECKING:
 
 class ProductoNotFoundError(Exception):
     """Raised when a product is not visible to the authenticated productor."""
+
+
+REQUISITO_SIN_FORMULACION = "sin_formulacion"
+REQUISITO_SIN_ELABORACION_FINALIZADA = "sin_elaboracion_finalizada"
+INTENTOS_ID_PUBLICO = 3
+
+
+class PublicacionRequisitosError(Exception):
+    """The product cannot be published yet; `faltantes` lists EVERY missing requirement."""
+
+    def __init__(self, faltantes: list[str]) -> None:
+        super().__init__("El producto aún no cumple los requisitos para publicarse.")
+        self.faltantes = faltantes
+
+
+class IdPublicoAgotadoError(Exception):
+    """Every attempt to generate a free id_publico collided."""
 
 
 def leer_productos(
@@ -87,6 +107,50 @@ class ProductoService:
     def delete_mine(self, productor: Productor, producto_id: int) -> None:
         producto = self._get_owned_or_raise(productor.id, producto_id)
         self.repository.deactivate(producto)
+
+    def habilitar_publicacion(self, productor: Productor, producto_id: int) -> PublicacionRead:
+        """Enable the publication. Idempotent: an already published product is returned as is.
+
+        Requires a formulation (current version with at least one line) and at least one
+        finalized elaboración. The id_publico is generated at the first enabling and never again.
+        """
+        producto = self._get_owned_or_raise(productor.id, producto_id)
+        self.repository.bloquear(producto)
+        if producto.publicado:
+            return PublicacionRead.from_producto(producto)
+
+        faltantes = self._requisitos_faltantes(producto)
+        if faltantes:
+            raise PublicacionRequisitosError(faltantes)
+
+        ahora = datetime.now(timezone.utc)
+        if producto.id_publico is not None:
+            self.repository.publicar(producto, producto.id_publico, ahora)
+            return PublicacionRead.from_producto(producto)
+
+        for _ in range(INTENTOS_ID_PUBLICO):
+            try:
+                self.repository.publicar(producto, generar_id_publico(), ahora)
+            except IdPublicoDuplicadoError:
+                continue
+            return PublicacionRead.from_producto(producto)
+        raise IdPublicoAgotadoError("No se pudo generar un identificador público libre.")
+
+    def deshabilitar_publicacion(self, productor: Productor, producto_id: int) -> PublicacionRead:
+        """Disable the publication, keeping id_publico and publicado_en. Idempotent."""
+        producto = self._get_owned_or_raise(productor.id, producto_id)
+        self.repository.bloquear(producto)
+        if producto.publicado:
+            self.repository.despublicar(producto)
+        return PublicacionRead.from_producto(producto)
+
+    def _requisitos_faltantes(self, producto: Producto) -> list[str]:
+        faltantes = []
+        if producto.id not in self.repository.ids_con_formulacion([producto.id]):
+            faltantes.append(REQUISITO_SIN_FORMULACION)
+        if not self.repository.tiene_elaboracion_finalizada(producto.id):
+            faltantes.append(REQUISITO_SIN_ELABORACION_FINALIZADA)
+        return faltantes
 
     def _get_owned_or_raise(self, productor_id: int, producto_id: int) -> Producto:
         producto = self.repository.get_by_id_and_productor(producto_id, productor_id)

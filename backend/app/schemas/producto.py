@@ -233,6 +233,30 @@ class ProductoGestionRead(BaseModel):
     # HT06-07: the current (vigente) version has at least one ingredient, so an elaboración can be
     # registered for the product. Filled by the service; every response of the product carries it.
     tiene_formulacion: bool = False
+    # HU09 (read-only: never accepted in POST/PATCH). Publication state of the product.
+    publicado: bool = False
+    id_publico: str | None = None
+    publicado_en: datetime | None = None
+
+
+class PublicacionRead(BaseModel):
+    """Publication state of a product (HU09): the answer of enabling / disabling it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    producto_id: int
+    publicado: bool
+    id_publico: str | None
+    publicado_en: datetime | None
+
+    @classmethod
+    def from_producto(cls, producto: object) -> "PublicacionRead":
+        return cls(
+            producto_id=producto.id,  # type: ignore[attr-defined]
+            publicado=producto.publicado,  # type: ignore[attr-defined]
+            id_publico=producto.id_publico,  # type: ignore[attr-defined]
+            publicado_en=producto.publicado_en,  # type: ignore[attr-defined]
+        )
 
 
 # --- VersionProducto (RT-01 / formulación; sin cambios de contrato) ---
