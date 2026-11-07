@@ -11,6 +11,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    PrimaryKeyConstraint,
     String,
     UniqueConstraint,
     false,
@@ -20,7 +21,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.db.triggers_elaboracion import instalar_en_tablas
+from app.db.triggers_elaboracion import instalar_en_tablas, instalar_trigger_ocultas
 
 # Lifecycle of an elaboración (HU05): editable while borrador, immutable once finalizada.
 ESTADO_BORRADOR = "borrador"
@@ -105,6 +106,34 @@ class Elaboracion(Base):
     usos: Mapped[list["UsoInsumo"]] = relationship(
         back_populates="elaboracion",
         cascade="all, delete-orphan",
+    )
+
+
+class ElaboracionOculta(Base):
+    """A finalized elaboración hidden from the public consultation (HU09, CA6-CA8).
+
+    Hiding is a preference of the productor, not part of the immutable record, so it lives in
+    its own table and the elaboración (and its uses) is never written: hide = insert, show =
+    delete. Only finalized elaboraciones can be hidden: the service answers 409 for a borrador
+    and, on PostgreSQL, a trigger rejects it too (app/db/triggers_elaboracion.py).
+    """
+
+    __tablename__ = "elaboraciones_ocultas"
+    __table_args__ = (
+        PrimaryKeyConstraint("elaboracion_id", name="pk_elaboraciones_ocultas"),
+        ForeignKeyConstraint(
+            ["elaboracion_id"],
+            ["elaboraciones.id"],
+            name="fk_elaboraciones_ocultas_elaboracion",
+            ondelete="CASCADE",
+        ),
+    )
+
+    elaboracion_id: Mapped[int] = mapped_column(Integer)
+    oculta_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
 
 
@@ -251,3 +280,5 @@ Index("ix_usos_insumo_lote_id", UsoInsumo.lote_id)
 
 # PostgreSQL triggers that make a finalized elaboración immutable (same SQL as migration 016).
 instalar_en_tablas(Elaboracion.__table__, UsoInsumo.__table__)
+# HU09: only finalized elaboraciones can be hidden (a separate trigger on elaboraciones_ocultas).
+instalar_trigger_ocultas(ElaboracionOculta.__table__)
