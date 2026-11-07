@@ -10,12 +10,14 @@ from app.schemas.elaboracion import (
     ElaboracionListaRead,
     ElaboracionRead,
     ElaboracionUpdate,
+    ElaboracionVisibilidadRead,
     EstadoElaboracion,
     LoteRead,
     UsosReemplazo,
 )
 from app.services.elaboracion_service import (
     CodigoElaboracionRepetidoError,
+    ElaboracionBorradorError,
     ElaboracionConflictError,
     ElaboracionNotFoundError,
     ElaboracionService,
@@ -52,6 +54,8 @@ def _conflict_error(exc: ElaboracionConflictError) -> HTTPException:
         }
     elif isinstance(exc, IngredientesDesactivadosError):
         detail = {"mensaje": str(exc), "ingredientes": exc.ingredientes}
+    elif isinstance(exc, ElaboracionBorradorError):
+        detail = {"mensaje": str(exc)}
     else:
         detail = str(exc)
     return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
@@ -202,6 +206,34 @@ def eliminar_elaboracion(
 ) -> None:
     try:
         service.delete_borrador_mine(current_productor, elaboracion_id)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc
+
+
+@router.post("/elaboraciones/{elaboracion_id}/ocultar", response_model=ElaboracionVisibilidadRead)
+def ocultar_elaboracion(
+    elaboracion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionVisibilidadRead:
+    try:
+        return service.ocultar_mine(current_productor, elaboracion_id)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ElaboracionConflictError as exc:
+        raise _conflict_error(exc) from exc
+
+
+@router.post("/elaboraciones/{elaboracion_id}/mostrar", response_model=ElaboracionVisibilidadRead)
+def mostrar_elaboracion(
+    elaboracion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionVisibilidadRead:
+    try:
+        return service.mostrar_mine(current_productor, elaboracion_id)
     except ElaboracionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ElaboracionConflictError as exc:

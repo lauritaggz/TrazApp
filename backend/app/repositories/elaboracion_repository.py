@@ -1,11 +1,13 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import Select, and_, case, func, or_, select
+from sqlalchemy import Select, and_, case, delete, exists, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import (
     Elaboracion,
+    ElaboracionOculta,
     FormulacionVersionProducto,
     InsumoAlergeno,
     InsumoComercial,
@@ -229,7 +231,7 @@ class ElaboracionRepository:
         codigo: str | None = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[tuple[Elaboracion, int, int]], int]:
+    ) -> tuple[list[tuple[Elaboracion, int, int, bool]], int]:
         """A page of the productor's elaboraciones with their ingredient and pending counts,
         and how many there are in total with the same filters."""
         filtros = {
@@ -257,6 +259,7 @@ class ElaboracionRepository:
                 Elaboracion,
                 func.coalesce(conteos.c.total, 0),
                 func.coalesce(conteos.c.pendientes, 0),
+                exists().where(ElaboracionOculta.elaboracion_id == Elaboracion.id).correlate(Elaboracion),
             )
             .options(joinedload(Elaboracion.producto), joinedload(Elaboracion.version_producto))
             .outerjoin(conteos, conteos.c.elaboracion_id == Elaboracion.id)
@@ -269,8 +272,31 @@ class ElaboracionRepository:
         )
         ids = self._filtrar(select(Elaboracion.id), productor_id, **filtros)
         total = self.db.scalar(select(func.count()).select_from(ids.subquery())) or 0
-        filas = [(fila[0], int(fila[1]), int(fila[2])) for fila in self.db.execute(stmt).unique()]
+        filas = [(fila[0], int(fila[1]), int(fila[2]), bool(fila[3])) for fila in self.db.execute(stmt).unique()]
         return filas, int(total)
+
+    def get_oculta(self, elaboracion_id: int) -> ElaboracionOculta | None:
+        return self.db.get(ElaboracionOculta, elaboracion_id)
+
+    def ocultar(self, elaboracion_id: int) -> ElaboracionOculta:
+        """Hide (insert) and commit. Hiding twice keeps the first `oculta_at`."""
+        existente = self.get_oculta(elaboracion_id)
+        if existente is not None:
+            return existente
+        self.db.add(ElaboracionOculta(elaboracion_id=elaboracion_id))
+        try:
+            self.db.commit()
+        except IntegrityError:
+            # Two simultaneous requests: the other one inserted first. The result is the same.
+            self.db.rollback()
+        oculta = self.get_oculta(elaboracion_id)
+        assert oculta is not None
+        return oculta
+
+    def mostrar(self, elaboracion_id: int) -> None:
+        """Show again (delete the row) and commit. Showing a visible one does nothing."""
+        self.db.execute(delete(ElaboracionOculta).where(ElaboracionOculta.elaboracion_id == elaboracion_id))
+        self.db.commit()
 
     def lineas_por_ingrediente(self, version_id: int) -> dict[int, FormulacionVersionProducto]:
         return {linea.ingrediente_id: linea for linea in self.list_lineas_formulacion(version_id)}

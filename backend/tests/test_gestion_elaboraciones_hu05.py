@@ -456,6 +456,7 @@ def test_el_listado_muestra_el_resumen_con_los_pendientes(client, ctx) -> None:
             "finalizada_at": None,
             "total_ingredientes": 2,
             "pendientes": 2,
+            "oculta": False,
         }
     ]
 
