@@ -182,3 +182,48 @@ def instalar_en_tablas(elaboraciones, usos_insumo) -> None:
         event.listen(usos_insumo, "after_create", DDL(sql).execute_if(dialect="postgresql"))
     for sql in ELIMINAR_FUNCIONES:
         event.listen(elaboraciones, "after_drop", DDL(sql).execute_if(dialect="postgresql"))
+
+
+# --- HU09: only finalized elaboraciones can be hidden -------------------------------------
+# A separate trigger on elaboraciones_ocultas; the objects above (and migration 016) are not
+# touched. It rejects an elaboración that EXISTS and is not finalizada. A non-existent id passes
+# on purpose: the foreign key of the table answers it.
+
+MARCADOR_OCULTAR_NO_FINALIZADA = "ocultar_requiere_finalizada"
+FN_OCULTAS = "fn_elaboraciones_ocultas_finalizada"
+TRG_OCULTAS = "trg_elaboraciones_ocultas_finalizada"
+
+CREAR_FUNCION_OCULTAS = f"""
+CREATE OR REPLACE FUNCTION {FN_OCULTAS}() RETURNS trigger AS $$
+DECLARE
+    v_estado text;
+BEGIN
+    SELECT estado INTO v_estado FROM elaboraciones WHERE id = NEW.elaboracion_id;
+    IF v_estado IS NOT NULL AND v_estado <> 'finalizada' THEN
+        RAISE EXCEPTION '{MARCADOR_OCULTAR_NO_FINALIZADA}: solo se puede ocultar una elaboracion finalizada'
+            USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+"""
+
+CREAR_TRIGGER_OCULTAS = f"""
+CREATE TRIGGER {TRG_OCULTAS}
+    BEFORE INSERT ON elaboraciones_ocultas
+    FOR EACH ROW EXECUTE FUNCTION {FN_OCULTAS}()
+"""
+
+ELIMINAR_TRIGGER_OCULTAS = f"DROP TRIGGER IF EXISTS {TRG_OCULTAS} ON elaboraciones_ocultas"
+ELIMINAR_FUNCION_OCULTAS = f"DROP FUNCTION IF EXISTS {FN_OCULTAS}()"
+
+# What migration 018 creates (PostgreSQL), and what its downgrade removes, trigger first.
+INSTALAR_OCULTAS = (CREAR_FUNCION_OCULTAS, CREAR_TRIGGER_OCULTAS)
+DESINSTALAR_OCULTAS = (ELIMINAR_TRIGGER_OCULTAS, ELIMINAR_FUNCION_OCULTAS)
+
+
+def instalar_trigger_ocultas(ocultas) -> None:
+    """Install the trigger when `create_all` builds elaboraciones_ocultas (PostgreSQL only)."""
+    for sql in INSTALAR_OCULTAS:
+        event.listen(ocultas, "after_create", DDL(sql).execute_if(dialect="postgresql"))
+    event.listen(ocultas, "after_drop", DDL(ELIMINAR_FUNCION_OCULTAS).execute_if(dialect="postgresql"))

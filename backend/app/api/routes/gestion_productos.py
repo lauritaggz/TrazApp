@@ -9,9 +9,15 @@ from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
     ProductoGestionUpdate,
+    PublicacionRead,
 )
 from app.services.product_image_service import InvalidProductImageError, ProductImageService
-from app.services.producto_service import ProductoNotFoundError, ProductoService
+from app.services.producto_service import (
+    IdPublicoAgotadoError,
+    ProductoNotFoundError,
+    ProductoService,
+    PublicacionRequisitosError,
+)
 
 router = APIRouter(prefix="/gestion/productos", tags=["gestion-productos"])
 
@@ -102,6 +108,40 @@ def eliminar_producto(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/{producto_id}/publicacion", response_model=PublicacionRead)
+def habilitar_publicacion(
+    producto_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ProductoService = Depends(get_producto_service),
+) -> PublicacionRead:
+    try:
+        return service.habilitar_publicacion(current_productor, producto_id)
+    except ProductoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PublicacionRequisitosError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"mensaje": str(exc), "faltantes": exc.faltantes},
+        ) from exc
+    except IdPublicoAgotadoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"mensaje": str(exc)},
+        ) from exc
+
+
+@router.delete("/{producto_id}/publicacion", response_model=PublicacionRead)
+def deshabilitar_publicacion(
+    producto_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ProductoService = Depends(get_producto_service),
+) -> PublicacionRead:
+    try:
+        return service.deshabilitar_publicacion(current_productor, producto_id)
+    except ProductoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.post("/{producto_id}/imagen", response_model=ProductoGestionRead)

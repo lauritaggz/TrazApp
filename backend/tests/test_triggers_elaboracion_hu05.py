@@ -138,12 +138,15 @@ def test_create_all_instala_las_funciones_y_los_triggers(bd: Engine) -> None:
         "trg_elaboraciones_inmutables": ("elaboraciones", "O"),
         "trg_elaboraciones_finalizacion_completa": ("elaboraciones", "O"),
         "trg_usos_insumo_elaboracion_abierta": ("usos_insumo", "O"),
+        # HU09 (T09-01): the only addition; the four above are unchanged.
+        "trg_elaboraciones_ocultas_finalizada": ("elaboraciones_ocultas", "O"),
     }
     assert funciones == {
         "fn_elaboraciones_nacen_borrador",
         "fn_elaboraciones_inmutables",
         "fn_elaboraciones_finalizacion_completa",
         "fn_usos_insumo_elaboracion_abierta",
+        "fn_elaboraciones_ocultas_finalizada",
     }
 
 
