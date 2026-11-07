@@ -15,8 +15,9 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import NullPool
 
 from app.db.triggers_elaboracion import MARCADOR_OCULTAR_NO_FINALIZADA
 from tests.test_migracion_011_alergenos import _reset_schema
@@ -28,7 +29,7 @@ from tests.test_migracion_015_elaboraciones import (
     _restricciones,
     _revision,
 )
-from tests.test_migracion_016_elaboracion_inmutable import _semilla
+from tests.test_migracion_016_elaboracion_inmutable import _semilla, rol_sin_superusuario
 from tests.test_migracion_017_alergenos_revisados import engine, test_url  # noqa: F401  (fixtures)
 from tests.test_triggers_elaboracion_hu05 import _ejecutar, _fila, _finalizada, _rechaza, _usos
 
@@ -294,3 +295,25 @@ def test_upgrade_downgrade_upgrade(db_at_017: Engine, alembic_cfg: Config) -> No
 
     assert _revision(db_at_017) == REV_018
     assert _triggers(db_at_017) == {**TRIGGERS_016, TRIGGER_018: "elaboraciones_ocultas"}
+
+
+def test_la_018_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_url: str, alembic_cfg: Config) -> None:  # noqa: F811
+    """As in production: a plain role runs `upgrade head` and 018's trigger is installed and enabled."""
+    with rol_sin_superusuario(test_url) as url_rol:
+        command.upgrade(alembic_cfg, "head")
+
+        motor_rol = create_engine(url_rol, poolclass=NullPool)
+        try:
+            with motor_rol.connect() as conn:
+                assert conn.execute(text("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")).scalar_one() is False
+                habilitado = conn.execute(
+                    text(
+                        "SELECT tgrelid::regclass::text, tgenabled FROM pg_trigger "
+                        "WHERE NOT tgisinternal AND tgname = :t"
+                    ),
+                    {"t": TRIGGER_018},
+                ).one()
+            assert tuple(habilitado) == ("elaboraciones_ocultas", "O")
+            assert _funcion_existe(motor_rol, FUNCION_018)
+        finally:
+            motor_rol.dispose()
