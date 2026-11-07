@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from app.core.publicacion import generar_id_publico
+from app.core.publicacion import construir_url_publica, generar_id_publico
 from app.models import Producto, Productor
+from app.services.qr_service import TIPOS_MEDIA, FormatoQr, generar_qr, nombre_archivo_qr
 from app.repositories.producto_repository import IdPublicoDuplicadoError, ProductoRepository
 from app.schemas.producto import (
     ProductoGestionCreate,
@@ -32,6 +34,17 @@ class PublicacionRequisitosError(Exception):
     def __init__(self, faltantes: list[str]) -> None:
         super().__init__("El producto aún no cumple los requisitos para publicarse.")
         self.faltantes = faltantes
+
+
+class ProductoNoPublicadoError(Exception):
+    """The product is not published right now, so its QR cannot be downloaded."""
+
+
+@dataclass(frozen=True)
+class ArchivoQr:
+    contenido: bytes
+    media_type: str
+    nombre: str
 
 
 class IdPublicoAgotadoError(Exception):
@@ -143,6 +156,18 @@ class ProductoService:
         if producto.publicado:
             self.repository.despublicar(producto)
         return PublicacionRead.from_producto(producto)
+
+    def obtener_qr(self, productor: Productor, producto_id: int, formato: FormatoQr) -> ArchivoQr:
+        """QR of the public URL, only while the product is published. Generated on demand."""
+        producto = self._get_owned_or_raise(productor.id, producto_id)
+        if not producto.publicado or producto.id_publico is None:
+            raise ProductoNoPublicadoError("El producto no está publicado: habilita la publicación para descargar su QR.")
+        url = construir_url_publica(producto.id_publico)  # UrlPublicaNoConfiguradaError -> 500
+        return ArchivoQr(
+            contenido=generar_qr(url, formato),
+            media_type=TIPOS_MEDIA[formato],
+            nombre=nombre_archivo_qr(producto.codigo_interno, producto.id, formato),
+        )
 
     def _requisitos_faltantes(self, producto: Producto) -> list[str]:
         faltantes = []

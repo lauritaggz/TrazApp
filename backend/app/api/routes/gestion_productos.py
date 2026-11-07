@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+
+from app.core.publicacion import UrlPublicaNoConfiguradaError
+from app.services.qr_service import FormatoQr
 from app.api.dependencies import get_current_productor, get_product_image_service, get_producto_service
 from app.models import Productor
 from app.repositories.producto_repository import (
@@ -15,6 +18,7 @@ from app.services.product_image_service import InvalidProductImageError, Product
 from app.services.producto_service import (
     IdPublicoAgotadoError,
     ProductoNotFoundError,
+    ProductoNoPublicadoError,
     ProductoService,
     PublicacionRequisitosError,
 )
@@ -142,6 +146,33 @@ def deshabilitar_publicacion(
         return service.deshabilitar_publicacion(current_productor, producto_id)
     except ProductoNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{producto_id}/qr",
+    responses={200: {"content": {"image/png": {}, "image/svg+xml": {}}, "description": "Imagen del QR"}},
+)
+def descargar_qr(
+    producto_id: int,
+    formato: FormatoQr = "png",
+    current_productor: Productor = Depends(get_current_productor),
+    service: ProductoService = Depends(get_producto_service),
+) -> Response:
+    try:
+        archivo = service.obtener_qr(current_productor, producto_id, formato)
+    except ProductoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ProductoNoPublicadoError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"mensaje": str(exc)}) from exc
+    except UrlPublicaNoConfiguradaError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={"mensaje": str(exc)}
+        ) from exc
+    return Response(
+        content=archivo.contenido,
+        media_type=archivo.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{archivo.nombre}"'},
+    )
 
 
 @router.post("/{producto_id}/imagen", response_model=ProductoGestionRead)

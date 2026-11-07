@@ -2,7 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+
+from app.core.publicacion import url_publica_o_none
 
 
 UnidadMedida = Literal["g", "kg", "ml", "L", "unidad"]
@@ -238,6 +240,12 @@ class ProductoGestionRead(BaseModel):
     id_publico: str | None = None
     publicado_en: datetime | None = None
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def url_publica(self) -> str | None:
+        """Permanent link (the one in the QR): present whenever id_publico exists, even if unpublished."""
+        return url_publica_o_none(self.id_publico)
+
 
 class PublicacionRead(BaseModel):
     """Publication state of a product (HU09): the answer of enabling / disabling it."""
@@ -248,6 +256,11 @@ class PublicacionRead(BaseModel):
     publicado: bool
     id_publico: str | None
     publicado_en: datetime | None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def url_publica(self) -> str | None:
+        return url_publica_o_none(self.id_publico)
 
     @classmethod
     def from_producto(cls, producto: object) -> "PublicacionRead":

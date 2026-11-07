@@ -93,7 +93,7 @@ def test_pt09_01_habilita_un_producto_con_formulacion_y_una_elaboracion_finaliza
 
     assert respuesta.status_code == 200, respuesta.text
     cuerpo = respuesta.json()
-    assert set(cuerpo) == {"producto_id", "publicado", "id_publico", "publicado_en"}
+    assert set(cuerpo) == {"producto_id", "publicado", "id_publico", "publicado_en", "url_publica"}
     assert cuerpo["producto_id"] == listo["producto"]["id"]
     assert cuerpo["publicado"] is True
     assert cuerpo["id_publico"]
@@ -214,6 +214,7 @@ def test_deshabilitar_un_producto_no_publicado_responde_200_sin_cambios(client, 
         "publicado": False,
         "id_publico": None,
         "publicado_en": None,
+        "url_publica": None,
     }
     assert _estado_bd(db_session, ctx["producto"]["id"]) == (False, None, None)
 
