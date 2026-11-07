@@ -198,6 +198,7 @@ export default function InsumoForm({
             title="Información general"
             description="Qué insumo es y a qué ingrediente abastece."
           >
+            <div className={embedded ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "contents"}>
             <Input
               label="Nombre"
               name="nombre"
@@ -217,12 +218,13 @@ export default function InsumoForm({
               value={values.marca_origen}
               onChange={(e) => update("marca_origen", e.target.value)}
               error={errors.marca_origen}
-              hint="Por ejemplo, la marca del producto o 'Feria local'."
+              hint={embedded ? undefined : "Por ejemplo, la marca del producto o 'Feria local'."}
               disabled={loading}
               maxLength={255}
               autoComplete="off"
               required
             />
+            </div>
 
             <div className="space-y-2">
               <Select
@@ -290,6 +292,7 @@ export default function InsumoForm({
               )}
             </div>
 
+            <div className={embedded ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "contents"}>
             <Input
               label="Presentación"
               name="presentacion"
@@ -347,6 +350,7 @@ export default function InsumoForm({
                 </div>
               )}
             </div>
+            </div>
           </ProductFormSection>
 
           <ProductFormSection
@@ -363,7 +367,7 @@ export default function InsumoForm({
               value={values.ingredientes_declarados}
               onChange={(e) => update("ingredientes_declarados", e.target.value)}
               error={errors.ingredientes_declarados}
-              hint="Tal como aparecen en el envase."
+              hint={embedded ? undefined : "Tal como aparecen en el envase."}
               disabled={loading}
             />
             <Textarea
@@ -412,14 +416,16 @@ export default function InsumoForm({
                   checked={values.habitual}
                   onChange={(e) => update("habitual", e.target.checked)}
                   disabled={loading}
-                  aria-describedby="insumo-habitual-ayuda"
+                  aria-describedby={embedded ? undefined : "insumo-habitual-ayuda"}
                   className="h-5 w-5 shrink-0 rounded border-border-strong accent-brand-600"
                 />
                 Insumo habitual
               </label>
-              <p id="insumo-habitual-ayuda" className="pl-8 text-[13px] text-text-secondary">
-                Se preselecciona al crear una elaboración.
-              </p>
+              {!embedded && (
+                <p id="insumo-habitual-ayuda" className="pl-8 text-[13px] text-text-secondary">
+                  Se preselecciona al crear una elaboración.
+                </p>
+              )}
             </div>
             {errors.habitual && (
               <p className="text-[13px] text-error">{errors.habitual}</p>

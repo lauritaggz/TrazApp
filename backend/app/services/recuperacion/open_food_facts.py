@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import httpx
@@ -11,7 +12,7 @@ from app.services.recuperacion.base import (
     MOTIVO_TIMEOUT,
     FuenteNoDisponibleError,
 )
-from app.services.recuperacion.modelos import ProductoFuente
+from app.services.recuperacion.modelos import ProductoFuente, url_de_imagen
 
 NOMBRE_FUENTE = "open_food_facts"
 
@@ -29,6 +30,8 @@ CAMPOS = (
     "countries_tags",
     "last_modified_t",
 )
+# Also requested, but only to show the thumbnail (HU07): it is not kept in the supply's `ficha`.
+CAMPO_IMAGEN = "image_url"
 
 
 def construir_url(base_url: str, codigo: str) -> str:
@@ -70,17 +73,21 @@ class OpenFoodFactsFuente:
         self.timeout = settings.off_timeout_seconds
         self._transport = transport
 
-    def buscar(self, codigo_barras: str) -> ProductoFuente | None:
-        producto = self._buscar_forma(codigo_barras, codigo_barras)
+    def buscar(self, codigo_barras: str, timeout: float | None = None) -> ProductoFuente | None:
+        """`timeout` (optional) is the total time the caller grants, UPC-A retry included."""
+        limite = None if timeout is None else time.monotonic() + timeout
+        producto = self._buscar_forma(codigo_barras, codigo_barras, limite)
         # Open Food Facts usually stores a UPC-A as an EAN-13 with a leading 0: if the code as it
         # was read is unknown, ask once more with that form. Errors are not retried.
         if producto is None and len(codigo_barras) == 12:
-            producto = self._buscar_forma(codigo_barras, "0" + codigo_barras)
+            producto = self._buscar_forma(codigo_barras, "0" + codigo_barras, limite)
         return producto
 
-    def _buscar_forma(self, codigo_barras: str, forma: str) -> ProductoFuente | None:
+    def _buscar_forma(
+        self, codigo_barras: str, forma: str, limite: float | None = None
+    ) -> ProductoFuente | None:
         """Ask for `forma`; the product is reported under the code as the productor read it."""
-        respuesta = self._pedir(forma)
+        respuesta = self._pedir(forma, limite)
         if respuesta.status_code == 404:
             return None
         if respuesta.status_code == 429:
@@ -95,16 +102,21 @@ class OpenFoodFactsFuente:
             raise FuenteNoDisponibleError(MOTIVO_RESPUESTA_INVALIDA) from exc
         return self._interpretar(codigo_barras, forma, cuerpo)
 
-    def _pedir(self, codigo_barras: str) -> httpx.Response:
+    def _pedir(self, codigo_barras: str, limite: float | None = None) -> httpx.Response:
+        timeout = self.timeout
+        if limite is not None:
+            timeout = limite - time.monotonic()
+            if timeout <= 0:
+                raise FuenteNoDisponibleError(MOTIVO_TIMEOUT)
         try:
             with httpx.Client(
-                timeout=httpx.Timeout(self.timeout),
+                timeout=httpx.Timeout(timeout),
                 headers={"User-Agent": self.user_agent, "Accept": "application/json"},
                 transport=self._transport,
             ) as cliente:
                 return cliente.get(
                     construir_url(self.base_url, codigo_barras),
-                    params={"fields": ",".join(CAMPOS)},
+                    params={"fields": ",".join((*CAMPOS, CAMPO_IMAGEN))},
                 )
         except httpx.TimeoutException as exc:
             raise FuenteNoDisponibleError(MOTIVO_TIMEOUT) from exc
@@ -123,6 +135,8 @@ class OpenFoodFactsFuente:
         url = f"{self.base_url.rstrip('/')}/product/{forma}"
         ficha = {campo: producto[campo] for campo in CAMPOS if campo in producto}
         ficha["url"] = url
+        # The picture address is for showing; it is not in the record that the supply keeps.
+        imagen = url_de_imagen(producto.get(CAMPO_IMAGEN))
         return ProductoFuente(
             codigo_barras=codigo_barras,
             nombre=_texto(producto.get("product_name_es")) or _texto(producto.get("product_name")),
@@ -134,4 +148,6 @@ class OpenFoodFactsFuente:
             etiquetas_trazas=_etiquetas(producto.get("traces_tags")),
             url=url,
             ficha=ficha,
+            imagen_url=imagen,
+            imagen_fuente=NOMBRE_FUENTE if imagen else None,
         )

@@ -1,0 +1,208 @@
+{
+  "totalProducts": 80,
+  "from": 0,
+  "to": 0,
+  "products": [
+    {
+      "productId": "10706",
+      "slug": "queso-mantecoso-las-parcelas-valdivia-granel",
+      "brand": "Las Parcelas de Valdivia",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10961",
+          "name": "Queso Mantecoso Las Parcelas de Valdivia Trozo Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1508,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "40035",
+      "slug": "queso-mantecoso-lacteos-valdivia-laminado-granel",
+      "brand": "Las Parcelas de Valdivia",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "43049",
+          "name": "Queso Mantecoso Las Parcelas de Valdivia Laminado Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1784,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "87841",
+      "slug": "queso-mantecoso-laminado-500-g",
+      "brand": "Las Parcelas de Valdivia",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "88112",
+          "name": "Queso Mantecoso Las Parcelas de Valdivia Envasado Laminado 470 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 6290,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10737",
+      "slug": "quesomantecoso-quilque-28laminasenvaseresellablealvacio500grs-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10995",
+          "name": "Queso Mantecoso Quilque Envasado Laminado 500 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 5900,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "24073",
+      "slug": "queso-mantecoso-quilque-granel-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "24389",
+          "name": "Queso Mantecoso Soprole Quilque Trozo Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1176,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "24072",
+      "slug": "queso-mantecoso-rio-bueno-granel",
+      "brand": "Río Bueno",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "24388",
+          "name": "Queso Mantecoso Río Bueno Laminado Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1422,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10705",
+      "slug": "queso-mantecoso-las-parcelas-valdivia-350-g-2",
+      "brand": "Las Parcelas de Valdivia",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10960",
+          "name": "Queso Mantecoso Las Parcelas de Valdivia Envasado Trozo 350 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 6190,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10725",
+      "slug": "queso-mantecoso-quilque-250-g-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10982",
+          "name": "Queso Mantecoso Quilque Envasado Laminado 250 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 4170,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10730",
+      "slug": "queso-mantecoso-rio-bueno-500-g-2",
+      "brand": "Río Bueno",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10988",
+          "name": "Queso Mantecoso Río Bueno Laminado 500 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 7690,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10740",
+      "slug": "queso-mantecoso-valdivia-350-g-2",
+      "brand": "Las Parcelas de Valdivia",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10998",
+          "name": "Queso Mantecoso Las Parcelas de Valdivia Envasado Laminado 350 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 7090,
+          "stock": true
+        }
+      ]
+    }
+  ],
+  "_nota": "Grabado de POST https://www.jumbo.cl/api/catalog {\"fullText\":\"queso mantecoso\"} el 2026-11-05; reducido a 10 productos y a los campos usados."
+}

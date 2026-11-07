@@ -1,0 +1,214 @@
+{
+  "totalProducts": 11,
+  "from": 0,
+  "to": 0,
+  "products": [
+    {
+      "productId": "10737",
+      "slug": "quesomantecoso-quilque-28laminasenvaseresellablealvacio500grs-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10995",
+          "name": "Queso Mantecoso Quilque Envasado Laminado 500 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 5900,
+          "stock": true,
+          "images": [
+            "https://imagenes.jumbo.test/quilque-500g-1.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "productId": "10725",
+      "slug": "queso-mantecoso-quilque-250-g-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10982",
+          "name": "Queso Mantecoso Quilque Envasado Laminado 250 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 4170,
+          "stock": true,
+          "images": [
+            "http://inseguro.jumbo.test/quilque-250g.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "productId": "24137",
+      "slug": "queso-mantecoso-sandwich-laminado-quilque-416-g",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "24453",
+          "name": "Queso Mantecoso Quilque Envasado Laminado 416 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 7790,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "24073",
+      "slug": "queso-mantecoso-quilque-granel-2",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "24389",
+          "name": "Queso Mantecoso Soprole Quilque Trozo Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1176,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "10726",
+      "slug": "queso-mantecoso-quilque-granel",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "10983",
+          "name": "Queso Mantecoso Quilque Laminado Granel",
+          "measurementUnit": "kg",
+          "unitMultiplier": 0.1,
+          "price": 1437,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "75860",
+      "slug": "queso-mantecoso-quilque-envasado-trozo-350g-1802264",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Mantecosos y Chanco"
+      ],
+      "items": [
+        {
+          "skuId": "76115",
+          "name": "Queso Mantecoso Quilque Envasado Trozo 350 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 5340,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "83252",
+      "slug": "manteq-soprole-receta-de-campo-pan-250g",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Lácteos, Huevos y Congelados",
+        "Mantequillas y Margarinas",
+        "Mantequillas"
+      ],
+      "items": [
+        {
+          "skuId": "83518",
+          "name": "Mantequilla Soprole Quilque 250 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 3490,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "105636",
+      "slug": "queso-quilque-hebras-400-g-1899543",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Quesos y Fiambres",
+        "Quesos",
+        "Rallados y Granulados"
+      ],
+      "items": [
+        {
+          "skuId": "105903",
+          "name": "Queso Mantecoso Quilque Hebras 400 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 4690,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "164627",
+      "slug": "mantequilla-200g-2067055",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Lácteos, Huevos y Congelados",
+        "Mantequillas y Margarinas",
+        "Mantequillas"
+      ],
+      "items": [
+        {
+          "skuId": "165023",
+          "name": "Mantequilla Soprole Quilque Pote 200 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 3490,
+          "stock": true
+        }
+      ]
+    },
+    {
+      "productId": "174031",
+      "slug": "mantequilla-s-190g-2097715",
+      "brand": "Soprole",
+      "categoryNames": [
+        "Lácteos, Huevos y Congelados",
+        "Mantequillas y Margarinas",
+        "Mantequillas"
+      ],
+      "items": [
+        {
+          "skuId": "174398",
+          "name": "Mantequilla Soprole Quilque Tradicional con Sal 190 g",
+          "measurementUnit": "un",
+          "unitMultiplier": 1,
+          "price": 1900,
+          "stock": true
+        }
+      ]
+    }
+  ],
+  "_nota": "Grabado de POST https://www.jumbo.cl/api/catalog {\"fullText\":\"quilque\"} el 2026-11-05; reducido a 10 productos y a los campos usados. Se agregó el campo images (valores de prueba, no grabados) en dos productos; la forma real no está verificada."
+}

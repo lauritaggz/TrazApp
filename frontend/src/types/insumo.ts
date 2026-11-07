@@ -1,4 +1,4 @@
-export type InsumoFuente = "manual" | "open_food_facts";
+export type InsumoFuente = "manual" | "open_food_facts" | "jumbo" | "combinada";
 export type TipoDeclaracion = "contiene" | "trazas";
 
 export const TIPO_CONTIENE: TipoDeclaracion = "contiene";
@@ -79,6 +79,11 @@ export interface InsumoCreatePayload {
   habitual?: boolean;
   /** HT06: sent (even empty) the supply is created with exactly these allergens and counts as reviewed. */
   alergenos?: AlergenoDeclaradoInput[];
+  /** HU07: only for a retrieved supply. The backend turns them into `ficha.fuentes` and `ficha.fuentes_por_alergeno`. */
+  fuentes_campos?: Record<string, string>;
+  fuentes_alergenos?: string[];
+  fuentes_por_alergeno?: Record<string, { tipo: "contiene" | "traza"; fuentes: string[] }>;
+  campos_editados?: string[];
 }
 
 export interface InsumoUpdatePayload {

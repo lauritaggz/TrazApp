@@ -15,7 +15,7 @@ from app.api.dependencies import get_fuente_producto
 from app.core.config import Settings
 from app.main import app
 from app.services.recuperacion.base import FuenteNoDisponibleError
-from app.services.recuperacion.open_food_facts import CAMPOS, OpenFoodFactsFuente
+from app.services.recuperacion.open_food_facts import CAMPO_IMAGEN, CAMPOS, OpenFoodFactsFuente
 
 FIXTURES = Path(__file__).parent / "fixtures" / "off"
 
@@ -85,7 +85,8 @@ def test_las_fixtures_solo_contienen_los_campos_pedidos(codigo) -> None:
 
     assert set(grabada) == {"http_status", "body"}
     assert set(grabada["body"]) <= {"code", "status", "status_verbose", "product"}
-    assert set(grabada["body"].get("product", {})) <= set(CAMPOS)
+    # HU07: the thumbnail address is also requested (and not kept in the `ficha`).
+    assert set(grabada["body"].get("product", {})) <= set(CAMPOS) | {CAMPO_IMAGEN}
 
 
 @pytest.mark.parametrize("codigo", TODAS)

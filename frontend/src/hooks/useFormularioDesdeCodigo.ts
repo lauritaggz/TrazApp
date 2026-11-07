@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useBusquedaCodigoBarras, type ResultadoBusqueda } from "@/hooks/useBusquedaCodigoBarras";
+import { useBusquedaPorNombre } from "@/hooks/useBusquedaPorNombre";
 import type { useInsumoForm } from "@/hooks/useInsumoForm";
 import { isInsumoFormDirtyComparedTo } from "@/lib/insumoFormValidation";
 import {
@@ -27,7 +28,7 @@ export interface EstadoDelFormulario {
   alergenos: AlergenosValue;
 }
 
-const FORMULARIO_VACIO: EstadoDelFormulario = {
+export const FORMULARIO_VACIO: EstadoDelFormulario = {
   dirty: false,
   cambiosSalvoIngrediente: false,
   values: EMPTY_INSUMO_FORM_VALUES,
@@ -71,6 +72,8 @@ export function useFormularioDesdeCodigo(valoresIniciales: Partial<InsumoFormVal
   }
 
   const busqueda = useBusquedaCodigoBarras({ onResultado: handleResultado });
+  // HU07: a hit of the search by name preloads the form the same way a barcode does.
+  const busquedaNombre = useBusquedaPorNombre({ onResultado: handleResultado });
 
   /** The productor accepts replacing what they typed with the product that was found. */
   function reemplazar() {
@@ -85,9 +88,18 @@ export function useFormularioDesdeCodigo(valoresIniciales: Partial<InsumoFormVal
     setPorConfirmar(null);
     // Do not leave the message that says the product was found.
     busqueda.limpiar();
+    busquedaNombre.limpiar();
   }
 
-  return { busqueda, precarga, formularioRef, porConfirmar, reemplazar, conservar };
+  /** Back from the review to the search: the loaded product and the form are dropped, the hits are kept. */
+  function descartar() {
+    setPrecarga((actual) => ({ ...PRECARGA_INICIAL, valores: valoresIniciales, clave: actual.clave + 1 }));
+    formularioRef.current = FORMULARIO_VACIO;
+    busqueda.limpiar();
+    busquedaNombre.volverAResultados();
+  }
+
+  return { busqueda, busquedaNombre, descartar, precarga, formularioRef, porConfirmar, reemplazar, conservar };
 }
 
 /**

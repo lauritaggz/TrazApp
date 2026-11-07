@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.services.recuperacion.modelos import ProductoFuente
+from app.services.recuperacion.modelos import ProductoFuente, ResultadoBusqueda
 
 MOTIVO_TIMEOUT = "timeout"
 MOTIVO_SIN_CONEXION = "sin_conexion"
@@ -40,6 +40,29 @@ class FuenteProducto(Protocol):
 
     def buscar(self, codigo_barras: str) -> ProductoFuente | None:
         """The product, or None when the source does not know it.
+
+        Raises FuenteNoDisponibleError when the source cannot answer.
+        """
+        ...
+
+
+class FuenteBusquedaNombre(Protocol):
+    """A source that can be searched by name or brand and then asked for one result's sheet.
+
+    Separate from `FuenteProducto` (search by barcode), which does not change.
+    `timeout` is the time left, in seconds, that the caller grants to this step.
+    """
+
+    nombre: str
+
+    def buscar_por_nombre(self, texto: str, timeout: float | None = None) -> list[ResultadoBusqueda]:
+        """The matches, or an empty list. Raises FuenteNoDisponibleError when it cannot answer."""
+        ...
+
+    def obtener(
+        self, resultado: ResultadoBusqueda, timeout: float | None = None
+    ) -> ProductoFuente | None:
+        """The sheet of a result, or None when the source no longer has that product.
 
         Raises FuenteNoDisponibleError when the source cannot answer.
         """

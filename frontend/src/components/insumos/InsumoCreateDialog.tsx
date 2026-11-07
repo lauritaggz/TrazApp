@@ -132,6 +132,7 @@ function FormularioEnDialogo({
     initialValues: precarga.valores,
     initialAlergenos: precarga.alergenos,
     extraPayload: precarga.extra,
+    origenPropuesta: precarga.origen,
     onSaved: onAssigned,
   });
   usePublicarFormulario(form, precarga, formularioRef);
@@ -158,7 +159,11 @@ function FormularioEnDialogo({
     <>
       {mensaje && <Alert type="error">{mensaje}</Alert>}
 
-      <ResumenProductoEncontrado resumen={precarga.resumen} />
+      <ResumenProductoEncontrado
+        resumen={precarga.resumen}
+        imagen={precarga.imagen}
+        nombreProducto={precarga.valores.nombre}
+      />
 
       <InsumoForm
         mode="create"

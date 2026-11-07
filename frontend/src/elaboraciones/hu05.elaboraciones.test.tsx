@@ -1734,7 +1734,7 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
     expect(screen.getByRole("button", { name: "Reactivar" })).toBeInTheDocument();
   });
 
-  it("la pantalla «Nuevo insumo» mantiene el selector libre y el enlace al insumo existente", async () => {
+  it("la pantalla «Nuevo insumo» mantiene la elección libre del ingrediente y el enlace al insumo existente", async () => {
     vi.mocked(insumoService.createInsumo).mockRejectedValue(
       new ApiError("Ya existe un insumo con ese código de barras.", 409, {}, {
         mensaje: "Ya existe un insumo con ese código de barras.",
@@ -1747,15 +1747,17 @@ describe("El formulario de insumos de HU04 sigue igual fuera del diálogo (T05-0
       { id: 1, productor_id: 1, codigo_interno: "H", nombre: "Harina", descripcion: null, tipo: null, activo: true, created_at: "" },
     ]);
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
-    await screen.findByRole("option", { name: "Harina" });
-    expect(screen.getByLabelText("Ingrediente")).not.toBeDisabled();
+    // T07-07: the ingredient is a group of options on the page's review (the dialog keeps its own selector).
+    await screen.findByRole("radio", { name: "Harina" });
+    expect(screen.getByRole("radio", { name: "Harina" })).not.toBeDisabled();
     await user.type(screen.getByLabelText("Nombre"), "Harina Selecta");
     await user.type(screen.getByLabelText("Marca u origen"), "Selecta");
-    await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+    await user.click(screen.getByRole("radio", { name: "Harina" }));
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "El envase no indica “puede contener”" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     expect(await screen.findByRole("link", { name: "Ver insumo existente" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Usar este insumo" })).not.toBeInTheDocument();

@@ -13,6 +13,8 @@ export interface AlergenoSugerido {
   codigo: string;
   nombre: string;
   origen: OrigenAlergeno;
+  /** HU07: every source that names it («jumbo», «open_food_facts», «ingredientes»). Absent for one source. */
+  fuentes?: string[];
 }
 
 export interface AlergenosSugeridos {
@@ -41,6 +43,24 @@ export interface ConsultaCodigo {
   producto: ProductoPropuesto | null;
   alergenos: AlergenosSugeridos;
   ficha: Record<string, unknown> | null;
+  /** HU07: which source supplied each field of `producto`. Absent when there is a single source. */
+  fuentes_campos?: Record<string, string>;
+  /** HU07: the sources that did not answer in time (the answer is the rest's alone). */
+  fuentes_sin_respuesta?: string[];
+  /** HU07: address of the product's thumbnail and its source (attribution). Never saved with the supply. */
+  imagen_url?: string;
+  imagen_fuente?: string;
+}
+
+/** One hit of the search by name (HU07 / CA3): GET /gestion/insumos/busqueda?texto=. */
+export interface ResultadoBusquedaNombre {
+  id: string;
+  nombre: string;
+  marca: string | null;
+  presentacion: string | null;
+  url: string | null;
+  /** Address of the thumbnail (Jumbo); absent or null if the hit has none. */
+  imagen_url?: string | null;
 }
 
 /** Presentation of the allergens that were suggested (HU13): where each one comes from, and what is left. */

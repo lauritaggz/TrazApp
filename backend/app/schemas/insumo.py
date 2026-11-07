@@ -1,19 +1,27 @@
 from datetime import datetime
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
+    StringConstraints,
     field_validator,
     model_validator,
 )
 
 from app.core.codigo_barras import normalizar_codigo_barras, validar_codigo_barras
 from app.models.insumo import TIPO_CONTIENE
+from app.services.insumo_fuentes import CAMPOS_DEL_PRODUCTO, CAMPOS_EDITABLES
 
-FuenteInsumo = Literal["manual", "open_food_facts"]
+FuenteInsumo = Literal["manual", "open_food_facts", "jumbo", "combinada"]
+FuenteDeCampo = Literal["open_food_facts", "jumbo"]
+FuenteDeAlergeno = Literal["open_food_facts", "jumbo", "ingredientes"]
+# «manual»: the allergen was added or changed by the productor.
+FuenteDeUnAlergeno = Literal["jumbo", "open_food_facts", "ingredientes", "manual"]
+_ORDEN_FUENTES_ALERGENO = ("jumbo", "open_food_facts", "ingredientes", "manual")
+CodigoAlergeno = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]{1,50}$")]
 TipoDeclaracion = Literal["contiene", "trazas"]
 
 # These fields cannot be cleared with an explicit null in a PATCH.
@@ -57,6 +65,20 @@ class InsumoAlergenoCreate(BaseModel):
     tipo: TipoDeclaracion
 
 
+class FuentesDeUnAlergeno(BaseModel):
+    """How one allergen reached the confirmed supply (HU07 / CA15): its class and who named it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["contiene", "traza"]
+    fuentes: list[FuenteDeUnAlergeno] = Field(min_length=1)
+
+    @field_validator("fuentes")
+    @classmethod
+    def ordenar_fuentes(cls, value: list[str]) -> list[str]:
+        return [fuente for fuente in _ORDEN_FUENTES_ALERGENO if fuente in value]
+
+
 class InsumoCreate(BaseModel):
     """Create payload for commercial supplies (HU04).
 
@@ -79,6 +101,37 @@ class InsumoCreate(BaseModel):
     fecha_recuperacion: AwareDatetime | None = None
     habitual: bool = False
     alergenos: list[InsumoAlergenoCreate] | None = None
+    # HU07 (optional, only for supplies that come from a source): the source of each field as the
+    # lookup answered it (`fuentes_campos` of the proposal), the sources that named the confirmed
+    # allergens (`fuentes` of each suggested allergen) and the fields the productor edited before
+    # confirming («alergenos» for the allergen selection). They are not stored as such: the service
+    # turns them into ficha["fuentes"].
+    fuentes_campos: dict[str, FuenteDeCampo] | None = None
+    fuentes_alergenos: list[FuenteDeAlergeno] | None = None
+    # By allergen code: its class and its sources, «manual» included. Stored in
+    # ficha["fuentes_por_alergeno"]; ficha["fuentes"] keeps only «alergenos» per source.
+    fuentes_por_alergeno: dict[CodigoAlergeno, FuentesDeUnAlergeno] | None = None
+    campos_editados: list[str] | None = None
+
+    @model_validator(mode="after")
+    def validate_origen_de_los_campos(self) -> Self:
+        if self.fuentes_campos is None:
+            if (
+                self.campos_editados is not None
+                or self.fuentes_alergenos is not None
+                or self.fuentes_por_alergeno is not None
+            ):
+                raise ValueError(
+                    "campos_editados, fuentes_alergenos y fuentes_por_alergeno requieren fuentes_campos"
+                )
+            return self
+        if self.fuente == "manual":
+            raise ValueError("Un insumo manual no lleva fuentes_campos")
+        desconocidos = set(self.fuentes_campos) - set(CAMPOS_DEL_PRODUCTO)
+        desconocidos |= set(self.campos_editados or ()) - set(CAMPOS_EDITABLES)
+        if desconocidos:
+            raise ValueError(f"Campos sin fuente conocida: {', '.join(sorted(desconocidos))}")
+        return self
 
     @field_validator("nombre")
     @classmethod

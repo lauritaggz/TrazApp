@@ -90,9 +90,29 @@ PALABRAS_CLAVE: dict[str, tuple[str, ...]] = {
         "congrio",
         "reineta",
         "surimi",
+        # Species common in Chile (T07-09: added after the first measurement).
+        "pejerrey",
+        "corvina",
+        "lenguado",
+        "albacora",
+        "bonito",
+        "tilapia",
+        "pangasius",
+        "hoki",
+        "arenque",
+        "anchoveta",
+        "pez espada",
+        "abadejo",
+        "robalo",
     ),
-    "crustaceos": ("crustaceo", "camaron", "langostino", "langosta", "cangrejo", "jaiba", "krill"),
-    "moluscos": ("molusco", "calamar", "pulpo", "mejillon", "almeja", "ostra", "ostion", "chorito"),
+    "crustaceos": (
+        "crustaceo", "camaron", "langostino", "langosta", "cangrejo", "jaiba", "krill",
+        "gamba", "centolla", "cigala", "bogavante", "picoroco", "quisquilla",
+    ),  # fmt: skip
+    "moluscos": (
+        "molusco", "calamar", "pulpo", "mejillon", "almeja", "ostra", "ostion", "chorito",
+        "choro", "cholga", "macha", "navajuela", "sepia", "jibia", "caracol", "vieira", "berberecho",
+    ),  # fmt: skip
     "sulfitos": (
         "sulfito",
         "metabisulfito",

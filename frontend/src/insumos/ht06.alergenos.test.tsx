@@ -12,6 +12,7 @@ import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as ingredientService from "@/services/ingredientService";
 import * as insumoService from "@/services/insumoService";
+import { elegirIngrediente, responderSinTrazas } from "@/test/formularioInsumo";
 import { mockProductor, renderWithProviders } from "@/test/testUtils";
 import { ApiError } from "@/types/auth";
 import type { AlergenoCatalogo, Ingrediente } from "@/types/ingredient";
@@ -390,41 +391,80 @@ function openPage(path: string) {
 }
 
 async function llenarDatos(user: Usuario) {
-  await screen.findByRole("option", { name: "Leche" });
+  await screen.findByRole("radio", { name: "Leche" });
   await user.type(screen.getByLabelText("Nombre"), "Leche Colun Entera 1 L");
   await user.type(screen.getByLabelText("Marca u origen"), "Colun");
-  await user.selectOptions(screen.getByLabelText("Ingrediente"), "1");
+  await elegirIngrediente(user, "Leche");
+}
+
+/** T07-07: declares an allergen in the review with the chips of «Agregar alérgeno» of its column. */
+async function agregarEnLaRevision(user: Usuario, nombre: string, columna: "Contiene" | "Puede contener") {
+  // One list of chips for both columns: the class is chosen first (the default is «Contiene»).
+  await user.click(await screen.findByRole("radio", { name: columna }));
+  await user.click(await screen.findByRole("button", { name: `Agregar ${nombre} a ${columna}` }));
 }
 
 describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("incluye el selector de alérgenos", async () => {
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
 
     expect(await screen.findByRole("group", { name: "Alérgenos del insumo" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Alérgenos", level: 2 })).toBeInTheDocument();
   });
 
-  it("no guarda sin declarar los alérgenos ni confirmar que no contiene: muestra el mensaje y enfoca la casilla", async () => {
+  it("no guarda sin declarar los alérgenos ni confirmar que no contiene: «Alérgenos revisados» queda pendiente y el botón no se habilita", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
+    await responderSinTrazas(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
-
-    expect(await screen.findByText(MENSAJE_ALERGENOS_INVALIDOS)).toBeInTheDocument();
+    // T07-07: the button works only with every requirement done, so the message of the failed save
+    // (MENSAJE_ALERGENOS_INVALIDOS) and the focus on the checkbox are not reachable here; the requirement says it.
+    const confirmar = screen.getByRole("button", { name: "Confirmar registro" });
+    expect(confirmar).toBeDisabled();
+    expect(within(screen.getByRole("list", { name: "Requisitos para confirmar" })).getByText(/Alérgenos revisados/)).toHaveTextContent("(pendiente)");
+    await user.click(confirmar);
     expect(insumoService.createInsumo).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.getByLabelText("Este insumo no contiene alérgenos")).toHaveFocus());
+    expect(screen.getByLabelText("Este insumo no contiene alérgenos")).not.toBeChecked();
+  });
+
+  it("declarar solo trazas no basta: hay que declarar «Contiene» o confirmar que no contiene (HT06, T07-07)", async () => {
+    const user = userEvent.setup();
+    openPage("/insumos/nuevo/manual");
+    await llenarDatos(user);
+    await agregarEnLaRevision(user, "Maní", "Puede contener");
+
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeDisabled();
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    expect(screen.getByRole("button", { name: "Confirmar registro" })).toBeEnabled();
+  });
+
+  it("«no contiene» solo habla de «Contiene»: las trazas declaradas se envían igual", async () => {
+    const user = userEvent.setup();
+    vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
+    openPage("/insumos/nuevo/manual");
+    await llenarDatos(user);
+    await agregarEnLaRevision(user, "Maní", "Puede contener");
+    await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
+
+    await waitFor(() =>
+      expect(insumoService.createInsumo).toHaveBeenCalledWith(
+        expect.objectContaining({ alergenos: [{ alergeno_id: 2, tipo: "trazas" }] }),
+      ),
+    );
   });
 
   it("envía la lista de alérgenos declarados en el mismo POST", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
-    await declarar(user, grupo(), "1");
-    await declarar(user, grupo(), "2", "trazas");
+    await agregarEnLaRevision(user, "Leche", "Contiene");
+    await agregarEnLaRevision(user, "Maní", "Puede contener");
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() => expect(insumoService.createInsumo).toHaveBeenCalledTimes(1));
     expect(insumoService.createInsumo).toHaveBeenCalledWith(
@@ -436,17 +476,18 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
         ],
       }),
     );
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
   });
 
   it("con «Este insumo no contiene alérgenos» envía una lista vacía", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await responderSinTrazas(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
     await waitFor(() =>
       expect(insumoService.createInsumo).toHaveBeenCalledWith(expect.objectContaining({ alergenos: [] })),
@@ -457,21 +498,22 @@ describe("Formulario de creación de insumo: alérgenos (HT06)", () => {
   it("tras crear, el aviso no manda a declarar los alérgenos después", async () => {
     const user = userEvent.setup();
     vi.mocked(insumoService.createInsumo).mockResolvedValue(insumo({ id: 20 }));
-    openPage("/insumos/nuevo");
+    openPage("/insumos/nuevo/manual");
     await llenarDatos(user);
     await user.click(screen.getByLabelText("Este insumo no contiene alérgenos"));
+    await responderSinTrazas(user);
 
-    await user.click(screen.getByRole("button", { name: "Crear insumo" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar registro" }));
 
-    expect(await screen.findByText("Insumo creado.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Insumo registrado", level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Declarar alérgenos" })).not.toBeInTheDocument();
   });
 
   it("agregar un alérgeno cuenta como cambio sin guardar al salir", async () => {
     const user = userEvent.setup();
-    openPage("/insumos/nuevo");
-    await screen.findByRole("option", { name: "Leche" });
-    await declarar(user, grupo(), "1");
+    openPage("/insumos/nuevo/manual");
+    await screen.findByRole("radio", { name: "Leche" });
+    await agregarEnLaRevision(user, "Leche", "Contiene");
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 

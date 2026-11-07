@@ -41,7 +41,7 @@ export default function App() {
         <Route path="/ingredientes/:id/editar" element={<IngredientEdit />} />
         <Route path="/ingredientes/:id" element={<IngredientDetail />} />
         <Route path="/insumos" element={<Insumos />} />
-        <Route path="/insumos/nuevo" element={<InsumoNew />} />
+        <Route path="/insumos/nuevo/:metodo?" element={<InsumoNew />} />
         <Route path="/insumos/:id/editar" element={<InsumoEdit />} />
         <Route path="/insumos/:id" element={<InsumoDetail />} />
         <Route path="/elaboraciones" element={<Elaboraciones />} />

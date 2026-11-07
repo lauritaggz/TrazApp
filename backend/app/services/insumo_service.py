@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,7 @@ from app.schemas.insumo import (
     InsumoUpdate,
     ordenar_declarados,
 )
+from app.services.insumo_fuentes import construir_fuentes
 
 MENSAJE_ALERGENO_REPETIDO = "El alérgeno ya está asociado al insumo."
 MENSAJE_ALERGENO_NO_VALIDO = "Alérgeno no válido"
@@ -128,7 +130,29 @@ class InsumoService:
         alergenos = payload.alergenos
         if alergenos is not None:
             self._validar_alergenos(alergenos)
-        data = payload.model_dump(exclude={"alergenos"})
+        data = payload.model_dump(exclude={
+                "alergenos",
+                "fuentes_campos",
+                "fuentes_alergenos",
+                "fuentes_por_alergeno",
+                "campos_editados",
+            })
+        if payload.fuentes_campos is not None:
+            # D3: the origin of what the productor confirmed goes in the source's data record.
+            data["ficha"] = {
+                **(payload.ficha or {}),
+                "fuentes": construir_fuentes(
+                    payload.fuentes_campos,
+                    payload.campos_editados,
+                    payload.fuentes_alergenos,
+                    payload.fecha_recuperacion,
+                    datetime.now(timezone.utc),
+                ),
+            }
+            if payload.fuentes_por_alergeno is not None:
+                data["ficha"]["fuentes_por_alergeno"] = {
+                    codigo: detalle.model_dump() for codigo, detalle in payload.fuentes_por_alergeno.items()
+                }
         self._ensure_codigo_disponible(productor_id, data["codigo_barras"])
 
         insumo = InsumoComercial(productor_id=productor_id, **data)

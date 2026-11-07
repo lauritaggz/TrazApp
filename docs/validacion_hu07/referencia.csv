@@ -1,0 +1,38 @@
+id,nombre,marca,codigo_barras,contiene,puede_contener,tiene_ingredientes,tipo_referencia,fecha,notas
+nestle-leche-condensada-180g,Leche condensada azucarada,Nestlé,8445291404380,Leche,no_indica,si,foto,2026-11-06,180g; Producto libre de gluten
+edra-esencia-vainilla-155ml,Esencia sabor vainilla,Edra,7802420006401,,Gluten;Sulfitos;Sésamo;Soya;Leche;Maní;Nueces,si,foto,2026-11-06,155 ml; declara trazas de otros frutos secos mapeado a Nueces
+gourmet-bicarbonato-de-sodio,Bicarbonato de sodio,Gourmet,7802410003618,,Leche;Soya;Huevo;Gluten;Apio;Mostaza;Sésamo;Crustáceos,si,foto,2026-11-06,Líneas que también procesan
+gourmet-salsa-de-soya,Salsa de soya,Gourmet,,Soya;Gluten,Leche;Huevo;Apio;Mostaza;Sésamo,si,foto,2026-11-06,Código de barras no visible en la toma
+watts-aceite-pepa-de-uva,Aceite de pepa de uva,Watt's,7802810002198,,no_indica,si,foto,2026-11-06,Ingredientes: Aceite de pepa de uva y ácido cítrico
+gourmet-cacao-amargo,Cacao amargo,Gourmet,,,Leche;Soya;Huevo;Gluten;Apio;Mostaza;Sésamo;Crustáceos,si,foto,2026-11-06,Código de barras cortado en la toma
+nescafe-fina-seleccion,Café Fina Selección,Nescafé,8801055709274,,no_indica,si,foto,2026-11-06,100% café; Fabricado en Suiza por Nestlé Suisse SA
+walmart-lomitos-de-atun-en-aceite-140g,Lomitos de atún en aceite,Walmart,0400001143070,Pescado;Soya,no_indica,si,foto,2026-11-06,140 g (drenado 91 g); Declara contiene pescado e ingrediente aceite de soya
+nestle-manjar-lata,Manjar,Nestlé,8445290696298,Leche,no_indica,si,foto,2026-11-06,Lata; declara Contiene Leche
+lider-harina-integral-2kg,Harina integral para todo uso,Lider,7809559200403,Gluten,no_indica,si,foto,2026-11-06,2 Kg; Este producto contiene gluten
+lider-gelatina-sin-sabor-4x7-5g,Gelatina en polvo sin sabor,Lider,7804647491688,,Gluten;Huevo;Maní;Soya;Leche;Nueces;Sulfitos,si,foto,2026-11-06,Try Me Love Me / Elaborado por Macrofood SpA; caseína-lactosa mapeado a Leche
+iansa-endulzante-alulosa-gotas,Endulzante líquido Alulosa,Iansa Cero K,7801505002864,,no_indica,si,foto,2026-11-06,"Alulosa (3,5%) y Sucralosa (3,3%)"
+ideal-tortillas-rapiditas-sin-lactosa,Tortillas Rapiditas Sin Lactosa,Ideal,7803403004476,Gluten,no_indica,si,foto,2026-11-06,Contiene Gluten; Sin Lactosa
+gourmet-coco-rallado,Coco rallado,Gourmet,7802410073383,,Leche;Soya;Huevo;Gluten;Apio;Mostaza;Sésamo;Crustáceos,si,foto,2026-11-06,Envasado en líneas que también procesan
+natura-aceite-maravilla-900ml,Aceite 100% maravilla,Natura,7790272001005,,Soya;Maní,si,foto,2026-11-06,"900 ml; Elaborado en líneas que también procesan soya, maní"
+heinz-salsa-de-tomate,Salsa de tomate,Heinz,7800159081393,,Soya,si,foto,2026-11-06,Elaborado en líneas que también procesan soya
+maizena-almidon-de-maiz,Almidón de maíz,Maizena,7891150090279,Sulfitos,no_indica,si,foto,2026-11-06,Contiene sulfitos; Sello libre de gluten
+nutrisa-linaza-molida-mi-tierra,Linaza molida,Mi Tierra,,,Soya,si,foto,2026-11-06,Nutrisa / Mi Tierra; Puede contener trazas de soya; código de barras parcialmente oculto
+lucchetti-semolas-trigos-candeales,Sémolas de trigos candeales,Lucchetti,7802500004013,Gluten,no_indica,si,foto,2026-11-06,Contiene gluten
+iansa-azucar-flor,Azúcar flor,Iansa,7801505231974,,no_indica,si,foto,2026-11-06,Azúcar impalpable y almidón de maíz
+esmeralda-palmitos-400g,Palmitos,Esmeralda,7802420510113,,no_indica,si,foto,2026-11-06,Peso neto 400 g / drenado 220 g; ICB S.A.
+ambrosoli-gelatina-naranja,Gelatina sabor naranja,Ambrosoli,,,Nueces;Gluten;Huevo;Leche,si,foto,2026-11-06,"Líneas que procesan Almendras, Nueces (Nueces), Gluten, Huevo y Leche; código no visible"
+cuisine-and-co-vinagre-manzana-500ml,Vinagre de manzana,Cuisine & Co.,,Sulfitos,Soya,si,foto,2026-11-06,500 ml; Contiene Sulfitos; Líneas que procesan productos con soya; código no visible
+quillayes-rallado-vegano,Rallado vegano,Quillayes,,,Leche,si,foto,2026-11-06,Línea que procesa productos lácteos mapeado a Leche; código recortado
+lefersa-levadura-seca-instantanea,Levadura seca instantánea,Lefersa,7803000202114,,Gluten;Huevo;Soya;Leche;Nueces;Sésamo,si,foto,2026-11-06,"Líneas que también procesan gluten, huevos, soya, leche, nueces y sésamo"
+iansagro-lentejas-tetra,Lentejas,Iansagro,,,Gluten,si,foto,2026-11-06,Puede contener trazas de gluten; código de barras no legible completo
+deyco-pimiento-morron-entero-185g,Pimiento morrón entero,Deyco,7801534001234,,no_indica,si,foto,2026-11-06,Contenido neto 185g / peso drenado 125g
+cruzeiro-cafe-liofilizado,Café instantáneo liofilizado,Cruzeiro,7896019208468,,no_indica,si,foto,2026-11-06,100% café; Sello libre de gluten
+juan-valdez-cafe-soluble-liofilizado,Café soluble liofilizado,Juan Valdez,7707211631476,,no_indica,si,foto,2026-11-06,95% café soluble liofilizado con 5% café tostado micromolido
+alusweet-endulzante-alulosa-sucralosa,Endulzante líquido Alulosa con Sucralosa,Alusweet,7804651620180,,no_indica,si,foto,2026-11-06,"Biofoods; Libre de gluten, libre de lactosa"
+rumay-queso-gauda-laminado-500g,Queso Gauda laminado,Rumay,7804634400297,Leche,no_indica,si,foto,2026-11-06,500g; Contiene leche
+valle-verde-mantequilla-con-sal,Mantequilla con sal,Valle Verde,7804634400501,Leche,no_indica,si,foto,2026-11-06,Inversiones e Industrias Valle Verde S.A.; Producto lácteo que contiene lactosa
+cuisine-and-co-mantequilla-de-mani-500g,Mantequilla de maní,Cuisine & Co.,7807910043065,Maní,no_indica,si,foto,2026-11-06,500g; Contiene maní; Libre de gluten
+kraft-mayonesa,Mayonesa,Kraft,,Huevo;Soya;Mostaza,no_indica,si,foto,2026-11-06,"Contiene huevo, sabor natural contiene mostaza, e ingrediente aceite de soya"
+surlat-leche-semidescremada-sin-lactosa-1l,Leche natural semidescremada sin lactosa,Surlat,7808709500790,Leche,no_indica,si,foto,2026-11-06,1 L; Leche natural semidescremada
+kraft-queso-parmesano-rallado-85g,Queso parmesano rallado,Kraft,,Leche,no_indica,si,foto,2026-11-06,85 g; Contiene leche (caseína - lactosa); código no visible
+tabasco-green-pepper-sauce-60ml,Salsa de ají verde jalapeño Green Pepper Sauce,Tabasco,011210009530,,no_indica,si,foto,2026-11-06,60 ml; Sin alérgenos del catálogo declarados

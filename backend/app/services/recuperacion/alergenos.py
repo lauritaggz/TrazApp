@@ -43,6 +43,8 @@ CODIGO_LACTEOS = "lacteos"
 class AlergenoDetectado:
     codigo: str
     origen: str
+    # Every source that names this allergen (HU07, combined sheets). Empty for a single source.
+    fuentes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -195,12 +197,31 @@ def _buscar_en_texto(texto: str) -> tuple[list[_Hallazgo], list[tuple[str, str]]
 # --- the result ----------------------------------------------------------------------------------
 
 
+_ETIQUETA_EN_ESPANOL = re.compile(r"^es:(?P<termino>.+)$")
+
+
+def _codigo_de_etiqueta_en_espanol(etiqueta: str) -> str | None:
+    """«es:Maní» -> cacahuetes. Only a label that is exactly one keyword of an allergen (T07-09).
+
+    A label in another language, or one that says more than the keyword («es:leche de coco»), is not guessed.
+    """
+    coincidencia = _ETIQUETA_EN_ESPANOL.match(etiqueta)
+    if coincidencia is None:
+        return None
+    termino = normalizar_texto(coincidencia.group("termino").replace("-", " "))
+    for codigo, patron in _PATRONES_CODIGO.items():
+        if patron.fullmatch(termino):
+            return codigo
+    return None
+
+
 def _mapear_etiquetas(
     etiquetas: tuple[str, ...], sin_reconocer: list[str]
 ) -> list[str]:
     codigos = []
     for etiqueta in etiquetas:
-        codigo = ETIQUETAS_OFF.get(etiqueta.strip().lower())
+        clave = etiqueta.strip().lower()
+        codigo = ETIQUETAS_OFF.get(clave) or _codigo_de_etiqueta_en_espanol(clave)
         if codigo is None:
             if etiqueta.strip() and etiqueta.strip() not in sin_reconocer:
                 sin_reconocer.append(etiqueta.strip())

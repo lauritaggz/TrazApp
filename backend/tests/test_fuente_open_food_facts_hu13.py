@@ -15,7 +15,7 @@ from app.services.recuperacion.base import (
     MOTIVO_TIMEOUT,
     FuenteNoDisponibleError,
 )
-from app.services.recuperacion.open_food_facts import CAMPOS, OpenFoodFactsFuente
+from app.services.recuperacion.open_food_facts import CAMPO_IMAGEN, CAMPOS, OpenFoodFactsFuente
 from tests.sin_red import RedRealBloqueadaError
 
 CODIGO = "7802910000971"
@@ -59,7 +59,8 @@ def test_pide_el_producto_con_los_campos_necesarios() -> None:
     assert peticion.method == "GET"
     assert peticion.url.host == "world.openfoodfacts.org"
     assert peticion.url.path == f"/api/v2/product/{CODIGO}.json"
-    assert peticion.url.params["fields"] == ",".join(CAMPOS)
+    # HU07: the thumbnail address is requested too (only to show it).
+    assert peticion.url.params["fields"] == ",".join((*CAMPOS, CAMPO_IMAGEN))
 
 
 def test_se_identifica_con_el_user_agent_de_la_configuracion() -> None:
