@@ -206,11 +206,14 @@ def test_se_niega_a_correr_si_la_base_no_termina_en_test(monkeypatch) -> None:
 # --- cadena de revisiones ----------------------------------------------------------------
 
 
-def test_la_cabeza_de_alembic_es_la_revision_esperada() -> None:
+def test_la_017_esta_en_la_cadena_de_revisiones_y_hay_una_sola_cabeza() -> None:
+    """Not pinned to 017: later migrations move the head. The head test of each one lives in its file."""
     cfg = Config()
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    scripts = ScriptDirectory.from_config(cfg)
 
-    assert ScriptDirectory.from_config(cfg).get_heads() == [REV_017]
+    assert len(scripts.get_heads()) == 1
+    assert REV_017 in [revision.revision for revision in scripts.walk_revisions()]
 
 
 def test_la_017_cuelga_de_la_016() -> None:

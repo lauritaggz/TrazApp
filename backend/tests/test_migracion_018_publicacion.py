@@ -134,6 +134,16 @@ def test_la_cabeza_de_alembic_es_la_018(alembic_cfg: Config) -> None:
     assert len(REV_018) <= 32
 
 
+def test_la_cabeza_real_es_la_018_y_cuelga_de_la_017() -> None:
+    """Against the real script directory (not the temporary copy of the fixtures)."""
+    cfg = Config()
+    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    scripts = ScriptDirectory.from_config(cfg)
+
+    assert scripts.get_heads() == [REV_018]
+    assert scripts.get_revision(REV_018).down_revision == REV_017
+
+
 def test_upgrade_018_agrega_las_columnas_de_productos(db_at_017: Engine, alembic_cfg: Config) -> None:
     antes = _columnas(db_at_017, "productos")
     command.upgrade(alembic_cfg, REV_018)
