@@ -185,7 +185,7 @@ def test_las_etiquetas_pedidas_por_la_historia_estan_en_la_tabla() -> None:
     }
 
 
-@pytest.mark.parametrize("etiqueta", ["en:tree-nuts", "es:leche", "en:novel-food", "fr:lait"])
+@pytest.mark.parametrize("etiqueta", ["en:tree-nuts", "es:leche de coco", "en:novel-food", "fr:lait", "es:raro"])
 def test_una_etiqueta_sin_mapeo_va_a_asignacion_manual(etiqueta) -> None:
     deteccion = _detectar("Azúcar", contiene=[etiqueta])
 
@@ -292,3 +292,44 @@ def test_un_alergeno_nunca_esta_a_la_vez_en_contiene_y_en_trazas() -> None:
 )
 def test_normalizar_texto(entrada, esperado) -> None:
     assert normalizar_texto(entrada) == esperado
+
+
+# --- T07-09: improvements after the first measurement ---
+
+
+@pytest.mark.parametrize(
+    ("etiqueta", "codigo"),
+    [("es:Maní", "cacahuetes"), ("es:leche", "lacteos"), ("es:Soya", "soja"), ("ES:Sésamo", "sesamo"), ("es:gluten", "gluten")],
+)
+def test_una_etiqueta_con_prefijo_de_idioma_espanol_se_traduce(etiqueta, codigo) -> None:
+    deteccion = _detectar(None, contiene=[etiqueta])
+
+    assert _codigos(deteccion.contiene) == {codigo}
+    assert deteccion.sin_reconocer == ()
+
+
+def test_la_etiqueta_con_prefijo_espanol_en_trazas_pasa_a_trazas() -> None:
+    deteccion = _detectar(None, trazas=["es:Maní"])
+
+    assert deteccion.contiene == () and _codigos(deteccion.trazas) == {"cacahuetes"}
+
+
+ESPECIES = [
+    *[(p, "pescado") for p in ("pejerrey", "corvina", "lenguado", "albacora", "bonito", "tilapia", "pangasius",
+                               "hoki", "arenque", "anchoveta", "pez espada", "abadejo", "robalo",
+                               "atún", "salmón", "jurel", "merluza", "reineta")],
+    *[(p, "crustaceos") for p in ("camarón", "gamba", "centolla", "cigala", "bogavante", "picoroco", "quisquilla", "jaiba")],
+    *[(p, "moluscos") for p in ("chorito", "choro", "cholga", "macha", "navajuela", "sepia", "jibia", "caracol",
+                                "vieira", "berberecho")],
+]  # fmt: skip
+
+
+@pytest.mark.parametrize(("especie", "codigo"), ESPECIES)
+def test_las_especies_comunes_de_pescado_y_mariscos_se_detectan(especie, codigo) -> None:
+    assert _resumen(f"Ingredientes: {especie}, sal.") == ({codigo}, set(), [])
+
+
+def test_los_plurales_de_las_especies_tambien_y_sin_falsos_positivos() -> None:
+    assert _resumen("Atunes y camarones")[0] == {"pescado", "crustaceos"}
+    assert _resumen("Choritos y machas")[0] == {"moluscos"}
+    assert _resumen("Matcha, machacado de ajo")[0] == set()

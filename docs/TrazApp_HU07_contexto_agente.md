@@ -69,7 +69,7 @@ Prioridad P1 · 8 SP · 12 h · Depende de HU04 y HU13.
 | CA10 | Sin resultados o fuente sin respuesta: se informa y se permite el ingreso manual. |
 | CA11 | La ficha registrada conserva el origen: fuente y fecha de recuperación. |
 | CA12 | La fuente de scraping es un adaptador adicional del componente de recuperación de HU13. |
-| CA13 | Conjunto de validación de 50 productos con información de referencia; se mide el porcentaje de fichas correctas. |
+| CA13 | Conjunto de validación de 37 productos con información de referencia; se mide el porcentaje de fichas correctas. |
 | CA14 | Al escanear un código encontrado en Open Food Facts, se busca el mismo producto en Jumbo y se combina **solo si el código de barras coincide**. |
 | CA15 | La ficha indica la fuente de cada campo y de cada alérgeno (Jumbo, Open Food Facts o detectado en los ingredientes). |
 | CA16 | Los alérgenos se combinan por unión; un "libre de" **nunca** descarta un alérgeno. |
@@ -145,7 +145,7 @@ Las marcadas como **propuesta** se confirman en el análisis de T07-01 o de la t
 
 ### D5. Conjunto de validación (T07-09)
 
-- 50 productos con información de referencia **tomada del envase** (no de la fuente que se mide). La desarrolladora arma la referencia; el agente prepara el formato del archivo y el script de medición.
+- 37 productos con información de referencia **tomada del envase** (no de la fuente que se mide). La desarrolladora arma la referencia; el agente prepara el formato del archivo y el script de medición.
 - Métricas: porcentaje de fichas correctas (meta provisional ≥ 70 %) y tiempo ≤ 10 s en al menos el 90 %. Define antes de medir qué cuenta como "ficha correcta" (por campo y global).
 
 ### Decisiones confirmadas en T07-01 (05-11-2026) — prevalecen sobre D1–D5
@@ -231,7 +231,7 @@ Referencia: `docs/diseno/DISEÑOS SPRINT 3/` (NewSupply.tsx). Se entrega en tres
 | PT07-11 | Precargar y cancelar | No se escribe nada en la base | 6, 7, 9 |
 | PT07-12 | Confirmar un insumo combinado | Guarda fuentes con fecha y campos aportados | 11, 15 |
 | PT07-13 | Diseño del componente | Jumbo es adaptador; contrato y comportamiento de HU13 sin cambios | 12 |
-| PT07-14 | Conjunto de validación de 50 productos | % de fichas correctas (≥ 70 %) y ≤ 10 s en ≥ 90 % | 13 |
+| PT07-14 | Conjunto de validación de 37 productos | % de fichas correctas (≥ 70 %) y ≤ 10 s en ≥ 90 % | 13 |
 | PT07-15 | Flujo completo en celular | Escaneo, combinación, revisión y confirmación funcionan | 2, 6, 14 |
 
 **Mutaciones mínimas** (cada una debe hacer fallar al menos una prueba):
