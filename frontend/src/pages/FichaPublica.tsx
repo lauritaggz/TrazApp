@@ -1,4 +1,5 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import AlergenosPublicos from "@/components/fichaPublica/AlergenosPublicos";
 import AvisoConsumidor from "@/components/fichaPublica/AvisoConsumidor";
 import ElaboracionCabecera from "@/components/fichaPublica/ElaboracionCabecera";
 import EstadoPublico from "@/components/fichaPublica/EstadoPublico";
@@ -8,6 +9,8 @@ import {
   IconoCalendarioTachado,
   IconoOjoTachado,
 } from "@/components/fichaPublica/iconosPublicos";
+import InsumosPublicos from "@/components/fichaPublica/InsumosPublicos";
+import NotaVersionAnterior from "@/components/fichaPublica/NotaVersionAnterior";
 import ProductoEncabezado from "@/components/fichaPublica/ProductoEncabezado";
 import SelectorElaboracion from "@/components/fichaPublica/SelectorElaboracion";
 import Logo from "@/components/Logo";
@@ -176,7 +179,19 @@ function Contenido({ ficha, cargando, codigoEnUrl, fechaEnUrl, ...acciones }: Co
 
 function AreaElaboracion({ ficha }: { ficha: Ficha }) {
   if (ficha.estado_elaboracion === "ok" && ficha.elaboracion) {
-    return <ElaboracionCabecera elaboracion={ficha.elaboracion} />;
+    const elaboracion = ficha.elaboracion;
+    return (
+      <>
+        <ElaboracionCabecera elaboracion={elaboracion} />
+        {elaboracion.version_anterior && <NotaVersionAnterior />}
+        {/* Allergens first (CA5), then the detail of each supply (CA4). */}
+        <AlergenosPublicos
+          contiene={elaboracion.alergenos.contiene}
+          puedeContener={elaboracion.alergenos.puede_contener}
+        />
+        <InsumosPublicos insumos={elaboracion.insumos} />
+      </>
+    );
   }
   if (ficha.estado_elaboracion === "varias") {
     return (

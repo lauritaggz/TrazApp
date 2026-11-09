@@ -333,3 +333,34 @@ version_anterior: bool
 - **`version_anterior`:** `true` si la versión de la elaboración no es la vigente del producto, o si el producto **no tiene versión vigente** (no hay una «actual» con la cual coincidir). No se expone `numero_version`, ningún id de versión ni el contenido de la vigente. Solo existe dentro de `elaboracion`: con `elaboracion: null` no aplica.
 - **Rendimiento:** el id de la versión vigente se calcula con una subconsulta (`max(id)` de las versiones vigentes) dentro de la consulta del producto, y `version_producto_id` viaja en la consulta de elaboraciones: máximo 4 consultas.
 - **Para T10-04:** mostrar «Contiene» y «Puede contener trazas de» con estas listas (vacías = el texto «No contiene…» / «No se declaran trazas…» del diseño), y la nota «Elaborada con una formulación anterior» solo si `version_anterior` es `true`, sin número de versión.
+
+### 9.7 Vista pública (T10-04): diferencias aprobadas con el diseño (`ConsumerProduct.tsx`)
+
+Ruta `/p/:idPublico`, fuera de todo guard y sin el menú del productor (`pages/FichaPublica.tsx`, `components/fichaPublica/`). La selección vive en la URL (`?codigo=` o `?fecha=`) con una entrada de historial por selección. La cabecera `X-Robots-Tag: noindex, nofollow` para `/p/*` está en `netlify.toml` (raíz y `frontend/`) y la vista agrega `<meta name="robots" content="noindex">` mientras está montada.
+
+**Se quitan (aprobado):**
+- Insignia «Información publicada» sobre la imagen y escudo «Información trazable» de la cabecera: sugieren una verificación que TrazApp no hace y contradicen el aviso de CA9.
+- Pie «Foto: … / Unsplash»: era un dato de ejemplo del prototipo.
+- Barra `PreviewToolbar`: es de T10-05.
+- «Consumir preferentemente»: es el vencimiento del lote, dato interno (CA8).
+- Bloque «Ingredientes declarados» de la fórmula completa: no hay dato en el contrato y contradice D3. Cada insumo muestra el suyo.
+- Etiqueta «Rotulación obligatoria»: `obligatorio_chile` no es público.
+
+**Se cambian:**
+- «Marca» / «Origen» pasan a una sola etiqueta, «Marca u origen» (el modelo tiene un único campo).
+- «Advertencias» pasa de lista a un texto (el contrato trae un único texto).
+- Los alérgenos «Contiene» / «Puede contener» suben **antes** del detalle de insumos (CA5); el diseño los ponía después.
+- Lista vacía: «No se declararon alérgenos» / «No se declararon trazas». Nunca «No contiene alérgenos» ni «Libre de…».
+- Los estados «elaboración oculta» y «código no encontrado» se fusionan en uno (ver 9.3).
+- Aviso al consumidor con el texto de CA9 (no reemplaza el rotulado obligatorio ni certifica que el producto sea seguro para una persona determinada); siempre visible, nunca dentro de un bloque plegable.
+- Pie: «Información actualizada por el fabricante» pasa a «Información declarada por el productor».
+- Textos de 10 px pasan a 12 px como mínimo (cuerpo en 14 px); controles de búsqueda de 44 px (HT07); colores del prototipo reemplazados por los tokens del sistema (el modo oscuro funciona solo).
+- Nota de versión anterior: «Esta elaboración se hizo con una receta anterior a la actual», sin número de versión.
+
+**Se agregan (aprobado):**
+- Alérgenos por insumo como etiquetas pequeñas con texto («Contiene: Leche», «Puede contener: Soya»).
+- Búsqueda por código y por fecha («Fecha de elaboración», nunca vencimiento) bajo la lista.
+- Estados que el diseño no tenía: varias coincidencias (enlaces con el código), producto sin elaboraciones (solo su identidad, sin datos de receta), error de servidor o de red (sin datos parciales, con «Reintentar» y la indicación de revisar el envase), búsqueda no válida (422) y carga. Al cambiar de selección no queda visible la elaboración anterior.
+- La imagen se muestra solo si existe y desaparece si falla al cargar; «Elaborado por» solo si viene en la respuesta.
+
+**Pendiente para T10-05 / T10-06:** botones «Vista previa pública» y «Comprobar ficha pública» en Publicaciones; revisión en celular (sin desplazamiento horizontal, PT10-12) con `VITE_API_URL` y `URL_PUBLICA_APP` apuntando a la IP local.
