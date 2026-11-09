@@ -376,7 +376,11 @@ class ElaboracionService:
         return ElaboracionVisibilidadRead(elaboracion_id=elaboracion.id, oculta=False, oculta_at=None)
 
     def es_visible_publicamente(self, elaboracion: Elaboracion) -> bool:
-        """Domain rule for HU10 (no public endpoint yet)."""
+        """Whether the public consultation may show this elaboración (HU09 rule, T09-04).
+
+        The public endpoint (HU10) does not call this method: it applies the same pure rule
+        (`elaboracion_visible_publicamente`) to rows read in bulk, to avoid one query per elaboración.
+        """
         oculta = self.repository.get_oculta(elaboracion.id) is not None
         return elaboracion_visible_publicamente(elaboracion.producto, elaboracion, oculta)
 

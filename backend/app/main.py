@@ -17,6 +17,7 @@ from app.api.routes import (
     ingredientes,
     lotes,
     productos,
+    publico,
 )
 from app.core.config import get_settings
 
@@ -53,6 +54,7 @@ app.include_router(gestion_elaboraciones.router)
 app.include_router(productos.router)
 app.include_router(ingredientes.router)
 app.include_router(lotes.router)
+app.include_router(publico.router)
 
 uploads_root = Path(settings.uploads_root)
 uploads_root.mkdir(parents=True, exist_ok=True)
