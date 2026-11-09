@@ -321,3 +321,34 @@ def test_sin_url_publica_app_url_publica_es_null_pero_el_resto_responde(client, 
 
 def test_el_modulo_de_publicacion_expone_una_sola_funcion_que_arma_la_url() -> None:
     assert publicacion.construir_url_publica is construir_url_publica
+
+
+# --- CORS: el nombre del archivo es legible desde otro origen ----------------------------------
+
+
+def _origen_permitido() -> str:
+    from fastapi.middleware.cors import CORSMiddleware
+
+    from app.main import app
+
+    cors = next(m for m in app.user_middleware if m.cls is CORSMiddleware)
+    return cors.kwargs["allow_origins"][0]
+
+
+@pytest.mark.parametrize("formato", ["png", "svg"])
+def test_la_respuesta_del_qr_expone_content_disposition_a_un_origen_permitido(client, publicado, formato) -> None:
+    origen = _origen_permitido()
+
+    respuesta = _qr(client, publicado, formato, headers={**publicado["headers"], "Origin": origen})
+
+    assert respuesta.status_code == 200
+    assert respuesta.headers["access-control-allow-origin"] == origen
+    expuestos = [h.strip().lower() for h in respuesta.headers["access-control-expose-headers"].split(",")]
+    assert "content-disposition" in expuestos
+
+
+def test_un_origen_no_permitido_no_recibe_cabeceras_cors(client, publicado) -> None:
+    respuesta = _qr(client, publicado, "png", headers={**publicado["headers"], "Origin": "https://otro.invalido.test"})
+
+    # Starlette always lists the exposed headers; without Allow-Origin the browser still blocks the read.
+    assert "access-control-allow-origin" not in respuesta.headers
