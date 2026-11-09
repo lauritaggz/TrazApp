@@ -200,7 +200,8 @@ Entrega en cuatro partes, cada una con su revisión visual: B) backend de conteo
 8. **QR y descarga:** la vista previa usa el PNG (blob + `createObjectURL` en `<img>`, liberado al desmontar). «Descargar PNG» y «Descargar SVG» usan `<a download>` con el blob y el nombre de `Content-Disposition`; sin `window.open`, sin pestañas nuevas y sin detectar iOS por user agent. En pantallas pequeñas, una nota fija: «Si la descarga no comienza, mantén presionada la imagen del QR y elige «Guardar imagen».»
 9. **Diferencias con el diseño:** el enlace es `/p/{id_publico}` (no `#/p/`: la app usa `BrowserRouter`); el ID público es el token generado (no un código legible); hay descarga PNG además de SVG; no hay «Vista previa pública» ni «Comprobar ficha pública» ni «Abrir como consumidor» (HU10); no se muestran «unidades» porque el modelo de elaboración no tiene ese dato.
 10. **Elaboración «Predeterminada» (criterio para HU10):** el historial de HU06 ordena por **`fecha_elaboracion` descendente y, a igual fecha, por `id` descendente** (no por `finalizada_at`). La elaboración mostrada por defecto en la consulta pública es la primera **visible** (finalizada y no oculta) en ese mismo orden.
-11. **Fuera de T09-05:** el archivo `docs/hu09-prueba-celular.md` es de T09-06.
+11. **Nombre del archivo del QR:** la interfaz usa el de `Content-Disposition` si el navegador puede leerlo; si no, arma el mismo nombre (`qr-{código saneado}.{ext}`, con el id de respaldo). Desde otro origen (Netlify → API) el navegador solo expone ese encabezado si la API lo declara en `expose_headers` de CORS, que hoy no está configurado: queda pendiente decidir si se agrega (cambio de una línea en `app/main.py`).
+12. **Fuera de T09-05:** el archivo `docs/hu09-prueba-celular.md` es de T09-06.
 
 ---
 

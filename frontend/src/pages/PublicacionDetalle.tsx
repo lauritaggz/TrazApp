@@ -4,6 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import DeshabilitarPublicacionDialog from "@/components/publicaciones/DeshabilitarPublicacionDialog";
 import { EyeIcon, GlobeIcon, ShieldIcon } from "@/components/publicaciones/iconos";
 import PublicacionSwitch from "@/components/publicaciones/PublicacionSwitch";
+import QrPanel from "@/components/publicaciones/QrPanel";
 import PublicacionElaboraciones from "@/components/publicaciones/PublicacionElaboraciones";
 import { RequisitosFaltantes } from "@/components/publicaciones/Requisitos";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
@@ -123,6 +124,8 @@ function Contenido({
         titleSuffix={<PublicacionBadge publicado={publicado} />}
       />
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+      <div className="min-w-0 space-y-6">
       <section aria-labelledby="publicacion-estado" className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="border-b border-border px-4 py-4 sm:px-5">
           <h2 id="publicacion-estado" className="text-sm font-semibold text-text-primary">
@@ -200,6 +203,13 @@ function Contenido({
             TrazApp define qué información se muestra y cómo se presenta para asegurar una consulta clara y consistente.
           </p>
         </div>
+      </div>
+
+      </div>
+
+      <aside className="min-w-0 xl:sticky xl:top-5">
+        <QrPanel product={product} />
+      </aside>
       </div>
 
       <DeshabilitarPublicacionDialog

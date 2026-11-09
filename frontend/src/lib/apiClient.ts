@@ -65,7 +65,7 @@ function extractFieldErrors(detail: unknown): Record<string, string> {
   return fieldErrors;
 }
 
-async function parseError(response: Response): Promise<ApiError> {
+export async function parseError(response: Response): Promise<ApiError> {
   let detail: unknown;
   try {
     const body = (await response.json()) as { detail?: unknown };
