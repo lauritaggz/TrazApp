@@ -4,6 +4,7 @@ import Dashboard from "@/pages/Dashboard";
 import ElaboracionDetail from "@/pages/ElaboracionDetail";
 import Elaboraciones from "@/pages/Elaboraciones";
 import ElaboracionRegistro from "@/pages/ElaboracionRegistro";
+import FichaPublica from "@/pages/FichaPublica";
 import IngredientDetail from "@/pages/IngredientDetail";
 import IngredientEdit from "@/pages/IngredientEdit";
 import IngredientNew from "@/pages/IngredientNew";
@@ -26,6 +27,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Public consultation (HU10): no account, outside every guard and without the productor menu. */}
+      <Route path="/p/:idPublico" element={<FichaPublica />} />
 
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={<Login />} />

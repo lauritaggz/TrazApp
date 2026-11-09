@@ -8,6 +8,11 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[[headers]]
+  for = "/p/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
