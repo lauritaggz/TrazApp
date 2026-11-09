@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import DeshabilitarPublicacionDialog from "@/components/publicaciones/DeshabilitarPublicacionDialog";
-import { EyeIcon, GlobeIcon } from "@/components/publicaciones/iconos";
+import { EyeIcon, GlobeIcon, ShieldIcon } from "@/components/publicaciones/iconos";
 import PublicacionSwitch from "@/components/publicaciones/PublicacionSwitch";
+import PublicacionElaboraciones from "@/components/publicaciones/PublicacionElaboraciones";
 import { RequisitosFaltantes } from "@/components/publicaciones/Requisitos";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
@@ -186,6 +187,20 @@ function Contenido({
           )}
         </div>
       </section>
+
+      <PublicacionElaboraciones productoId={product.id} />
+
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4">
+        <span aria-hidden="true" className="mt-0.5 text-text-secondary">
+          <ShieldIcon />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-text-primary">La ficha pública no se puede personalizar</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            TrazApp define qué información se muestra y cómo se presenta para asegurar una consulta clara y consistente.
+          </p>
+        </div>
+      </div>
 
       <DeshabilitarPublicacionDialog
         open={publicacion.confirmando}

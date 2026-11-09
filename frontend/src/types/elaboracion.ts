@@ -72,6 +72,15 @@ export interface Elaboracion {
   created_at: string;
   updated_at: string;
   usos: UsoInsumo[];
+  /** HU09: hidden from the public consultation. Always visible to its productor. */
+  oculta?: boolean;
+}
+
+/** Answer of hiding / showing an elaboración (HU09). */
+export interface ElaboracionVisibilidad {
+  elaboracion_id: number;
+  oculta: boolean;
+  oculta_at: string | null;
 }
 
 export interface ElaboracionResumen {
@@ -84,6 +93,8 @@ export interface ElaboracionResumen {
   finalizada_at: string | null;
   total_ingredientes: number;
   pendientes: number;
+  /** HU09: hidden from the public consultation. */
+  oculta?: boolean;
 }
 
 /** A page of GET /gestion/elaboraciones: `total` counts every elaboración that matches the filters. */

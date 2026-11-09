@@ -148,8 +148,8 @@ describe("AppShell accesible", () => {
 
     await user.click(screen.getByRole("button", { name: "Abrir menú" }));
     const first = screen.getByRole("button", { name: "Cambiar a modo oscuro" });
-    // HU06: el último enlace del menú ahora es «Elaboraciones» (grupo «Trazabilidad»), no «Insumos».
-    const last = screen.getByRole("link", { name: "Elaboraciones" });
+    // HU09: el último enlace del menú es «Publicaciones» (grupo «Herramientas»); antes era «Elaboraciones».
+    const last = screen.getByRole("link", { name: "Publicaciones" });
     last.focus();
 
     await user.tab();
