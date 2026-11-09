@@ -9,6 +9,8 @@ from app.services.consulta_publica_service import (
     ConsultaPublicaService,
     FichaNoDisponibleError,
     InformacionConservadaIncompletaError,
+    ParametrosInvalidosError,
+    validar_parametros,
 )
 
 router = APIRouter(prefix="/publico", tags=["publico"])
@@ -25,12 +27,24 @@ CABECERAS_PUBLICAS = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nof
 def consultar_ficha(
     id_publico: str,
     response: Response,
+    codigo: str | None = None,
+    fecha: str | None = None,
     service: ConsultaPublicaService = Depends(get_consulta_publica_service),
 ) -> FichaPublicaRead:
     # No `pattern`/`max_length` on the path: a malformed identifier must answer the same 404.
     # The Authorization header is not read at all: a session in the same browser changes nothing.
+    # Parameters are validated BEFORE the product is looked up: the 422 is the same for a product
+    # that exists and one that does not, so it cannot be used to find out which exist.
     try:
-        ficha = service.consultar(id_publico)
+        codigo_normalizado, fecha_pedida = validar_parametros(codigo, fecha)
+    except ParametrosInvalidosError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+            headers=CABECERAS_PUBLICAS,
+        ) from None
+    try:
+        ficha = service.consultar(id_publico, codigo_normalizado, fecha_pedida)
     except FichaNoDisponibleError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,10 +1,11 @@
 """Public consultation endpoint (T10-01 / HU10): GET /publico/productos/{id_publico}.
 
+T10-02 adds the selection by `codigo` / `fecha` and `estado_elaboracion` (see the second half).
 Covers PT10-01 (no session), PT10-02 (default = most recent visible), PT10-05 (supply fields),
 PT10-08 / RT-03 (supply modified after finalizing), PT10-09 (no internal data) and the extra
 scenarios: same answer for unpublished / deleted / unknown, hidden elaboraciones, exact whitelist,
-with and without token, and no N+1. Selection by code or date (T10-02) and the grouped allergens
-and previous-version note (T10-03) are not part of this task.
+with and without token, and no N+1. The grouped allergens and the previous-version note (T10-03)
+are not part of these tasks.
 """
 
 import logging
@@ -85,6 +86,10 @@ RUTAS_APROBADAS = {
     "elaboracion.insumos[].alergenos[].codigo",
     "elaboracion.insumos[].alergenos[].nombre",
     "elaboracion.insumos[].alergenos[].tipo",
+    # T10-02. `coincidencias` is always present (empty unless "varias"), so its items only show
+    # up in the paths when there are matches (see the "varias" whitelist test).
+    "estado_elaboracion",
+    "coincidencias",
 }
 
 
@@ -142,8 +147,8 @@ def _ocultar(client, ctx, elaboracion_id: int) -> None:
     assert client.post(f"/gestion/elaboraciones/{elaboracion_id}/ocultar", headers=ctx["headers"]).status_code == 200
 
 
-def _ficha(client, id_publico: str, headers: dict | None = None):
-    return client.get(f"/publico/productos/{id_publico}", headers=headers or {})
+def _ficha(client, id_publico: str, headers: dict | None = None, **params):
+    return client.get(f"/publico/productos/{id_publico}", headers=headers or {}, params=params or None)
 
 
 @pytest.fixture
@@ -324,6 +329,7 @@ def test_una_elaboracion_oculta_o_borrador_no_aparece_en_la_lista_ni_es_la_prede
     assert vacia.status_code == 200
     assert vacia.json()["elaboraciones"] == []
     assert vacia.json()["elaboracion"] is None
+    assert (vacia.json()["estado_elaboracion"], vacia.json()["coincidencias"]) == ("sin_elaboraciones", [])
     assert vacia.json()["producto"]["nombre"] == "Queque de vainilla"
 
 
@@ -382,7 +388,7 @@ def test_cabeceras_no_store_y_noindex_en_exito_y_en_no_disponible(client, public
 # --- Performance (OE4): no N+1 ---------------------------------------------------------------------
 
 
-def _contar_consultas(client, db_session, id_publico: str) -> int:
+def _contar_consultas(client, db_session, id_publico: str, **params) -> int:
     sentencias: list[str] = []
 
     def registrar_sentencia(conn, cursor, statement, *args):
@@ -391,7 +397,7 @@ def _contar_consultas(client, db_session, id_publico: str) -> int:
     motor = db_session.get_bind()
     event.listen(motor, "before_cursor_execute", registrar_sentencia)
     try:
-        assert _ficha(client, id_publico).status_code == 200
+        assert _ficha(client, id_publico, **params).status_code == 200
     finally:
         event.remove(motor, "before_cursor_execute", registrar_sentencia)
     return len(sentencias)
@@ -473,3 +479,205 @@ def test_una_copia_incompleta_responde_500_sin_datos_y_el_log_solo_trae_el_uso_y
     assert "42" in registros and "alergenos" in registros
     assert "MARCA-SENSIBLE-XYZ" not in registros + respuesta.text
     assert PRODUCTOR_A["email"] not in registros
+
+
+# =================================================================================================
+# T10-02: selection by code or date, estado_elaboracion
+# =================================================================================================
+
+ESTADOS = {"ok", "no_disponible", "varias", "sin_elaboraciones"}
+
+
+@pytest.fixture
+def varias_elaboraciones(client, publicado) -> dict:
+    """E-001 (5 days ago, from `publicado`), E-002 (3), E-003 (1, hidden) and a borrador E-004."""
+    publicado["ids"] = {
+        "E-001": publicado["elaboracion_id"],
+        "E-002": _finalizar(client, publicado, "E-002", dias=3),
+        "E-003": _finalizar(client, publicado, "E-003", dias=1),
+    }
+    _ocultar(client, publicado, publicado["ids"]["E-003"])
+    assert crear_elaboracion(client, publicado["headers"], publicado["producto"]["id"], codigo="E-004").status_code == 201
+    return publicado
+
+
+def _dia(dias: int) -> str:
+    return (hoy_santiago() - timedelta(days=dias)).isoformat()
+
+
+def test_pt10_02_por_defecto_la_mas_reciente_visible_con_estado_ok(client, varias_elaboraciones) -> None:
+    cuerpo = _ficha(client, varias_elaboraciones["id_publico"]).json()
+
+    assert cuerpo["estado_elaboracion"] == "ok"
+    assert cuerpo["elaboracion"]["codigo"] == "E-002"
+    assert [e["codigo"] for e in cuerpo["elaboraciones"]] == ["E-002", "E-001"]
+    assert cuerpo["coincidencias"] == []
+
+
+@pytest.mark.parametrize("escrito", ["E-001", "e-001", "  E-001  ", " e-001\t"])
+def test_pt10_03_seleccion_por_codigo_con_otra_capitalizacion_y_espacios_en_los_extremos(
+    client, varias_elaboraciones, escrito
+) -> None:
+    cuerpo = _ficha(client, varias_elaboraciones["id_publico"], codigo=escrito).json()
+
+    assert cuerpo["estado_elaboracion"] == "ok"
+    assert cuerpo["elaboracion"]["codigo"] == "E-001"
+    assert cuerpo["elaboracion"]["fecha"] == _dia(5)
+    assert len(cuerpo["elaboracion"]["insumos"]) == 2
+    # The list does not depend on the selection.
+    assert [e["codigo"] for e in cuerpo["elaboraciones"]] == ["E-002", "E-001"]
+
+
+def test_no_se_colapsan_los_espacios_internos_del_codigo(client, varias_elaboraciones) -> None:
+    cuerpo = _ficha(client, varias_elaboraciones["id_publico"], codigo="E -001").json()
+
+    assert (cuerpo["estado_elaboracion"], cuerpo["elaboracion"]) == ("no_disponible", None)
+
+
+def test_pt10_03_seleccion_por_fecha(client, varias_elaboraciones) -> None:
+    cuerpo = _ficha(client, varias_elaboraciones["id_publico"], fecha=_dia(5)).json()
+
+    assert cuerpo["estado_elaboracion"] == "ok"
+    assert cuerpo["elaboracion"]["codigo"] == "E-001"
+    assert cuerpo["coincidencias"] == []
+
+
+def test_pt10_04_un_codigo_inexistente_es_no_disponible_sin_error(client, varias_elaboraciones) -> None:
+    respuesta = _ficha(client, varias_elaboraciones["id_publico"], codigo="NO-EXISTE")
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert (cuerpo["estado_elaboracion"], cuerpo["elaboracion"], cuerpo["coincidencias"]) == ("no_disponible", None, [])
+    assert [e["codigo"] for e in cuerpo["elaboraciones"]] == ["E-002", "E-001"]
+    assert cuerpo["producto"]["nombre"] == "Queque de vainilla"
+
+
+def test_oculta_borrador_y_de_otro_producto_dan_el_mismo_cuerpo_que_un_codigo_inexistente(
+    client, varias_elaboraciones
+) -> None:
+    ctx = varias_elaboraciones
+    otro = crear_producto(client, ctx["headers"], "Galletas", "gal-001")
+    formular(client, ctx["headers"], otro["id"], ctx["harina"], ctx["leche"])
+    _finalizar(client, ctx, "G-001", producto_id=otro["id"])
+    _publicar(client, ctx, otro["id"])
+
+    cuerpos = {
+        codigo: _ficha(client, ctx["id_publico"], codigo=codigo)
+        for codigo in ("NO-EXISTE", "E-003", "E-004", "G-001")  # unknown, hidden, borrador, other product
+    }
+
+    assert {c.status_code for c in cuerpos.values()} == {200}
+    assert cuerpos["E-003"].json()["estado_elaboracion"] == "no_disponible"
+    referencia = cuerpos["NO-EXISTE"].json()
+    assert {codigo: r.json() for codigo, r in cuerpos.items()} == {codigo: referencia for codigo in cuerpos}
+    assert "E-003" not in cuerpos["E-003"].text and "E-004" not in cuerpos["E-004"].text
+
+
+def test_fecha_con_una_visible_y_una_oculta_el_mismo_dia_es_ok_con_la_visible(client, varias_elaboraciones) -> None:
+    ctx = varias_elaboraciones
+    # E-003 (hidden) is from 1 day ago: a visible one is added the same day it was made.
+    visible_ese_dia = _finalizar(client, ctx, "E-005", dias=1)
+    assert visible_ese_dia
+
+    cuerpo = _ficha(client, ctx["id_publico"], fecha=_dia(1)).json()
+
+    assert cuerpo["estado_elaboracion"] == "ok"
+    assert cuerpo["elaboracion"]["codigo"] == "E-005"
+    assert cuerpo["coincidencias"] == []
+    assert "E-003" not in str(cuerpo)
+
+
+def test_fecha_con_dos_visibles_es_varias_con_las_coincidencias_en_orden_y_sin_elegir(client, varias_elaboraciones) -> None:
+    ctx = varias_elaboraciones
+    _finalizar(client, ctx, "E-006", dias=3)  # same day as E-002, created later: bigger id
+
+    cuerpo = _ficha(client, ctx["id_publico"], fecha=_dia(3)).json()
+
+    assert cuerpo["estado_elaboracion"] == "varias"
+    assert cuerpo["elaboracion"] is None
+    assert cuerpo["coincidencias"] == [
+        {"codigo": "E-006", "fecha": _dia(3)},
+        {"codigo": "E-002", "fecha": _dia(3)},
+    ]
+    assert [e["codigo"] for e in cuerpo["elaboraciones"]][:2] == ["E-006", "E-002"]
+
+
+def test_fecha_sin_elaboraciones_es_no_disponible_y_la_de_una_oculta_tambien(client, varias_elaboraciones) -> None:
+    ctx = varias_elaboraciones
+
+    sin_nada = _ficha(client, ctx["id_publico"], fecha=_dia(20)).json()
+    solo_oculta = _ficha(client, ctx["id_publico"], fecha=_dia(1)).json()  # only E-003, hidden
+
+    assert sin_nada["estado_elaboracion"] == "no_disponible"
+    assert solo_oculta == sin_nada
+    assert sin_nada["elaboracion"] is None and sin_nada["coincidencias"] == []
+
+
+def test_con_parametros_y_sin_elaboraciones_visibles_es_sin_elaboraciones(client, publicado) -> None:
+    _ocultar(client, publicado, publicado["elaboracion_id"])
+
+    for params in ({"codigo": "E-001"}, {"fecha": _dia(5)}, {}):
+        cuerpo = _ficha(client, publicado["id_publico"], **params).json()
+        assert cuerpo["estado_elaboracion"] == "sin_elaboraciones", params
+        assert (cuerpo["elaboracion"], cuerpo["elaboraciones"], cuerpo["coincidencias"]) == (None, [], [])
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"codigo": "E-001", "fecha": "2026-01-01"},
+        {"fecha": "01-02-2026"},
+        {"fecha": "20260101"},
+        {"fecha": "2026-1-1"},
+        {"fecha": "2026-13-45"},
+        {"fecha": "2026-02-30"},
+        {"fecha": "abc"},
+        {"fecha": ""},
+    ],
+)
+def test_parametros_invalidos_dan_422_identico_con_id_publico_existente_e_inexistente(client, publicado, params) -> None:
+    existente = _ficha(client, publicado["id_publico"], **params)
+    inexistente = _ficha(client, "ZZZZZZZZZZZZZZZZZZZZZZ", **params)
+
+    assert existente.status_code == 422
+    assert set(existente.json()["detail"]) == {"mensaje"}
+    assert _forma(existente) == _forma(inexistente)
+
+
+def test_un_producto_no_publicado_con_codigo_o_fecha_validos_responde_el_404_uniforme(client, publicado) -> None:
+    assert client.delete(f"/gestion/productos/{publicado['producto']['id']}/publicacion", headers=publicado["headers"]).status_code == 200
+    esperada = (404, MENSAJE_NO_DISPONIBLE, CABECERAS["cache-control"], CABECERAS["x-robots-tag"])
+
+    assert _forma(_ficha(client, publicado["id_publico"], codigo="E-001")) == esperada
+    assert _forma(_ficha(client, publicado["id_publico"], fecha=_dia(5))) == esperada
+    assert _forma(_ficha(client, "inexistente", codigo="E-001")) == esperada
+
+
+def test_la_seleccion_por_codigo_y_por_fecha_no_supera_el_maximo_de_consultas(client, varias_elaboraciones, db_session) -> None:
+    ctx = varias_elaboraciones
+    _finalizar(client, ctx, "E-006", dias=3)
+
+    por_defecto = _contar_consultas(client, db_session, ctx["id_publico"])
+    cantidades = {
+        "codigo": _contar_consultas(client, db_session, ctx["id_publico"], codigo="e-001"),
+        "codigo inexistente": _contar_consultas(client, db_session, ctx["id_publico"], codigo="NO-EXISTE"),
+        "fecha": _contar_consultas(client, db_session, ctx["id_publico"], fecha=_dia(5)),
+        "fecha varias": _contar_consultas(client, db_session, ctx["id_publico"], fecha=_dia(3)),
+    }
+
+    assert por_defecto <= CONSULTAS_MAXIMAS
+    assert all(cantidad <= CONSULTAS_MAXIMAS for cantidad in cantidades.values()), cantidades
+
+
+def test_lista_blanca_de_t10_02_estado_y_coincidencias(client, varias_elaboraciones) -> None:
+    ctx = varias_elaboraciones
+    _finalizar(client, ctx, "E-006", dias=3)
+    sin_elaboracion = {r for r in RUTAS_APROBADAS if not r.startswith("elaboracion.")}
+
+    ok = _rutas(_ficha(client, ctx["id_publico"]).json())
+    varias = _ficha(client, ctx["id_publico"], fecha=_dia(3))
+
+    assert ok == RUTAS_APROBADAS
+    assert varias.json()["estado_elaboracion"] == "varias"
+    assert _rutas(varias.json()) == sin_elaboracion | {"coincidencias[].codigo", "coincidencias[].fecha"}
+    assert {_ficha(client, ctx["id_publico"], **p).json()["estado_elaboracion"] for p in ({}, {"codigo": "x"}, {"fecha": _dia(3)}, {"fecha": _dia(20)})} <= ESTADOS

@@ -12,6 +12,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+# State of the requested elaboración (T10-02). "no_disponible" covers hidden, borrador, of another
+# product, unknown, and "none that day": from outside they cannot be told apart.
+EstadoElaboracionPublico = Literal["ok", "no_disponible", "varias", "sin_elaboraciones"]
+
 # Public wording of the declaration type (the stored copy says "trazas").
 TipoAlergenoPublico = Literal["contiene", "puede_contener"]
 
@@ -65,5 +69,8 @@ class FichaPublicaRead(_Publico):
     producto: ProductoPublicoRead
     # Finalized, visible elaboraciones, most recent first ("Predeterminada" order).
     elaboraciones: list[ElaboracionResumenPublicoRead]
-    # The default one (T10-02 adds the selection); null when none is visible.
+    # The one requested by code or date, or the default; null unless estado_elaboracion is "ok".
     elaboracion: ElaboracionPublicaRead | None
+    estado_elaboracion: EstadoElaboracionPublico
+    # Only filled with "varias": the visible elaboraciones of the requested date, in list order.
+    coincidencias: list[ElaboracionResumenPublicoRead]

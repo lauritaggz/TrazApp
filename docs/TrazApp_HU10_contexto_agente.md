@@ -301,3 +301,19 @@ HT05 diseña dos estados distintos: «elaboración no disponible/oculta» y «c�
 - No hay «Consumir preferentemente»: es el vencimiento del lote, dato interno que no se muestra.
 - Sin elaboraciones visibles: se muestra la identidad del producto y el estado «sin elaboraciones»; **no** se muestran «Ingredientes declarados» de la fórmula vigente (contradice D3).
 - La lista de elaboraciones puede crecer sin tope con la frecuencia de producción (riesgo anotado para T10-06).
+
+### 9.5 Selección por código o fecha (T10-02)
+
+`GET /publico/productos/{id_publico}?codigo=…` o `?fecha=AAAA-MM-DD` (nunca ambos). La respuesta agrega `estado_elaboracion` (siempre) y `coincidencias` (siempre presente; vacía salvo con `"varias"`):
+
+| `estado_elaboracion` | Cuándo | `elaboracion` | `coincidencias` |
+|---|---|---|---|
+| `ok` | Sin parámetros (la predeterminada), código con coincidencia, o fecha con una sola visible | la elaboración | `[]` |
+| `no_disponible` | Código inexistente, de una oculta, de un borrador o de otro producto; fecha sin visibles | `null` | `[]` |
+| `varias` | Fecha con más de una visible | `null` | `[{codigo, fecha}]` en orden «Predeterminada» |
+| `sin_elaboraciones` | El producto no tiene elaboraciones visibles (con o sin parámetros) | `null` | `[]` |
+
+- Parámetros inválidos (ambos a la vez, fecha que no sea `AAAA-MM-DD` o inexistente): `422` con `{"detail": {"mensaje": …}}`, validado **antes** de buscar el producto (mismo 422 para un `id_publico` existente y uno inexistente). Un producto no disponible responde el 404 uniforme aunque los parámetros sean válidos.
+- Código: `strip()` + `casefold()` en ambos lados, sin colapsar espacios internos, comparado solo contra las elaboraciones visibles ya cargadas. `fecha_elaboracion` es `Date`: la fecha se compara directamente.
+- La lista `elaboraciones` no depende de la selección. Máximo 4 consultas (igual que T10-01).
+- Para T10-04: el mensaje único «No encontramos información disponible para esa elaboración» corresponde a `no_disponible`; con `varias`, la vista pide elegir por código entre `coincidencias`.
