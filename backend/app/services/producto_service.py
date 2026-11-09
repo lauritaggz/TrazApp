@@ -54,11 +54,18 @@ class IdPublicoAgotadoError(Exception):
 def leer_productos(
     repository: ProductoRepository, productos: list[Producto]
 ) -> list[ProductoGestionRead]:
-    """The read payload of products, each with `tiene_formulacion` (one query for all of them)."""
-    con_formulacion = repository.ids_con_formulacion([producto.id for producto in productos])
+    """The read payload of products, each with `tiene_formulacion` and the elaboración counts
+    (one query each for all of them, never one per product)."""
+    ids = [producto.id for producto in productos]
+    con_formulacion = repository.ids_con_formulacion(ids)
+    conteos = repository.conteos_elaboraciones(ids)
     return [
         ProductoGestionRead.model_validate(producto).model_copy(
-            update={"tiene_formulacion": producto.id in con_formulacion}
+            update={
+                "tiene_formulacion": producto.id in con_formulacion,
+                "elaboraciones_finalizadas": conteos.get(producto.id, (0, 0))[0],
+                "elaboraciones_visibles": conteos.get(producto.id, (0, 0))[1],
+            }
         )
         for producto in productos
     ]

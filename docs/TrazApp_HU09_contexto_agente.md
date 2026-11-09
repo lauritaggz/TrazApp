@@ -184,6 +184,24 @@ En cualquier caso, la regla de no exponer datos se aplica así:
 - **Accesibilidad:** vocabulario y tamaños según HT07 (textos de al menos 12 px, áreas táctiles de 44 px). Las descargas deben funcionar en celular (PT09-13).
 - **Fuera de HU09:** la previsualización de la ficha pública (T10-05, HU10).
 
+### Decisiones confirmadas en T09-05 (09-11-2026): diferencias aprobadas con el diseño (`Publications.tsx`)
+
+**Cambio de plan:** se reemplaza la opción (a) («solo en el detalle del producto») por la opción (c): **Publicaciones tal como está en el diseño**, con vista general y detalle por producto. Lo hecho en la primera entrega (lógica de habilitar y deshabilitar, requisitos faltantes, estados) se reutiliza en un hook compartido (`usePublicacionProducto`).
+
+Entrega en cuatro partes, cada una con su revisión visual: B) backend de conteos, grupo «Herramientas» del menú, vista general `/publicaciones` y bloque compacto en el detalle del producto; C) detalle `/publicaciones/{productoId}` con el estado y las elaboraciones finalizadas (ocultar y mostrar); D) panel del QR y descargas.
+
+1. **Backend (aditivo):** `ProductoGestionRead` suma `elaboraciones_finalizadas` y `elaboraciones_visibles` (finalizadas no ocultas), calculados en una sola consulta agrupada para todo el listado. `tiene_formulacion` ya existía.
+2. **Menú:** grupo «Herramientas» con «Publicaciones». No se agrega «Calculadora de costos» (HU14).
+3. **Vista general `/publicaciones`:** métricas (publicados de total, listos para publicar = formulación y al menos una finalizada, elaboraciones visibles = suma), aviso del QR único y lista de productos con insignia, Formulación/Elaboración (✓ o enlace a la acción), «N elaboraciones finalizadas», interruptor y «Gestionar». El interruptor se desactiva cuando los conteos indican que el producto no cumple; el 409 se sigue manejando por si los datos cambiaron.
+4. **Detalle `/publicaciones/{productoId}`:** «Volver a Publicaciones», título con insignia, «Estado de publicación» con interruptor, «Elaboraciones finalizadas» (historial de HU06 filtrado por producto y estado finalizada, con «Cargar más») con interruptor Visible/Oculta por fila, aviso «La ficha pública no se puede personalizar» y panel «Código QR permanente». Ocultar SIEMPRE pide confirmación («El consumidor no verá esta elaboración. Si es la única visible del producto, la consulta pública mostrará «información no disponible».»); mostrar no la pide.
+5. **Detalle del producto:** un bloque compacto con la insignia y el enlace «Gestionar publicación»; no duplica controles.
+6. **Ocultar no va en `ElaboracionDetail`.** La etiqueta «Oculta al público» se muestra en el historial, en la sección de elaboraciones del producto y en el encabezado del detalle de la elaboración (informativa); en las finalizadas, el encabezado del detalle tiene un enlace «Gestionar visibilidad» a `/publicaciones/{productoId}`.
+7. **Requisitos faltantes (409):** se listan todos. `sin_formulacion` lleva a la sección de formulación del producto; `sin_elaboracion_finalizada` lleva al historial filtrado por el producto.
+8. **QR y descarga:** la vista previa usa el PNG (blob + `createObjectURL` en `<img>`, liberado al desmontar). «Descargar PNG» y «Descargar SVG» usan `<a download>` con el blob y el nombre de `Content-Disposition`; sin `window.open`, sin pestañas nuevas y sin detectar iOS por user agent. En pantallas pequeñas, una nota fija: «Si la descarga no comienza, mantén presionada la imagen del QR y elige «Guardar imagen».»
+9. **Diferencias con el diseño:** el enlace es `/p/{id_publico}` (no `#/p/`: la app usa `BrowserRouter`); el ID público es el token generado (no un código legible); hay descarga PNG además de SVG; no hay «Vista previa pública» ni «Comprobar ficha pública» ni «Abrir como consumidor» (HU10); no se muestran «unidades» porque el modelo de elaboración no tiene ese dato.
+10. **Elaboración «Predeterminada» (criterio para HU10):** el historial de HU06 ordena por **`fecha_elaboracion` descendente y, a igual fecha, por `id` descendente** (no por `finalizada_at`). La elaboración mostrada por defecto en la consulta pública es la primera **visible** (finalizada y no oculta) en ese mismo orden.
+11. **Fuera de T09-05:** el archivo `docs/hu09-prueba-celular.md` es de T09-06.
+
 ---
 
 ## 6. Tareas

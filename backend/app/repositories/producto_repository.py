@@ -1,11 +1,18 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Categoria, Elaboracion, FormulacionVersionProducto, Producto, VersionProducto
+from app.models import (
+    Categoria,
+    Elaboracion,
+    ElaboracionOculta,
+    FormulacionVersionProducto,
+    Producto,
+    VersionProducto,
+)
 from app.models.elaboracion import ESTADO_FINALIZADA
 
 
@@ -77,6 +84,29 @@ class ProductoRepository:
             .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
         )
         return list(self.db.scalars(stmt).all())
+
+    def conteos_elaboraciones(self, producto_ids: list[int]) -> dict[int, tuple[int, int]]:
+        """Per product: (finalized elaboraciones, of those the ones not hidden from the public).
+
+        One grouped query for any number of products. Borradores never count; a product without
+        elaboraciones is absent from the result.
+        """
+        if not producto_ids:
+            return {}
+        stmt = (
+            select(
+                Elaboracion.producto_id,
+                func.count(Elaboracion.id),
+                func.sum(case((ElaboracionOculta.elaboracion_id.is_(None), 1), else_=0)),
+            )
+            .outerjoin(ElaboracionOculta, ElaboracionOculta.elaboracion_id == Elaboracion.id)
+            .where(
+                Elaboracion.producto_id.in_(producto_ids),
+                Elaboracion.estado == ESTADO_FINALIZADA,
+            )
+            .group_by(Elaboracion.producto_id)
+        )
+        return {fila[0]: (int(fila[1]), int(fila[2] or 0)) for fila in self.db.execute(stmt)}
 
     def ids_con_formulacion(self, producto_ids: list[int]) -> set[int]:
         """Of those products, the ones whose CURRENT version has at least one ingredient line.

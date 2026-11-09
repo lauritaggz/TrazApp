@@ -235,6 +235,10 @@ class ProductoGestionRead(BaseModel):
     # HT06-07: the current (vigente) version has at least one ingredient, so an elaboración can be
     # registered for the product. Filled by the service; every response of the product carries it.
     tiene_formulacion: bool = False
+    # HU09: finalized elaboraciones of the product, and of those the ones not hidden from the public.
+    # Filled by the service in one grouped query for the whole list; borradores never count.
+    elaboraciones_finalizadas: int = 0
+    elaboraciones_visibles: int = 0
     # HU09 (read-only: never accepted in POST/PATCH). Publication state of the product.
     publicado: bool = False
     id_publico: str | None = None
