@@ -14,7 +14,7 @@ from datetime import timedelta
 import pytest
 from sqlalchemy import delete, event, update
 
-from app.models import Categoria, InsumoComercial, Producto, Productor
+from app.models import Alergeno, Categoria, InsumoComercial, Producto, Productor, VersionProducto
 from app.models.insumo import InsumoAlergeno
 from app.services.consulta_publica_service import (
     InformacionConservadaIncompletaError,
@@ -86,6 +86,15 @@ RUTAS_APROBADAS = {
     "elaboracion.insumos[].alergenos[].codigo",
     "elaboracion.insumos[].alergenos[].nombre",
     "elaboracion.insumos[].alergenos[].tipo",
+    # T10-03
+    "elaboracion.alergenos",
+    "elaboracion.alergenos.contiene",
+    "elaboracion.alergenos.contiene[].codigo",
+    "elaboracion.alergenos.contiene[].nombre",
+    "elaboracion.alergenos.puede_contener",
+    "elaboracion.alergenos.puede_contener[].codigo",
+    "elaboracion.alergenos.puede_contener[].nombre",
+    "elaboracion.version_anterior",
     # T10-02. `coincidencias` is always present (empty unless "varias"), so its items only show
     # up in the paths when there are matches (see the "varias" whitelist test).
     "estado_elaboracion",
@@ -160,6 +169,24 @@ def publicado(client, ctx, db_session) -> dict:
     db_session.commit()
     ctx["id_publico"] = _publicar(client, ctx)
     return ctx
+
+
+def _enteros(valor) -> list:
+    """Every integer value of a JSON value (booleans are not integers here)."""
+    if isinstance(valor, dict):
+        return [e for hijo in valor.values() for e in _enteros(hijo)]
+    if isinstance(valor, list):
+        return [e for hijo in valor for e in _enteros(hijo)]
+    return [valor] if isinstance(valor, int) and not isinstance(valor, bool) else []
+
+
+def _sin_datos_de_version(cuerpo: dict) -> None:
+    """The response carries no version number or id: no integer at all (it has none by design) and
+    no key about versions other than the boolean `version_anterior`."""
+    assert _enteros(cuerpo) == []
+    claves = {ruta.rsplit(".", 1)[-1].replace("[]", "") for ruta in _rutas(cuerpo)}
+    assert {c for c in claves if "version" in c} <= {"version_anterior"}
+    assert "numero_version" not in str(cuerpo)
 
 
 def _rutas(valor, prefijo: str = "") -> set[str]:
@@ -240,6 +267,7 @@ def test_la_identidad_del_producto_es_la_vigente(client, publicado) -> None:
 
 def test_rt03_insumo_modificado_despues_de_finalizar_no_cambia_la_ficha(client, publicado, db_session) -> None:
     antes = _ficha(client, publicado["id_publico"]).json()["elaboracion"]
+    assert [a["codigo"] for a in antes["alergenos"]["contiene"]] == ["leche", "apio"]  # the groups are part of the comparison
     leche_id = publicado["insumo_habitual"]["id"]
     harina_id = publicado["insumo_harina"]["id"]
 
@@ -353,6 +381,7 @@ def test_lista_blanca_conjunto_exacto_de_claves(client, publicado) -> None:
     assert _rutas(cuerpo.json()) == RUTAS_APROBADAS
     for centinela in CENTINELAS_INTERNOS:
         assert centinela not in cuerpo.text, centinela
+    _sin_datos_de_version(cuerpo.json())
 
 
 def test_la_lista_blanca_tambien_se_cumple_sin_elaboraciones_visibles(client, publicado) -> None:
@@ -681,3 +710,176 @@ def test_lista_blanca_de_t10_02_estado_y_coincidencias(client, varias_elaboracio
     assert varias.json()["estado_elaboracion"] == "varias"
     assert _rutas(varias.json()) == sin_elaboracion | {"coincidencias[].codigo", "coincidencias[].fecha"}
     assert {_ficha(client, ctx["id_publico"], **p).json()["estado_elaboracion"] for p in ({}, {"codigo": "x"}, {"fecha": _dia(3)}, {"fecha": _dia(20)})} <= ESTADOS
+
+
+# =================================================================================================
+# T10-03: grouped allergens (CA5) and previous version (CA6)
+# =================================================================================================
+
+
+def _declarar(client, db_session, ctx, insumo_id: int, declarados: dict[str, str]) -> None:
+    """Replace the allergens the live supply declares (code -> "contiene" | "trazas")."""
+    db_session.execute(delete(InsumoAlergeno).where(InsumoAlergeno.insumo_id == insumo_id))
+    db_session.commit()
+    for codigo, tipo in declarados.items():
+        respuesta = client.post(
+            f"/gestion/insumos/{insumo_id}/alergenos",
+            headers=ctx["headers"],
+            json={"alergeno_id": ctx["alergenos"][codigo], "tipo": tipo},
+        )
+        assert respuesta.status_code == 201, respuesta.text
+
+
+def _grupos(client, db_session, ctx, codigo: str, *, leche: dict[str, str], harina: dict[str, str]) -> dict:
+    """Declare allergens on the two supplies, finalize an elaboración and read its public groups."""
+    _declarar(client, db_session, ctx, ctx["insumo_habitual"]["id"], leche)
+    _declarar(client, db_session, ctx, ctx["insumo_harina"]["id"], harina)
+    _finalizar(client, ctx, codigo, dias=2)
+    cuerpo = _ficha(client, ctx["id_publico"], codigo=codigo).json()
+    assert cuerpo["estado_elaboracion"] == "ok"
+    grupos = cuerpo["elaboracion"]["alergenos"]
+    assert set(grupos) == {"contiene", "puede_contener"}
+    return {nombre: [a["codigo"] for a in lista] for nombre, lista in grupos.items()}
+
+
+def test_pt10_06_contiene_leche_y_trazas_de_soya_y_leche_leche_no_se_repite_en_trazas(client, publicado, db_session) -> None:
+    grupos = _grupos(
+        client, db_session, publicado, "A-1", leche={"leche": "contiene"}, harina={"soya": "trazas", "leche": "trazas"}
+    )
+
+    assert grupos == {"contiene": ["leche"], "puede_contener": ["soya"]}
+
+
+def test_el_mismo_alergeno_contiene_en_dos_insumos_aparece_una_sola_vez(client, publicado, db_session) -> None:
+    grupos = _grupos(client, db_session, publicado, "A-2", leche={"leche": "contiene"}, harina={"leche": "contiene"})
+
+    assert grupos == {"contiene": ["leche"], "puede_contener": []}
+
+
+def test_el_mismo_alergeno_en_trazas_en_dos_insumos_aparece_una_sola_vez(client, publicado, db_session) -> None:
+    grupos = _grupos(client, db_session, publicado, "A-3", leche={"soya": "trazas"}, harina={"soya": "trazas"})
+
+    assert grupos == {"contiene": [], "puede_contener": ["soya"]}
+
+
+def test_solo_trazas_deja_contiene_vacio(client, publicado, db_session) -> None:
+    grupos = _grupos(client, db_session, publicado, "A-4", leche={"soya": "trazas"}, harina={"apio": "trazas"})
+
+    assert grupos["contiene"] == []
+    assert len(grupos["puede_contener"]) == 2
+
+
+def test_sin_alergenos_en_ningun_insumo_ambas_listas_quedan_vacias(client, publicado, db_session) -> None:
+    grupos = _grupos(client, db_session, publicado, "A-5", leche={}, harina={})
+
+    assert grupos == {"contiene": [], "puede_contener": []}
+
+
+def test_los_grupos_se_ordenan_primero_obligatorios_en_chile_y_luego_por_nombre(client, publicado, db_session) -> None:
+    # Catalog in the test schema: leche and soya are mandatory in Chile; apio is not. Add two more
+    # non-mandatory ones to check the tie-break by name.
+    extra = {
+        codigo: Alergeno(codigo=codigo, nombre=nombre, obligatorio_chile=False)
+        for codigo, nombre in (("mostaza", "Mostaza"), ("altramuz", "Altramuz"))
+    }
+    db_session.add_all(extra.values())
+    db_session.commit()
+    publicado["alergenos"].update({codigo: alergeno.id for codigo, alergeno in extra.items()})
+
+    grupos = _grupos(
+        client,
+        db_session,
+        publicado,
+        "A-6",
+        leche={"mostaza": "contiene", "apio": "contiene", "leche": "contiene"},
+        harina={"altramuz": "trazas", "soya": "trazas", "apio": "trazas"},
+    )
+
+    # Mandatory first (leche), then by name (Apio, Mostaza). Apio is in contiene, so not in trazas.
+    assert grupos == {"contiene": ["leche", "apio", "mostaza"], "puede_contener": ["soya", "altramuz"]}
+
+
+def test_una_copia_sin_la_clave_alergenos_sigue_dando_500_y_una_lista_vacia_no(client, publicado, monkeypatch) -> None:
+    sin_clave = {k: v for k, v in COPIA_COMPLETA.items() if k != "alergenos"}
+    vacia = {**COPIA_COMPLETA, "alergenos": []}
+    monkeypatch.setattr(ConsultaPublicaRepository, "copias_conservadas", lambda self, elaboracion_id: [(1, vacia)])
+    assert _ficha(client, publicado["id_publico"]).json()["elaboracion"]["alergenos"] == {"contiene": [], "puede_contener": []}
+
+    monkeypatch.setattr(ConsultaPublicaRepository, "copias_conservadas", lambda self, elaboracion_id: [(1, sin_clave)])
+    assert _ficha(client, publicado["id_publico"]).status_code == 500
+
+
+def test_rt03_los_grupos_no_cambian_al_modificar_los_alergenos_del_insumo(client, publicado, db_session) -> None:
+    antes = _ficha(client, publicado["id_publico"]).json()["elaboracion"]["alergenos"]
+    assert antes["contiene"] and antes["puede_contener"]
+
+    # Live supplies change: the milk supply declares nothing now and the flour supply contains milk.
+    _declarar(client, db_session, publicado, publicado["insumo_habitual"]["id"], {})
+    _declarar(client, db_session, publicado, publicado["insumo_harina"]["id"], {"leche": "contiene"})
+
+    assert _ficha(client, publicado["id_publico"]).json()["elaboracion"]["alergenos"] == antes
+
+
+# --- version_anterior (CA6, PT10-07) -------------------------------------------------------------
+
+
+def _reformular(client, ctx) -> None:
+    """A new current version of the recipe (one more ingredient); the earlier version was used."""
+    extra = crear_ingrediente(client, ctx["headers"], "Extra versión", "ext-ver")
+    insumo = crear_insumo(client, ctx["headers"], extra["id"], "Insumo extra versión", habitual=True)
+    ctx["insumo_por_ingrediente"][extra["id"]] = insumo["id"]
+    formular(client, ctx["headers"], ctx["producto"]["id"], ctx["harina"], ctx["leche"], extra)
+
+
+def _version_anterior(client, ctx, **params) -> bool:
+    cuerpo = _ficha(client, ctx["id_publico"], **params).json()
+    assert cuerpo["estado_elaboracion"] == "ok"
+    return cuerpo["elaboracion"]["version_anterior"]
+
+
+def test_pt10_07_una_elaboracion_de_la_version_vigente_no_es_version_anterior(client, publicado) -> None:
+    assert _version_anterior(client, publicado) is False
+
+
+def test_pt10_07_una_elaboracion_de_una_version_anterior_lo_indica_sin_numero_ni_id(client, publicado) -> None:
+    _reformular(client, publicado)
+    _finalizar(client, publicado, "E-002", dias=2)  # made with the new current version
+
+    anterior = _ficha(client, publicado["id_publico"], codigo="E-001")
+    vigente = _ficha(client, publicado["id_publico"], codigo="E-002")
+
+    assert anterior.json()["elaboracion"]["version_anterior"] is True
+    assert vigente.json()["elaboracion"]["version_anterior"] is False
+    for respuesta in (anterior, vigente):
+        _sin_datos_de_version(respuesta.json())
+    # The current version's content (its extra ingredient) is not exposed on the old elaboración.
+    assert "Extra versión" not in anterior.text
+
+
+def test_un_producto_sin_version_vigente_marca_version_anterior(client, publicado, db_session) -> None:
+    db_session.execute(update(VersionProducto).where(VersionProducto.producto_id == publicado["producto"]["id"]).values(vigente=False))
+    db_session.commit()
+
+    assert _version_anterior(client, publicado) is True
+
+
+def test_version_anterior_no_aplica_sin_elaboracion(client, publicado) -> None:
+    cuerpo = _ficha(client, publicado["id_publico"], codigo="NO-EXISTE").json()
+
+    assert cuerpo["elaboracion"] is None
+    assert "version_anterior" not in str(cuerpo)
+
+
+def test_las_consultas_no_superan_el_maximo_con_varios_insumos_y_version_anterior(client, publicado, db_session) -> None:
+    _reformular(client, publicado)
+    _finalizar(client, publicado, "E-002", dias=2)
+    _finalizar(client, publicado, "E-003", dias=1)
+
+    cantidades = {
+        "defecto": _contar_consultas(client, db_session, publicado["id_publico"]),
+        "version anterior": _contar_consultas(client, db_session, publicado["id_publico"], codigo="E-001"),
+        "version vigente": _contar_consultas(client, db_session, publicado["id_publico"], codigo="E-002"),
+    }
+
+    assert all(cantidad <= CONSULTAS_MAXIMAS for cantidad in cantidades.values()), cantidades
+    assert len(set(cantidades.values())) == 1

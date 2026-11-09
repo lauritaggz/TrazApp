@@ -7,10 +7,10 @@ of supplies or elaboraciones.
 
 from typing import Any
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Elaboracion, Producto, Productor, UsoInsumo
+from app.models import Elaboracion, Producto, Productor, UsoInsumo, VersionProducto
 from app.models.categoria import Categoria, productos_categorias
 from app.models.elaboracion import ElaboracionOculta
 
@@ -20,7 +20,17 @@ class ConsultaPublicaRepository:
         self.db = db
 
     def get_producto_por_id_publico(self, id_publico: str) -> Any | None:
-        """The product row (whatever its state: the service decides availability) or None."""
+        """The product row (whatever its state: the service decides availability) or None.
+
+        Carries `version_vigente_id` (internal, never serialized; None when the product has no
+        current version) as a subquery, so "previous version" costs no extra query.
+        """
+        version_vigente = (
+            select(func.max(VersionProducto.id))
+            .where(VersionProducto.producto_id == Producto.id, VersionProducto.vigente.is_(True))
+            .correlate(Producto)
+            .scalar_subquery()
+        )
         stmt = (
             select(
                 Producto.id,
@@ -33,6 +43,7 @@ class ConsultaPublicaRepository:
                 Producto.presentacion,
                 Producto.imagen_url,
                 Productor.nombre_negocio,
+                version_vigente.label("version_vigente_id"),
             )
             .outerjoin(Productor, Productor.id == Producto.productor_id)
             .where(Producto.id_publico == id_publico)
@@ -59,6 +70,7 @@ class ConsultaPublicaRepository:
                 Elaboracion.codigo,
                 Elaboracion.fecha_elaboracion,
                 Elaboracion.estado,
+                Elaboracion.version_producto_id,
                 exists().where(ElaboracionOculta.elaboracion_id == Elaboracion.id).correlate(Elaboracion).label("oculta"),
             )
             .where(Elaboracion.producto_id == producto_id)

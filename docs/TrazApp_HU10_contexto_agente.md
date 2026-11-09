@@ -282,7 +282,7 @@ elaboracion:   {codigo, fecha, insumos[]}  la predeterminada; null si no hay vis
 - Origen: composición, insumos y alérgenos, solo de `informacion_conservada` (RT-03). Identidad del producto: la vigente (un cambio de nombre se refleja en elaboraciones antiguas; se documenta como limitación).
 - Identificador para HU11 (D10): el par `producto.id_publico` + `elaboracion.codigo` (el código es inmutable tras finalizar). No se expone ningún id interno.
 - Cabeceras (D7): `Cache-Control: no-store` y `X-Robots-Tag: noindex, nofollow` en la API, también en los 404. La vista (T10-04) añade `<meta name="robots" content="noindex">`.
-- Consultas por solicitud: máximo 4 (producto, categorías, elaboraciones, copias). T10-03 lo sube a 5 de forma explícita (comprobación de versión vigente). Un producto no disponible hace 1.
+- Consultas por solicitud: máximo 4 (producto, categorías, elaboraciones, copias). T10-03 lo mantiene en 4: el id de la versión vigente viaja como subconsulta en la consulta del producto. Un producto no disponible hace 1.
 - Fail-closed: si a una copia le falta `ingrediente`, `insumo` o `alergenos` (o un tipo de alérgeno desconocido), la API responde 500 con `{"detail": {"mensaje": …}}` y registra solo el id del uso y la clave faltante.
 - Reparto: T10-02 agrega `codigo`/`fecha`, `estado_elaboracion` (`ok`, `no_disponible`, `varias`, `sin_elaboraciones`) y `coincidencias`; T10-03, `alergenos` agrupados y `version_anterior`.
 
@@ -317,3 +317,19 @@ HT05 diseña dos estados distintos: «elaboración no disponible/oculta» y «c�
 - Código: `strip()` + `casefold()` en ambos lados, sin colapsar espacios internos, comparado solo contra las elaboraciones visibles ya cargadas. `fecha_elaboracion` es `Date`: la fecha se compara directamente.
 - La lista `elaboraciones` no depende de la selección. Máximo 4 consultas (igual que T10-01).
 - Para T10-04: el mensaje único «No encontramos información disponible para esa elaboración» corresponde a `no_disponible`; con `varias`, la vista pide elegir por código entre `coincidencias`.
+
+### 9.6 Alérgenos agrupados y versión anterior (T10-03)
+
+La elaboración (`elaboracion`) agrega:
+
+```
+alergenos:        {contiene: [{codigo, nombre}], puede_contener: [{codigo, nombre}]}
+version_anterior: bool
+```
+
+- **Agrupación (D4):** unión de los alérgenos de las copias conservadas de todos los insumos, deduplicada por `codigo`. Un alérgeno que algún insumo declara «contiene» va solo en `contiene`, aunque otro lo declare como trazas (`trazas` se expone como `puede_contener`). Los alérgenos por insumo de T10-01 no cambian.
+- **Orden de cada lista:** el de las pantallas del productor (`ordenar_declarados`): primero los de declaración obligatoria en Chile, luego por nombre (y por código si hay empate). `obligatorio_chile` se lee de la copia y no se expone.
+- **Lista vacía vs clave ausente:** `[]` significa «sin alérgenos declarados»; si a la copia le falta la clave `alergenos`, sigue siendo un 500 (fail-closed).
+- **`version_anterior`:** `true` si la versión de la elaboración no es la vigente del producto, o si el producto **no tiene versión vigente** (no hay una «actual» con la cual coincidir). No se expone `numero_version`, ningún id de versión ni el contenido de la vigente. Solo existe dentro de `elaboracion`: con `elaboracion: null` no aplica.
+- **Rendimiento:** el id de la versión vigente se calcula con una subconsulta (`max(id)` de las versiones vigentes) dentro de la consulta del producto, y `version_producto_id` viaja en la consulta de elaboraciones: máximo 4 consultas.
+- **Para T10-04:** mostrar «Contiene» y «Puede contener trazas de» con estas listas (vacías = el texto «No contiene…» / «No se declaran trazas…» del diseño), y la nota «Elaborada con una formulación anterior» solo si `version_anterior` es `true`, sin número de versión.

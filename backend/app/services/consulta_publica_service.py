@@ -14,7 +14,9 @@ from typing import Any
 
 from app.repositories.consulta_publica_repository import ConsultaPublicaRepository
 from app.schemas.consulta_publica import (
+    AlergenoGrupoPublicoRead,
     AlergenoPublicoRead,
+    AlergenosAgrupadosRead,
     ElaboracionPublicaRead,
     ElaboracionResumenPublicoRead,
     FichaPublicaRead,
@@ -138,6 +140,30 @@ def proyectar_insumo(uso_id: int, copia: Any) -> InsumoPublicoRead:
     )
 
 
+def agrupar_alergenos(copias: list[tuple[int, Any]]) -> AlergenosAgrupadosRead:
+    """Union of the allergens of the conserved copies, deduplicated by code (D4).
+
+    An allergen declared "contiene" by any supply goes ONLY in `contiene`, even if another supply
+    declares it as traces. Order, same as the productor's screens (`ordenar_declarados`): the ones
+    mandatory in Chile first, then by name. Call it after `proyectar_insumo` has validated the copies.
+    """
+    contiene: list[dict] = []
+    trazas: list[dict] = []
+    for _, copia in copias:
+        for declarado in copia["alergenos"]:
+            lista = contiene if declarado["tipo"] == "contiene" else trazas
+            if all(x["codigo"] != declarado["codigo"] for x in lista):
+                lista.append(declarado)
+    codigos_contiene = {x["codigo"] for x in contiene}
+    trazas = [x for x in trazas if x["codigo"] not in codigos_contiene]
+
+    def publico(lista: list[dict]) -> list[AlergenoGrupoPublicoRead]:
+        ordenada = sorted(lista, key=lambda x: (not x.get("obligatorio_chile", False), x["nombre"], x["codigo"]))
+        return [AlergenoGrupoPublicoRead(codigo=x["codigo"], nombre=x["nombre"]) for x in ordenada]
+
+    return AlergenosAgrupadosRead(contiene=publico(contiene), puede_contener=publico(trazas))
+
+
 def armar_ficha(
     producto: Any,
     categorias: list[str],
@@ -152,10 +178,14 @@ def armar_ficha(
     nombre_negocio = (producto.nombre_negocio or "").strip()
     elaboracion = None
     if seleccionada is not None:
+        insumos = [proyectar_insumo(uso_id, copia) for uso_id, copia in copias]
         elaboracion = ElaboracionPublicaRead(
             codigo=seleccionada.codigo,
             fecha=seleccionada.fecha_elaboracion,
-            insumos=[proyectar_insumo(uso_id, copia) for uso_id, copia in copias],
+            insumos=insumos,
+            alergenos=agrupar_alergenos(copias),
+            # No current version (None) also counts as "previous": it is not the current one.
+            version_anterior=seleccionada.version_producto_id != producto.version_vigente_id,
         )
     return FichaPublicaRead(
         producto=ProductoPublicoRead(

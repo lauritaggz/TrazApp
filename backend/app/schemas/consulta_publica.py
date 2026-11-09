@@ -30,6 +30,18 @@ class AlergenoPublicoRead(_Publico):
     tipo: TipoAlergenoPublico
 
 
+class AlergenoGrupoPublicoRead(_Publico):
+    codigo: str
+    nombre: str
+
+
+class AlergenosAgrupadosRead(_Publico):
+    """Union of the allergens of every supply of the elaboración (D4), each one in one group only."""
+
+    contiene: list[AlergenoGrupoPublicoRead]
+    puede_contener: list[AlergenoGrupoPublicoRead]
+
+
 class InsumoPublicoRead(_Publico):
     ingrediente: str
     nombre: str
@@ -50,6 +62,10 @@ class ElaboracionPublicaRead(_Publico):
     codigo: str
     fecha: date
     insumos: list[InsumoPublicoRead]
+    alergenos: AlergenosAgrupadosRead
+    # True when the elaboración was made with a version of the recipe other than the current one
+    # (or the product has no current version). The version number or content is never exposed.
+    version_anterior: bool
 
 
 class ProductoPublicoRead(_Publico):
