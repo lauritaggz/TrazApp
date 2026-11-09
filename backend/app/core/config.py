@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # One deadline for the whole lookup by barcode (Open Food Facts included), HU07.
     recuperacion_presupuesto_seconds: float = 10.0
 
+    # HU09: public base URL of the web app, printed inside the product QR (`{base}/p/{id_publico}`).
+    # No default on purpose: an empty value means "not configured" and the QR endpoint refuses.
+    url_publica_app: str = ""
+
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 

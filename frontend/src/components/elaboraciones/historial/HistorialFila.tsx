@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { CheckIcon, FlechaDerechaIcon, LapizIcon } from "@/components/elaboraciones/historial/iconos";
+import EtiquetaOculta from "@/components/elaboraciones/EtiquetaOculta";
 import Badge from "@/components/ui/Badge";
 import { formatFecha } from "@/lib/elaboracionUtils";
 import type { ElaboracionResumen } from "@/types/elaboracion";
@@ -38,6 +39,7 @@ export default function HistorialFila({ elaboracion }: { elaboracion: Elaboracio
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-text-primary">{elaboracion.producto.nombre}</span>
             <Badge variant={borrador ? "warning" : "success"}>{borrador ? "Borrador" : "Finalizada"}</Badge>
+            {elaboracion.oculta === true && <EtiquetaOculta />}
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-text-secondary">
             <span className="font-mono font-medium">{elaboracion.codigo}</span>

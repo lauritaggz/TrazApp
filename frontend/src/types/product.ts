@@ -22,7 +22,30 @@ export interface Product {
   created_at: string | null;
   /** HT06-07: the current version has at least one ingredient, so an elaboración can be registered. */
   tiene_formulacion: boolean;
+  /**
+   * HU09: publication state. Optional only so older mocks keep compiling; the API always sends them.
+   * `id_publico` and `url_publica` stay once the product was published, even if it is not now.
+   */
+  publicado?: boolean;
+  id_publico?: string | null;
+  publicado_en?: string | null;
+  url_publica?: string | null;
+  /** HU09: finalized elaboraciones, and of those the ones not hidden from the public (borradores never count). */
+  elaboraciones_finalizadas?: number;
+  elaboraciones_visibles?: number;
 }
+
+/** Answer of POST / DELETE /gestion/productos/{id}/publicacion (HU09). */
+export interface Publicacion {
+  producto_id: number;
+  publicado: boolean;
+  id_publico: string | null;
+  publicado_en: string | null;
+  url_publica: string | null;
+}
+
+/** What the 409 of enabling the publication says is missing. */
+export type RequisitoPublicacion = "sin_formulacion" | "sin_elaboracion_finalizada";
 
 /** Payload for POST /gestion/productos. Ownership comes from JWT. */
 export interface ProductCreatePayload {

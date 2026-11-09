@@ -15,6 +15,8 @@ import Ingredients from "@/pages/Ingredients";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import ProductDetail from "@/pages/ProductDetail";
+import PublicacionDetalle from "@/pages/PublicacionDetalle";
+import Publicaciones from "@/pages/Publicaciones";
 import ProductEdit from "@/pages/ProductEdit";
 import ProductNew from "@/pages/ProductNew";
 import Products from "@/pages/Products";
@@ -47,6 +49,8 @@ export default function App() {
         <Route path="/elaboraciones" element={<Elaboraciones />} />
         <Route path="/elaboraciones/:id" element={<ElaboracionDetail />} />
         <Route path="/elaboraciones/:id/registro" element={<ElaboracionRegistro />} />
+        <Route path="/publicaciones" element={<Publicaciones />} />
+        <Route path="/publicaciones/:productoId" element={<PublicacionDetalle />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

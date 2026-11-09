@@ -43,6 +43,13 @@ class Producto(Base):
             "precio_venta IS NULL OR precio_venta >= 0",
             name="ck_producto_precio_venta_no_negativo",
         ),
+        # HU09: the public identifier is unique (several NULLs are allowed: never published).
+        UniqueConstraint("id_publico", name="uq_producto_id_publico"),
+        # A published product always has its public identifier.
+        CheckConstraint(
+            "NOT publicado OR id_publico IS NOT NULL",
+            name="ck_producto_publicado_requiere_id_publico",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -70,6 +77,23 @@ class Producto(Base):
         DateTime(timezone=True),
         nullable=True,
         server_default=func.now(),
+    )
+    # Publication (HU09). `publicado` says whether the public consultation is enabled.
+    publicado: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
+    # Opaque, random and permanent: generated at the FIRST enabling and never regenerated, so
+    # disabling and enabling again keeps the same QR (CA5). NULL = never published. It is never
+    # the internal id or the product code (those are guessable).
+    id_publico: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Date of the LAST enabling. Disabling the publication keeps it on purpose (it is not
+    # cleared): it tells when the product was last published, not whether it is published now.
+    publicado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     productor: Mapped["Productor | None"] = relationship(back_populates="productos")

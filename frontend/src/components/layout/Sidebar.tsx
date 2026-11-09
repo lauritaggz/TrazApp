@@ -3,7 +3,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem from "@/components/layout/NavItem";
 
-export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "elaboraciones" | "perfil";
+export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "elaboraciones" | "publicaciones" | "perfil";
 
 interface SidebarProps {
   open: boolean;
@@ -54,10 +54,9 @@ interface GrupoMenu {
 }
 
 /**
- * Los grupos del menú, como en el diseño. Para agregar un grupo basta una entrada nueva: el grupo
- * «Herramientas» (HU09: «Publicaciones»; HU14: «Calculadora de costos») va después de «Gestión» cuando
- * existan esas pantallas. Mientras no existan no se agrega: sin enlaces a pantallas inexistentes ni
- * «Próximamente». «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración
+ * Los grupos del menú, como en el diseño. El grupo «Herramientas» tiene «Publicaciones» (HU09); la
+ * «Calculadora de costos» (HU14) se agrega cuando exista su pantalla: sin enlaces a pantallas
+ * inexistentes ni «Próximamente». «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración
  * (NavLink sin `end`). Sin contadores.
  */
 const GRUPOS: GrupoMenu[] = [
@@ -71,7 +70,32 @@ const GRUPOS: GrupoMenu[] = [
       { icono: <HistoryIcon />, etiqueta: "Elaboraciones", to: "/elaboraciones" },
     ],
   },
+  {
+    titulo: "Herramientas",
+    items: [{ icono: <QrIcon />, etiqueta: "Publicaciones", to: "/publicaciones" }],
+  },
 ];
+
+function QrIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3zM20 14v.01M14 20h3M20 17v4" />
+    </svg>
+  );
+}
 
 function HomeIcon() {
   return (

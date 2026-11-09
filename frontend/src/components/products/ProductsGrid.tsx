@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Badge from "@/components/ui/Badge";
+import PublicacionBadge from "@/components/products/PublicacionBadge";
 import {
   formatCategoriasCompact,
   formatProductContent,
@@ -61,6 +62,7 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
                   </span>
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <PublicacionBadge publicado={product.publicado} />
                   {categories ? (
                     product.categorias.map((category) => (
                       <Badge key={category.id} variant="brand">

@@ -68,18 +68,27 @@ describe("Menú de usuario del header", () => {
 });
 
 describe("Menú lateral", () => {
-  it("agrupa todo en «Gestión» y no muestra lo que aún no existe: ni «Trazabilidad», «Herramientas», «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
+  it("agrupa en «Gestión» y «Herramientas» (HU09) y no muestra lo que aún no existe: ni «Trazabilidad», «Calculadora de costos», «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
     renderShell();
 
-    // T06-06: un solo grupo, «Gestión», como el diseño. «Herramientas» (HU09 y HU14) y «Elaboraciones relacionadas» (HU08) llegan con sus pantallas.
+    // «Herramientas» trae «Publicaciones» (HU09). La «Calculadora de costos» (HU14) y «Elaboraciones relacionadas» (HU08) llegan con sus pantallas.
     expect(screen.getByText("Gestión")).toBeInTheDocument();
+    expect(screen.getByText("Herramientas")).toBeInTheDocument();
     expect(screen.queryByText("Trazabilidad")).not.toBeInTheDocument();
-    expect(screen.queryByText("Herramientas")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Calculadora/)).not.toBeInTheDocument();
     expect(screen.queryByText("Elaboraciones relacionadas")).not.toBeInTheDocument();
     expect(screen.queryByText("Pronto")).not.toBeInTheDocument();
     const enlaces = within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link");
-    expect(enlaces.map((l) => l.textContent)).toEqual(["Inicio", "Productos", "Ingredientes", "Insumos", "Elaboraciones"]);
+    expect(enlaces.map((l) => l.textContent)).toEqual([
+      "Inicio",
+      "Productos",
+      "Ingredientes",
+      "Insumos",
+      "Elaboraciones",
+      "Publicaciones",
+    ]);
     expect(enlaces[4]).toHaveAttribute("href", "/elaboraciones");
+    expect(enlaces[5]).toHaveAttribute("href", "/publicaciones");
     // Los términos del modelo anterior ya no aparecen en el menú.
     expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
     expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();
@@ -106,6 +115,7 @@ describe("Menú lateral: estilo del diseño (T06-06)", () => {
       "Ingredientes",
       "Insumos",
       "Elaboraciones",
+      "Publicaciones",
     ]);
     expect(nav.textContent).not.toMatch(/\d/);
   });

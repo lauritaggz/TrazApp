@@ -2,7 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+
+from app.core.publicacion import url_publica_o_none
 
 
 UnidadMedida = Literal["g", "kg", "ml", "L", "unidad"]
@@ -233,6 +235,45 @@ class ProductoGestionRead(BaseModel):
     # HT06-07: the current (vigente) version has at least one ingredient, so an elaboración can be
     # registered for the product. Filled by the service; every response of the product carries it.
     tiene_formulacion: bool = False
+    # HU09: finalized elaboraciones of the product, and of those the ones not hidden from the public.
+    # Filled by the service in one grouped query for the whole list; borradores never count.
+    elaboraciones_finalizadas: int = 0
+    elaboraciones_visibles: int = 0
+    # HU09 (read-only: never accepted in POST/PATCH). Publication state of the product.
+    publicado: bool = False
+    id_publico: str | None = None
+    publicado_en: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def url_publica(self) -> str | None:
+        """Permanent link (the one in the QR): present whenever id_publico exists, even if unpublished."""
+        return url_publica_o_none(self.id_publico)
+
+
+class PublicacionRead(BaseModel):
+    """Publication state of a product (HU09): the answer of enabling / disabling it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    producto_id: int
+    publicado: bool
+    id_publico: str | None
+    publicado_en: datetime | None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def url_publica(self) -> str | None:
+        return url_publica_o_none(self.id_publico)
+
+    @classmethod
+    def from_producto(cls, producto: object) -> "PublicacionRead":
+        return cls(
+            producto_id=producto.id,  # type: ignore[attr-defined]
+            publicado=producto.publicado,  # type: ignore[attr-defined]
+            id_publico=producto.id_publico,  # type: ignore[attr-defined]
+            publicado_en=producto.publicado_en,  # type: ignore[attr-defined]
+        )
 
 
 # --- VersionProducto (RT-01 / formulación; sin cambios de contrato) ---

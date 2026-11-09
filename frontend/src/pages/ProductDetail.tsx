@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import ComingSoonCard from "@/components/detail/ComingSoonCard";
 import DetailHero from "@/components/detail/DetailHero";
 import FactTile from "@/components/detail/FactTile";
-import { EtiquetaIcon, ProductoIcon, QrIcon, TrazabilidadIcon } from "@/components/detail/icons";
+import { EtiquetaIcon, ProductoIcon, TrazabilidadIcon } from "@/components/detail/icons";
 import Badge from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
+import PublicacionBadge from "@/components/products/PublicacionBadge";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
@@ -81,6 +82,12 @@ export default function ProductDetail() {
     }
     void loadProduct(productId);
   }, [loadProduct, productId]);
+
+  // A link such as «…#product-detail-formulation» (from Publicaciones) lands on that section.
+  useEffect(() => {
+    if (loading || !product || !location.hash) return;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading, product, location.hash]);
 
   useEffect(() => {
     if (productId == null) return;
@@ -196,11 +203,6 @@ export default function ProductDetail() {
                   >
                     Editar producto
                   </Button>
-                  {/* Maqueta: el código QR del producto es trabajo futuro. */}
-                  <Button type="button" variant="secondary" className="w-full sm:w-auto" disabled>
-                    <QrIcon size={18} />
-                    Ver QR (próximamente)
-                  </Button>
                 </>
               }
             />
@@ -240,6 +242,22 @@ export default function ProductDetail() {
                       RUTA_HISTORIAL === undefined ? undefined : `${RUTA_HISTORIAL}?producto=${product.id}`
                     }
                   />
+                </ProductDetailSection>
+
+                <ProductDetailSection
+                  id="product-detail-publicacion"
+                  title="Publicación"
+                  description="Decide si tus consumidores pueden consultar este producto escaneando su código QR."
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <PublicacionBadge publicado={product.publicado} />
+                    <Link
+                      to={`/publicaciones/${product.id}`}
+                      className="inline-flex min-h-11 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      Gestionar publicación
+                    </Link>
+                  </div>
                 </ProductDetailSection>
               </div>
 

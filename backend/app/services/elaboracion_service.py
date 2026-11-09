@@ -16,6 +16,7 @@ from app.schemas.elaboracion import (
     ElaboracionRead,
     ElaboracionResumenRead,
     ElaboracionUpdate,
+    ElaboracionVisibilidadRead,
     EstadoElaboracion,
     LoteExistenteInput,
     LoteNuevoInput,
@@ -44,6 +45,9 @@ MENSAJE_NACE_BORRADOR = "Una elaboración debe crearse como borrador."
 MENSAJE_FINALIZADA_ELIMINAR = "La elaboración está finalizada y no puede eliminarse."
 MENSAJE_FINALIZACION_INCOMPLETA = (
     "No se pudo finalizar: algún ingrediente no tiene su insumo o su información conservada."
+)
+MENSAJE_BORRADOR_NO_SE_OCULTA = (
+    "Solo una elaboración finalizada puede ocultarse o volver a mostrarse: un borrador nunca es público."
 )
 MENSAJE_YA_FINALIZADA = "La elaboración ya está finalizada."
 MENSAJE_FINALIZACION_BLOQUEADA = (
@@ -86,6 +90,10 @@ class CodigoElaboracionRepetidoError(ElaboracionConflictError):
     def __init__(self, codigo: str, codigo_sugerido: str) -> None:
         self.codigo_sugerido = codigo_sugerido
         super().__init__(f"Ya existe una elaboración con el código «{codigo}» para este producto.")
+
+
+class ElaboracionBorradorError(ElaboracionConflictError):
+    """Only a finalized elaboración can be hidden / shown (a borrador is never public)."""
 
 
 class ElaboracionFinalizadaError(ElaboracionConflictError):
@@ -140,6 +148,16 @@ def traducir_error_de_base(exc: IntegrityError, mensaje_finalizada: str = MENSAJ
     if any(marcador in texto for marcador in MARCADORES):
         return ElaboracionConflictError(MENSAJE_FINALIZACION_INCOMPLETA)
     return None
+
+
+def producto_disponible_publicamente(producto: Any) -> bool:
+    """Public availability of a product (HU09/HU10): published and not logically deleted."""
+    return bool(producto.publicado and producto.activo)
+
+
+def elaboracion_visible_publicamente(producto: Any, elaboracion: Any, oculta: bool) -> bool:
+    """Public visibility of an elaboración: its product is available, it is finalized and not hidden."""
+    return producto_disponible_publicamente(producto) and elaboracion.estado == ESTADO_FINALIZADA and not oculta
 
 
 def hoy_santiago() -> date:
@@ -341,6 +359,37 @@ class ElaboracionService:
             raise ElaboracionNotFoundError("Elaboración no encontrada")
         return self._read(elaboracion)
 
+    def ocultar_mine(self, productor: Productor, elaboracion_id: int) -> ElaboracionVisibilidadRead:
+        """Hide a finalized elaboración from the public consultation. Idempotent (`oculta_at` kept).
+
+        Elaboraciones of a logically deleted product are handled like in every other endpoint of
+        elaboraciones: they are still reachable by their owner.
+        """
+        elaboracion = self._finalizada_propia_o_error(productor, elaboracion_id)
+        oculta = self.repository.ocultar(elaboracion.id)
+        return ElaboracionVisibilidadRead(elaboracion_id=elaboracion.id, oculta=True, oculta_at=oculta.oculta_at)
+
+    def mostrar_mine(self, productor: Productor, elaboracion_id: int) -> ElaboracionVisibilidadRead:
+        """Show a hidden elaboración again. Idempotent."""
+        elaboracion = self._finalizada_propia_o_error(productor, elaboracion_id)
+        self.repository.mostrar(elaboracion.id)
+        return ElaboracionVisibilidadRead(elaboracion_id=elaboracion.id, oculta=False, oculta_at=None)
+
+    def es_visible_publicamente(self, elaboracion: Elaboracion) -> bool:
+        """Domain rule for HU10 (no public endpoint yet)."""
+        oculta = self.repository.get_oculta(elaboracion.id) is not None
+        return elaboracion_visible_publicamente(elaboracion.producto, elaboracion, oculta)
+
+    def _finalizada_propia_o_error(self, productor: Productor, elaboracion_id: int) -> Elaboracion:
+        productor_id = productor.id
+        elaboracion = self.repository.get_by_id_and_productor(elaboracion_id, productor_id)
+        if elaboracion is None:
+            raise ElaboracionNotFoundError("Elaboración no encontrada")
+        # Validated BEFORE writing: on PostgreSQL a trigger would also reject it, but the API answers 409.
+        if elaboracion.estado != ESTADO_FINALIZADA:
+            raise ElaboracionBorradorError(MENSAJE_BORRADOR_NO_SE_OCULTA)
+        return elaboracion
+
     def list_mine(
         self,
         productor: Productor,
@@ -382,8 +431,9 @@ class ElaboracionService:
                 finalizada_at=elaboracion.finalizada_at,
                 total_ingredientes=total_ingredientes,
                 pendientes=pendientes,
+                oculta=oculta,
             )
-            for elaboracion, total_ingredientes, pendientes in filas
+            for elaboracion, total_ingredientes, pendientes, oculta in filas
         ]
         return ElaboracionListaRead(items=items, total=total, limit=limit, offset=offset)
 
@@ -673,7 +723,9 @@ class ElaboracionService:
             # Only a borrador shows the live assignment; a finalizada is read from its copy.
             self.repository.cargar_asignacion_vigente(elaboracion.id)
             sugerencias = self._lotes_sugeridos(elaboracion)
-        return ElaboracionRead.from_elaboracion(elaboracion, lineas, sugerencias)
+        lectura = ElaboracionRead.from_elaboracion(elaboracion, lineas, sugerencias)
+        lectura.oculta = self.repository.get_oculta(elaboracion.id) is not None
+        return lectura
 
     def _lotes_sugeridos(self, elaboracion: Elaboracion) -> dict[int, Any]:
         """Lot the last finalized elaboración of the product used, per line of a borrador (HT06-04).

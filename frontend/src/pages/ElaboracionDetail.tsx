@@ -4,6 +4,7 @@ import { CandadoIcon } from "@/components/detail/icons";
 import { ChevronIcon } from "@/components/elaboraciones/historial/iconos";
 import AlergenosAgrupados from "@/components/elaboraciones/AlergenosAgrupados";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
+import EtiquetaOculta from "@/components/elaboraciones/EtiquetaOculta";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -143,7 +144,12 @@ export default function ElaboracionDetail() {
             <PageHeader
               title={`Elaboración ${elaboracion.codigo}`}
               description={elaboracion.producto.nombre}
-              titleSuffix={<Badge variant="success">Finalizada</Badge>}
+              titleSuffix={
+                <>
+                  <Badge variant="success">Finalizada</Badge>
+                  {elaboracion.oculta === true && <EtiquetaOculta />}
+                </>
+              }
               breadcrumbs={[
                 { label: "Elaboraciones", to: "/elaboraciones" },
                 { label: elaboracion.codigo },
@@ -165,6 +171,12 @@ export default function ElaboracionDetail() {
                   >
                     Volver al producto
                   </Button>
+                  <Link
+                    to={`/publicaciones/${elaboracion.producto.id}`}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:w-auto"
+                  >
+                    Gestionar visibilidad
+                  </Link>
                 </div>
               }
             />

@@ -1,6 +1,6 @@
 from app.models.alergeno import Alergeno, ingredientes_alergenos
 from app.models.categoria import Categoria
-from app.models.elaboracion import Elaboracion, LoteInsumo, UsoInsumo
+from app.models.elaboracion import Elaboracion, ElaboracionOculta, LoteInsumo, UsoInsumo
 from app.models.insumo import InsumoAlergeno, InsumoComercial
 from app.models.ingrediente import ComposicionIngrediente, Ingrediente, VersionIngrediente
 from app.models.lote import LoteIngrediente, LoteProducto, UsoLoteIngrediente
@@ -12,6 +12,7 @@ __all__ = [
     "Categoria",
     "ComposicionIngrediente",
     "Elaboracion",
+    "ElaboracionOculta",
     "FormulacionVersionProducto",
     "Producto",
     "VersionProducto",

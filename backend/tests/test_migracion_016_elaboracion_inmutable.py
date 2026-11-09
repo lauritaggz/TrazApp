@@ -10,6 +10,7 @@ at run time and never stored.
 import os
 import secrets
 from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import URL, Engine, make_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.pool import NullPool
 
@@ -263,8 +264,12 @@ def test_downgrade_016_y_nuevo_upgrade_son_reversibles(db_at_016: Engine, alembi
 # --- sin privilegios de superusuario -----------------------------------------------------
 
 
-def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_url: str, alembic_cfg: Config) -> None:
-    """As in production: a plain role that owns its database runs every migration, 016 included."""
+@contextmanager
+def rol_sin_superusuario(test_url: str) -> Generator[URL, None, None]:
+    """A plain role that owns a fresh database; DATABASE_URL points to it while the block runs.
+
+    Yields the URL of that role. Role, database and variable are always cleaned up.
+    """
     admin_url = make_url(test_url)
     base = admin_url.database
     nombre_bd = f"{base[: -len('_test')]}_nosuperuser_test"
@@ -272,7 +277,6 @@ def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_
     clave = secrets.token_urlsafe(24)  # generated now, never stored
     admin = create_engine(admin_url.set(database="postgres"), isolation_level="AUTOCOMMIT", poolclass=NullPool)
     previous = os.environ.get("DATABASE_URL")
-    motor_rol = None
 
     def limpiar() -> None:
         with admin.connect() as conn:
@@ -289,28 +293,8 @@ def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_
         url_rol = admin_url.set(username=rol, password=clave, database=nombre_bd)
         os.environ["DATABASE_URL"] = url_rol.render_as_string(hide_password=False)
         get_settings.cache_clear()
-
-        command.upgrade(alembic_cfg, "head")
-
-        motor_rol = create_engine(url_rol, poolclass=NullPool)
-        with motor_rol.connect() as conn:
-            assert conn.execute(text("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")).scalar_one() is False
-            # The head of the chain, whichever it is: 017 once it is activated, 016 while it is pending.
-            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _cabeza(alembic_cfg)
-        assert _triggers(motor_rol) == {nombre: (tabla, "O") for nombre, tabla in TRIGGERS.items()}
-        assert _funciones(motor_rol) == FUNCIONES
-        _semilla(motor_rol)
-        elaboracion = _finalizada(motor_rol)
-        with pytest.raises(IntegrityError) as error:
-            with motor_rol.begin() as conn:
-                conn.execute(text("DELETE FROM elaboraciones WHERE id = :e"), {"e": elaboracion})
-        assert MARCADOR_FINALIZADA in str(error.value.orig)
-        # And back down: dropping the triggers does not need superuser either.
-        command.downgrade(alembic_cfg, REV_015)
-        assert _triggers(motor_rol) == {} and _funciones(motor_rol) == set()
+        yield url_rol
     finally:
-        if motor_rol is not None:
-            motor_rol.dispose()
         if previous is None:
             os.environ.pop("DATABASE_URL", None)
         else:
@@ -318,3 +302,32 @@ def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_
         get_settings.cache_clear()
         limpiar()
         admin.dispose()
+
+
+def test_la_migracion_se_aplica_con_un_rol_sin_privilegios_de_superusuario(test_url: str, alembic_cfg: Config) -> None:
+    """As in production: a plain role that owns its database runs every migration, 016 included."""
+    with rol_sin_superusuario(test_url) as url_rol:
+        command.upgrade(alembic_cfg, "head")
+
+        motor_rol = create_engine(url_rol, poolclass=NullPool)
+        try:
+            with motor_rol.connect() as conn:
+                assert conn.execute(text("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")).scalar_one() is False
+                # The head of the chain, whichever it is.
+                assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _cabeza(alembic_cfg)
+            # "Contains": later migrations add their own triggers/functions (each one checks its own).
+            instalados = _triggers(motor_rol)
+            for nombre, tabla in TRIGGERS.items():
+                assert instalados.get(nombre) == (tabla, "O")
+            assert FUNCIONES <= _funciones(motor_rol)
+            _semilla(motor_rol)
+            elaboracion = _finalizada(motor_rol)
+            with pytest.raises(IntegrityError) as error:
+                with motor_rol.begin() as conn:
+                    conn.execute(text("DELETE FROM elaboraciones WHERE id = :e"), {"e": elaboracion})
+            assert MARCADOR_FINALIZADA in str(error.value.orig)
+            # And back down to 015 (018 first, then 017 and 016): needs no superuser either.
+            command.downgrade(alembic_cfg, REV_015)
+            assert _triggers(motor_rol) == {} and _funciones(motor_rol) == set()
+        finally:
+            motor_rol.dispose()

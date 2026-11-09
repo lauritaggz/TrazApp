@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import EtiquetaOculta from "@/components/elaboraciones/EtiquetaOculta";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { formatFecha } from "@/lib/elaboracionUtils";
@@ -102,6 +103,7 @@ export default function ProductElaboracionesSection({
                   ) : (
                     <Badge variant="success">Finalizada</Badge>
                   )}
+                  {item.oculta === true && <EtiquetaOculta />}
                 </span>
               </Link>
             </li>

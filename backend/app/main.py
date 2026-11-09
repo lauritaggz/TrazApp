@@ -37,6 +37,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Lets the browser page read the QR file name when the app and the API are on different origins.
+    expose_headers=["Content-Disposition"],
 )
 
 app.include_router(health.router)

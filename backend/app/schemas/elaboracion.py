@@ -221,6 +221,9 @@ class ElaboracionRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     usos: list[UsoInsumoRead]
+    # HU09 (CA7): hidden from the public consultation. Filled by the service; never part of the
+    # conserved record. Hiding does not remove the elaboración from the productor's views.
+    oculta: bool = False
 
     @classmethod
     def from_elaboracion(
@@ -379,6 +382,15 @@ class ElaboracionResumenRead(BaseModel):
     finalizada_at: datetime | None
     total_ingredientes: int
     pendientes: int
+    oculta: bool = False
+
+
+class ElaboracionVisibilidadRead(BaseModel):
+    """Answer of hiding / showing an elaboración (HU09): `oculta_at` is null when it is visible."""
+
+    elaboracion_id: int
+    oculta: bool
+    oculta_at: datetime | None
 
 
 class ElaboracionListaRead(BaseModel):

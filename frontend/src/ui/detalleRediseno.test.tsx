@@ -57,6 +57,8 @@ describe("Páginas de detalle: maquetas y simplicidad (código fuente)", () => {
       expect(leer(pagina), pagina).toContain("<DetailHero");
       expect(leer(pagina), pagina).toMatch(/ComingSoonCard|próximamente/);
     }
-    expect(leer("ProductDetail.tsx")).toContain("Ver QR (próximamente)");
+    // HU09 (T09-05): el marcador «Ver QR (próximamente)» se reemplazó por la sección real de publicación.
+    expect(leer("ProductDetail.tsx")).not.toContain("Ver QR (próximamente)");
+    expect(leer("ProductDetail.tsx")).toContain("Gestionar publicación");
   });
 });

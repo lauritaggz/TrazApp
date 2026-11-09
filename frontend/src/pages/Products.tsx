@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
 import EmptyStateCard from "@/components/ui/EmptyStateCard";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
+import PublicacionBadge from "@/components/products/PublicacionBadge";
 import ProductsGrid from "@/components/products/ProductsGrid";
 import PageHeader from "@/components/ui/PageHeader";
 import ViewToggle from "@/components/ui/ViewToggle";
@@ -372,6 +373,7 @@ function ProductRow({
             <p className="text-[13px] text-text-secondary truncate">
               {product.codigo_interno ?? "—"}
             </p>
+            <PublicacionBadge publicado={product.publicado} />
             {formatCategoriasCompact(product.categorias) ? (
               <p className="text-[13px] text-text-secondary truncate">
                 {formatCategoriasCompact(product.categorias)}
@@ -428,6 +430,7 @@ function ProductsCards({ products }: { products: Product[] }) {
                 <p className="text-[13px] font-medium text-accent">
                   {product.codigo_interno ?? "—"}
                 </p>
+                <PublicacionBadge publicado={product.publicado} />
                 {formatCategoriasCompact(product.categorias) ? (
                   <p className="text-[13px] text-text-secondary">
                     {formatCategoriasCompact(product.categorias)}
