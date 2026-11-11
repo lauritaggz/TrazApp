@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fichaDePrueba } from "@/publico/fichaPublicaDatos";
 import { renderFicha } from "@/publico/renderFicha";
@@ -72,17 +73,91 @@ describe("ficha pública: alérgenos, insumos y versión (HU10)", () => {
     expect(document.body).not.toHaveTextContent(/No contiene alérgenos|Libre de/i);
   });
 
-  it("CA4: cada insumo muestra ingrediente, nombre, «Marca u origen», ingredientes declarados y advertencias", async () => {
+  it("CA4: cada insumo empieza plegado y ya muestra nombre, «Marca u origen», alérgenos y advertencias", async () => {
     await mostrar(fichaDePrueba());
 
     const insumos = screen.getByRole("region", { name: "Insumos utilizados" });
     expect(within(insumos).getByText("Pectina")).toBeInTheDocument();
     expect(within(insumos).getByText("Pectina cítrica")).toBeInTheDocument();
-    expect(within(insumos).getByText(/Marca u origen:/).closest("p")).toHaveTextContent("Marca u origen: Sosa Ingredients");
-    expect(within(insumos).getByText(/Ingredientes declarados:/).closest("p")).toHaveTextContent(
-      "Ingredientes declarados: Pectina cítrica y dextrosa",
+    expect(within(insumos).getByText(/Marca u origen:/).parentElement).toHaveTextContent(
+      "Marca u origen: Sosa Ingredients",
     );
     expect(within(insumos).getByText("Puede contener leche")).toBeInTheDocument();
+    expect(within(insumos).getByRole("list", { name: "Alérgenos de Pectina cítrica" })).toHaveTextContent("Puede contener: Leche");
+    // Only the declared ingredients wait behind the arrow.
+    expect(within(insumos).getByRole("button", { name: /Pectina cítrica/ })).toHaveAttribute("aria-expanded", "false");
+    expect(within(insumos).queryByText(/Ingredientes declarados:/)).not.toBeInTheDocument();
+  });
+
+  it("los alérgenos de cada insumo se ven sin expandir, también en los que no tienen texto de advertencia", async () => {
+    const base = fichaDePrueba().elaboracion!;
+    const harina = {
+      ...base.insumos[0],
+      ingrediente: "Harina de trigo",
+      nombre: "Harina de trigo sin polvos",
+      advertencias: "Contiene gluten",
+      alergenos: [{ codigo: "gluten", nombre: "Gluten", tipo: "contiene" as const }],
+    };
+    const leche = {
+      ...base.insumos[0],
+      ingrediente: "Leche sin lactosa",
+      nombre: "Leche sin lactosa entera",
+      advertencias: null,
+      alergenos: [{ codigo: "leche", nombre: "Leche", tipo: "contiene" as const }],
+    };
+    const azucar = { ...base.insumos[0], ingrediente: "Azúcar", nombre: "Azúcar granulada", advertencias: null, alergenos: [] };
+    await mostrar(conElaboracion({ insumos: [harina, leche, azucar] }));
+
+    expect(screen.getByRole("list", { name: "Alérgenos de Harina de trigo sin polvos" })).toHaveTextContent("Contiene: Gluten");
+    expect(screen.getByRole("list", { name: "Alérgenos de Leche sin lactosa entera" })).toHaveTextContent("Contiene: Leche");
+    expect(screen.queryByRole("list", { name: "Alérgenos de Azúcar granulada" })).not.toBeInTheDocument();
+    expect(screen.getByText("Sin alérgenos declarados")).toBeInTheDocument();
+    for (const boton of screen.getAllByRole("button", { name: /Harina|Leche|Azúcar/ })) {
+      expect(boton).toHaveAttribute("aria-expanded", "false");
+    }
+    expect(document.body).not.toHaveTextContent(/No contiene alérgenos|Libre de/i);
+  });
+
+  it("al expandir un insumo muestra sus ingredientes declarados (sus alérgenos ya estaban a la vista), y al repetir lo pliega", async () => {
+    const user = userEvent.setup();
+    await mostrar(fichaDePrueba());
+    const boton = screen.getByRole("button", { name: /Pectina cítrica/ });
+    expect(screen.getByRole("list", { name: "Alérgenos de Pectina cítrica" })).toBeInTheDocument();
+
+    await user.click(boton);
+
+    expect(boton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/Ingredientes declarados:/).closest("p")).toHaveTextContent(
+      "Ingredientes declarados: Pectina cítrica y dextrosa",
+    );
+    expect(screen.getByRole("list", { name: "Alérgenos de Pectina cítrica" })).toBeInTheDocument();
+    // The summary stays: warnings and brand do not move.
+    expect(screen.getByText("Puede contener leche")).toBeInTheDocument();
+
+    await user.click(boton);
+
+    expect(boton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/Ingredientes declarados:/)).not.toBeInTheDocument();
+  });
+
+  it("cada insumo se expande por separado", async () => {
+    const user = userEvent.setup();
+    const base = fichaDePrueba().elaboracion!;
+    const otro = { ...base.insumos[0], ingrediente: "Azúcar", nombre: "Azúcar granulada", ingredientes_declarados: "Azúcar refinada" };
+    await mostrar(conElaboracion({ insumos: [base.insumos[0], otro] }));
+
+    await user.click(screen.getByRole("button", { name: /Azúcar granulada/ }));
+
+    const declarados = screen.getAllByText(/Ingredientes declarados:/);
+    expect(declarados).toHaveLength(1);
+    expect(declarados[0].closest("p")).toHaveTextContent("Azúcar refinada");
+    expect(screen.getByRole("button", { name: /Pectina cítrica/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("el botón del insumo mide al menos 44 px de alto", async () => {
+    await mostrar(fichaDePrueba());
+
+    expect(screen.getByRole("button", { name: /Pectina cítrica/ }).className).toMatch(/min-h-11/);
   });
 
   it("«Marca u origen» es una sola etiqueta: no hay «Marca:» ni «Origen:» sueltas", async () => {
@@ -92,7 +167,8 @@ describe("ficha pública: alérgenos, insumos y versión (HU10)", () => {
     expect(document.body).not.toHaveTextContent(/(^|\s)Marca:|(^|\s)Origen:/);
   });
 
-  it("omite ingredientes declarados y advertencias cuando el insumo no los trae", async () => {
+  it("un insumo sin ingredientes declarados ni alérgenos también tiene flecha y lo dice al expandir", async () => {
+    const user = userEvent.setup();
     const base = fichaDePrueba().elaboracion!;
     await mostrar(
       conElaboracion({
@@ -100,9 +176,27 @@ describe("ficha pública: alérgenos, insumos y versión (HU10)", () => {
       }),
     );
 
-    expect(screen.queryByText(/Ingredientes declarados:/)).not.toBeInTheDocument();
+    expect(screen.getByText("Pectina cítrica")).toBeInTheDocument();
     expect(screen.queryByText(/Advertencias/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: /Alérgenos de/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Sin alérgenos declarados")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Pectina cítrica/ }));
+
+    expect(screen.getByText("Sin alérgenos declarados")).toBeInTheDocument();
+    expect(screen.getByText("El productor no declaró ingredientes para este insumo.")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/No contiene alérgenos|Libre de/i);
+  });
+
+  it("un insumo con advertencia pero sin ingredientes declarados se ve igual que los demás: resumen, advertencia y flecha", async () => {
+    const base = fichaDePrueba().elaboracion!;
+    await mostrar(
+      conElaboracion({
+        insumos: [{ ...base.insumos[0], ingredientes_declarados: null, alergenos: [], advertencias: "Contiene gluten" }],
+      }),
+    );
+
+    const boton = screen.getByRole("button", { name: /Pectina cítrica/ });
+    expect(boton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Contiene gluten")).toBeVisible();
   });
 
   it("los alérgenos de cada insumo van como etiquetas con texto «Contiene» o «Puede contener»", async () => {
@@ -173,7 +267,7 @@ describe("ficha pública: alérgenos, insumos y versión (HU10)", () => {
 
     expect(container.innerHTML).not.toMatch(/text-\[(\d|1[01])(\.\d+)?px\]/);
     for (const control of [
-      ...screen.getAllByRole("button", { name: /^Buscar/ }),
+      ...screen.getAllByRole("button", { name: /^Buscar|Pectina cítrica/ }),
       ...screen.getAllByRole("combobox"),
       ...screen.getAllByRole("textbox"),
       screen.getByLabelText("Fecha de elaboración"),

@@ -355,6 +355,7 @@ Ruta `/p/:idPublico`, fuera de todo guard y sin el menú del productor (`pages/F
 - Aviso al consumidor con el texto de CA9 (no reemplaza el rotulado obligatorio ni certifica que el producto sea seguro para una persona determinada); siempre visible, nunca dentro de un bloque plegable.
 - Pie: «Información actualizada por el fabricante» pasa a «Información declarada por el productor».
 - Textos de 10 px pasan a 12 px como mínimo (cuerpo en 14 px); controles de búsqueda de 44 px (HT07); colores del prototipo reemplazados por los tokens del sistema (el modo oscuro funciona solo).
+- Insumos plegables (pedido de la desarrolladora tras la revisión de la entrega B): cada insumo muestra siempre, de un vistazo, ingrediente, nombre, «Marca u origen», **sus alérgenos** («Contiene: …» / «Puede contener: …», o «Sin alérgenos declarados») y su advertencia si la tiene. La flecha (botón de 44 px, `aria-expanded`) despliega solo los ingredientes declarados («El productor no declaró ingredientes para este insumo.» si no hay). Todos los insumos tienen la misma forma. Los alérgenos de toda la elaboración siguen arriba.
 - Nota de versión anterior: «Esta elaboración se hizo con una receta anterior a la actual», sin número de versión.
 
 **Se agregan (aprobado):**
