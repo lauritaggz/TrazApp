@@ -33,7 +33,7 @@ function Grupo({ titulo, items, textoVacio, tono }: GrupoProps) {
         <IconoAlerta />
       </span>
       <div className="min-w-0">
-        <p className={`text-xs font-semibold uppercase tracking-wider ${estilos.titulo}`}>{titulo}</p>
+        <p className={`text-xs font-semibold ${estilos.titulo}`}>{titulo}</p>
         {items.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {items.map((alergeno) => (

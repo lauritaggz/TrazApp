@@ -31,7 +31,7 @@ export default function EstadoPublico({
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-accent">
         {icono}
       </div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent">{etiqueta}</p>
+      <p className="mb-2 text-xs font-semibold text-accent">{etiqueta}</p>
       <Titulo className={`${compacto ? "text-lg" : "text-xl"} font-semibold text-text-primary`}>{titulo}</Titulo>
       <p className="mt-2 text-sm leading-relaxed text-text-secondary">{descripcion}</p>
       {children && <div className="mt-5 flex flex-wrap justify-center gap-2">{children}</div>}

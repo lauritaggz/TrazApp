@@ -22,6 +22,7 @@ import ProductEdit from "@/pages/ProductEdit";
 import ProductNew from "@/pages/ProductNew";
 import Products from "@/pages/Products";
 import Register from "@/pages/Register";
+import VistaPreviaFicha from "@/pages/VistaPreviaFicha";
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/elaboraciones/:id/registro" element={<ElaboracionRegistro />} />
         <Route path="/publicaciones" element={<Publicaciones />} />
         <Route path="/publicaciones/:productoId" element={<PublicacionDetalle />} />
+        <Route path="/publicaciones/:productoId/vista-previa" element={<VistaPreviaFicha />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

@@ -23,6 +23,7 @@ from app.schemas.consulta_publica import (
     InsumoPublicoRead,
     ProductoPublicoRead,
 )
+from app.services.producto_service import ProductoNotFoundError
 from app.services.elaboracion_service import (
     elaboracion_visible_publicamente,
     producto_disponible_publicamente,
@@ -209,6 +210,23 @@ def armar_ficha(
     )
 
 
+class _ProductoComoPublicado:
+    """A product seen AS IF it were published (preview): only `publicado` changes.
+
+    The HU09 visibility rules (T09-04) are reused untouched; they just receive this view, so the
+    preview shows what the consumer would see (hidden elaboraciones and borradores stay out) and
+    nothing is written to the product.
+    """
+
+    publicado = True
+
+    def __init__(self, producto: Any) -> None:
+        self._producto = producto
+
+    def __getattr__(self, nombre: str) -> Any:
+        return getattr(self._producto, nombre)
+
+
 class ConsultaPublicaService:
     def __init__(self, repository: ConsultaPublicaRepository) -> None:
         self.repository = repository
@@ -225,8 +243,28 @@ class ConsultaPublicaService:
         # One check, one error: not published, deleted and unknown cannot be told apart.
         if producto is None or not producto_disponible_publicamente(producto):
             raise FichaNoDisponibleError(MENSAJE_NO_DISPONIBLE)
+        return self._ficha(producto, producto, codigo, fecha)
+
+    def previsualizar(
+        self, productor_id: int, producto_id: int, codigo: str | None = None, fecha: date | None = None
+    ) -> FichaPublicaRead:
+        """The ficha the consumer WOULD see for a product of this productor, published or not (CA10).
+
+        Same assembly (`armar_ficha`) and same visibility rules as `consultar`: hidden
+        elaboraciones and borradores do not appear. It writes nothing: it does not publish and
+        does not create the public id. A product that is not the productor's, a deleted one and an
+        unknown id raise ProductoNotFoundError (404).
+        """
+        producto = self.repository.get_producto_de_productor(producto_id, productor_id)
+        if producto is None:
+            raise ProductoNotFoundError("Producto no encontrado")
+        return self._ficha(producto, _ProductoComoPublicado(producto), codigo, fecha)
+
+    def _ficha(self, producto: Any, vista: Any, codigo: str | None, fecha: date | None) -> FichaPublicaRead:
+        """Single source of the ficha. `vista` is what the visibility rules judge (the product itself
+        for the public consultation; the product as if published for the preview)."""
         filas = self.repository.filas_elaboraciones(producto.id)
-        visibles = [fila for fila in filas if elaboracion_visible_publicamente(producto, fila, fila.oculta)]
+        visibles = [fila for fila in filas if elaboracion_visible_publicamente(vista, fila, fila.oculta)]
         estado, seleccionada, coincidencias = resolver_seleccion(visibles, codigo, fecha)
         copias = self.repository.copias_conservadas(seleccionada.id) if seleccionada is not None else []
         categorias = self.repository.nombres_categorias(producto.id)

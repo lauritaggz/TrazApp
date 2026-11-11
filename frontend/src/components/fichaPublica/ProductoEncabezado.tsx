@@ -42,7 +42,7 @@ export default function ProductoEncabezado({ producto }: { producto: ProductoPub
               <IconoProductor />
             </span>
             <div>
-              <p className="text-xs uppercase tracking-wide text-text-muted">Elaborado por</p>
+              <p className="text-xs text-text-muted">Elaborado por</p>
               <p className="text-sm font-medium text-text-primary">{producto.elaborado_por}</p>
             </div>
           </div>

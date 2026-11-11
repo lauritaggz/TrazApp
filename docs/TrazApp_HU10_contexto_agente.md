@@ -365,3 +365,12 @@ Ruta `/p/:idPublico`, fuera de todo guard y sin el menú del productor (`pages/F
 - La imagen se muestra solo si existe y desaparece si falla al cargar; «Elaborado por» solo si viene en la respuesta.
 
 **Pendiente para T10-05 / T10-06:** botones «Vista previa pública» y «Comprobar ficha pública» en Publicaciones; revisión en celular (sin desplazamiento horizontal, PT10-12) con `VITE_API_URL` y `URL_PUBLICA_APP` apuntando a la IP local.
+
+### 9.8 Previsualización por el productor (T10-05, CA10)
+
+- **Backend:** `GET /gestion/productos/{id}/vista-publica` (autenticado), con `codigo` y `fecha` y las reglas de T10-02 (incluido el 422). Usa `ConsultaPublicaService.previsualizar()`, que comparte con `consultar()` la función única `_ficha()` / `armar_ficha` y las funciones de visibilidad de T09-04 sin modificarlas: el producto se evalúa con la vista `_ProductoComoPublicado` (solo cambia `publicado`). Responde el MISMO esquema (`FichaPublicaRead`); lo único que se relajó es que `producto.id_publico` puede ser `null` (producto nunca publicado). Ocultas y borradores no aparecen. No escribe nada: no publica, no genera `id_publico`, no cambia `publicado_en`. Cabecera `Cache-Control: no-store`.
+- **404** (`detail: "Producto no encontrado"`): producto inexistente, de otro productor o **eliminado** (convención de los endpoints de gestión: `get_by_id_and_productor` solo ve productos activos). Sin token: 401.
+- **Consultas:** 5 por solicitud = las 4 de la ficha (`CONSULTAS_MAXIMAS`) + 1 de autenticación.
+- **Frontend:** ruta autenticada `/publicaciones/:productoId/vista-previa`, sin `AppShell`. Reutiliza `FichaVista` (la misma vista de `/p/:idPublico`); solo cambia la fuente de datos: `previsualizarFichaPublica` (con token) frente a `consultaPublicaService` (nunca envía token). `BarraVistaPrevia` (solo en la previsualización) dice que es una vista previa, muestra «Publicado» / «No publicado» y ofrece «Volver a la publicación». La selección vive en la URL igual que en la vista pública.
+- **Publicaciones (`/publicaciones/:productoId`):** «Vista previa pública» siempre disponible; «Comprobar ficha pública» solo con el producto publicado y `url_publica` no nula (abre en pestaña nueva con `rel="noopener noreferrer"`). Un producto despublicado conserva su `url_publica`, pero el botón no aparece.
+- **Prueba de HU09 actualizada:** `hu09.visibilidad.test.tsx` fijaba que «Vista previa pública» aún no existía («son de HU10»); ahora comprueba que existe y apunta a la vista previa.

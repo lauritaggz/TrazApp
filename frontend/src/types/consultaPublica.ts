@@ -41,7 +41,8 @@ export interface ElaboracionPublica extends ElaboracionResumenPublica {
 }
 
 export interface ProductoPublico {
-  id_publico: string;
+  /** Null only in the productor's preview of a product never published. */
+  id_publico: string | null;
   nombre: string;
   /** Decimal as text, e.g. "250.000". */
   contenido_neto: string | null;

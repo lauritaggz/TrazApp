@@ -19,11 +19,12 @@ class ConsultaPublicaRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_producto_por_id_publico(self, id_publico: str) -> Any | None:
-        """The product row (whatever its state: the service decides availability) or None.
+    @staticmethod
+    def _seleccion_de_producto():
+        """The product columns the ficha can use, plus the current version id.
 
-        Carries `version_vigente_id` (internal, never serialized; None when the product has no
-        current version) as a subquery, so "previous version" costs no extra query.
+        `version_vigente_id` is internal (never serialized; None when the product has no current
+        version) and travels as a subquery, so "previous version" costs no extra query.
         """
         version_vigente = (
             select(func.max(VersionProducto.id))
@@ -31,7 +32,7 @@ class ConsultaPublicaRepository:
             .correlate(Producto)
             .scalar_subquery()
         )
-        stmt = (
+        return (
             select(
                 Producto.id,
                 Producto.id_publico,
@@ -46,7 +47,22 @@ class ConsultaPublicaRepository:
                 version_vigente.label("version_vigente_id"),
             )
             .outerjoin(Productor, Productor.id == Producto.productor_id)
-            .where(Producto.id_publico == id_publico)
+        )
+
+    def get_producto_por_id_publico(self, id_publico: str) -> Any | None:
+        """The product row (whatever its state: the service decides availability) or None."""
+        stmt = self._seleccion_de_producto().where(Producto.id_publico == id_publico)
+        return self.db.execute(stmt).first()
+
+    def get_producto_de_productor(self, producto_id: int, productor_id: int) -> Any | None:
+        """The row of an active product OF THIS productor (preview), published or not; else None.
+
+        Another productor's product, a deleted one and an unknown id are all None (404).
+        """
+        stmt = self._seleccion_de_producto().where(
+            Producto.id == producto_id,
+            Producto.productor_id == productor_id,
+            Producto.activo.is_(True),
         )
         return self.db.execute(stmt).first()
 

@@ -36,7 +36,7 @@ function Resumen({ insumo, numero }: { insumo: InsumoPublico; numero: number }) 
         {numero}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-xs uppercase tracking-wide text-text-muted">{insumo.ingrediente}</span>
+        <span className="block text-xs text-text-muted">{insumo.ingrediente}</span>
         <span className="block text-sm font-semibold text-text-primary">{insumo.nombre}</span>
         <span className="mt-1 block text-sm text-text-secondary">
           <span className="font-medium text-text-primary">Marca u origen:</span> {insumo.marca_origen}

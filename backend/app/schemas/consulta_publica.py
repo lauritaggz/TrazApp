@@ -69,8 +69,9 @@ class ElaboracionPublicaRead(_Publico):
 
 
 class ProductoPublicoRead(_Publico):
-    # Echo of the identifier already in the URL: HU11 pairs it with the elaboración's code.
-    id_publico: str
+    # Echo of the identifier already in the URL: HU11 pairs it with the elaboración's code. Only the
+    # productor's preview can see None (a product never published has no identifier yet).
+    id_publico: str | None
     nombre: str
     contenido_neto: Decimal | None
     unidad_medida: str | None
