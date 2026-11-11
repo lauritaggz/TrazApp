@@ -374,3 +374,10 @@ Ruta `/p/:idPublico`, fuera de todo guard y sin el menú del productor (`pages/F
 - **Frontend:** ruta autenticada `/publicaciones/:productoId/vista-previa`, sin `AppShell`. Reutiliza `FichaVista` (la misma vista de `/p/:idPublico`); solo cambia la fuente de datos: `previsualizarFichaPublica` (con token) frente a `consultaPublicaService` (nunca envía token). `BarraVistaPrevia` (solo en la previsualización) dice que es una vista previa, muestra «Publicado» / «No publicado» y ofrece «Volver a la publicación». La selección vive en la URL igual que en la vista pública.
 - **Publicaciones (`/publicaciones/:productoId`):** «Vista previa pública» siempre disponible; «Comprobar ficha pública» solo con el producto publicado y `url_publica` no nula (abre en pestaña nueva con `rel="noopener noreferrer"`). Un producto despublicado conserva su `url_publica`, pero el botón no aparece.
 - **Prueba de HU09 actualizada:** `hu09.visibilidad.test.tsx` fijaba que «Vista previa pública» aún no existía («son de HU10»); ahora comprueba que existe y apunta a la vista previa.
+
+### 9.9 Cierre (T10-06)
+
+- `docs/hu10-test-results.md` reúne las pruebas por archivo, PT10-01 a PT10-13, CA1 a CA11, las mutaciones de T10-01 a T10-05, RT-03, OE4, decisiones, limitaciones e incidencias. `docs/hu09-test-results.md` completa PT09-04, PT09-09 y PT09-10 con la vista real.
+- Medición de OE4: `backend/scripts/medir_oe4_hu10.py` (solo lee; httpx contra la API en ejecución). Se corre dentro del contenedor del backend con un producto **publicado** (si la consulta pública no responde 200, aborta sin escribir nada). La salida va a `docs/validacion_hu10/oe4_mediciones.csv` y `oe4_resultados.md`.
+- Las capturas del celular están en `docs/validacion_hu10/` con sus nombres de WhatsApp; se citan sin renombrarlas.
+
