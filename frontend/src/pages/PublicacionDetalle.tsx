@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import DeshabilitarPublicacionDialog from "@/components/publicaciones/DeshabilitarPublicacionDialog";
 import { EyeIcon, GlobeIcon, ShieldIcon } from "@/components/publicaciones/iconos";
+import AccionesFichaPublica from "@/components/publicaciones/AccionesFichaPublica";
 import PublicacionSwitch from "@/components/publicaciones/PublicacionSwitch";
 import QrPanel from "@/components/publicaciones/QrPanel";
 import PublicacionElaboraciones from "@/components/publicaciones/PublicacionElaboraciones";
@@ -122,6 +123,7 @@ function Contenido({
         title={product.nombre}
         description={product.codigo_interno ?? undefined}
         titleSuffix={<PublicacionBadge publicado={publicado} />}
+        actions={<AccionesFichaPublica productoId={product.id} publicado={publicado} urlPublica={product.url_publica} />}
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">

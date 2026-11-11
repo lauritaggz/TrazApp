@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
     environment:
       # El navegador del host llama a la API (no el contenedor): localhost y el puerto publicado.
-      VITE_API_URL: http://localhost:${API_PORT:-8000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:${API_PORT:-8000}}
       # Solo con `npm run dev:https` dentro del contenedor: su proxy llega al backend por la red de Docker.
       VITE_DEV_API_TARGET: http://backend:8000
     ports:

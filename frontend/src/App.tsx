@@ -4,6 +4,7 @@ import Dashboard from "@/pages/Dashboard";
 import ElaboracionDetail from "@/pages/ElaboracionDetail";
 import Elaboraciones from "@/pages/Elaboraciones";
 import ElaboracionRegistro from "@/pages/ElaboracionRegistro";
+import FichaPublica from "@/pages/FichaPublica";
 import IngredientDetail from "@/pages/IngredientDetail";
 import IngredientEdit from "@/pages/IngredientEdit";
 import IngredientNew from "@/pages/IngredientNew";
@@ -21,11 +22,15 @@ import ProductEdit from "@/pages/ProductEdit";
 import ProductNew from "@/pages/ProductNew";
 import Products from "@/pages/Products";
 import Register from "@/pages/Register";
+import VistaPreviaFicha from "@/pages/VistaPreviaFicha";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Public consultation (HU10): no account, outside every guard and without the productor menu. */}
+      <Route path="/p/:idPublico" element={<FichaPublica />} />
 
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={<Login />} />
@@ -51,6 +56,7 @@ export default function App() {
         <Route path="/elaboraciones/:id/registro" element={<ElaboracionRegistro />} />
         <Route path="/publicaciones" element={<Publicaciones />} />
         <Route path="/publicaciones/:productoId" element={<PublicacionDetalle />} />
+        <Route path="/publicaciones/:productoId/vista-previa" element={<VistaPreviaFicha />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

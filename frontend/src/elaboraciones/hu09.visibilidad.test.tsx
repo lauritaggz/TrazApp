@@ -156,12 +156,13 @@ describe("HU09 — Publicaciones: elaboraciones finalizadas del producto", () =>
     expect(within(seccion).getAllByText("Predeterminada")).toHaveLength(1);
   });
 
-  it("no muestra «unidades» ni la vista previa pública (son de HU10)", async () => {
+  it("no muestra «unidades»; los botones de la ficha pública llegaron con HU10 (T10-05)", async () => {
     const seccion = await abrirPublicacion([resumen(3)]);
     await within(seccion).findByText("E-003");
 
     expect(screen.queryByText(/unidades/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Vista previa pública|Comprobar ficha pública/)).not.toBeInTheDocument();
+    // HU09 left «Vista previa pública» out because it belonged to HU10: T10-05 adds it (and «Comprobar ficha pública»).
+    expect(screen.getByRole("link", { name: "Vista previa pública" })).toHaveAttribute("href", "/publicaciones/1/vista-previa");
     expect(screen.getByText("La ficha pública no se puede personalizar")).toBeInTheDocument();
   });
 
