@@ -400,3 +400,107 @@ class ElaboracionListaRead(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+# --- HU08: elaboraciones relacionadas con un insumo (read only) ---------------------------------
+# Every field is added explicitly: nothing here serializes a model.
+
+OrigenDatos = Literal["conservada", "vigente"]
+LoteEstado = Literal["con_lote", "sin_lote", "pendiente"]
+
+
+class IngredienteRelacionadoRead(BaseModel):
+    id: int | None
+    nombre: str | None
+
+
+class LoteRelacionadoRead(BaseModel):
+    id: int | None
+    codigo: str | None
+    fecha_vencimiento: date | None
+
+
+class UsoRelacionadoRead(BaseModel):
+    """One use of the consulted supply inside an elaboración.
+
+    A finalizada reads `insumo_nombre`, `lote` and `ingrediente` from its conserved copy; a borrador
+    has no copy and reads the current data. `lote_estado` is "pendiente" only for a borrador whose
+    lot is not defined yet.
+    """
+
+    ingrediente: IngredienteRelacionadoRead
+    insumo_nombre: str | None
+    lote: LoteRelacionadoRead | None
+    lote_estado: LoteEstado
+
+
+class ProductoRelacionadoRead(BaseModel):
+    id: int
+    nombre: str
+    publicado: bool
+
+
+class ElaboracionRelacionadaRead(BaseModel):
+    id: int
+    codigo: str
+    fecha: date
+    estado: EstadoElaboracion
+    finalizada_at: datetime | None
+    producto: ProductoRelacionadoRead
+    oculta: bool
+    visible_publicamente: bool
+    origen_datos: OrigenDatos
+    usos: list[UsoRelacionadoRead]
+
+
+class InsumoEncabezadoRead(BaseModel):
+    id: int
+    nombre: str
+    activo: bool
+
+
+class ResumenLoteRead(BaseModel):
+    """Summary of a result; it is the whole summary of the query by lot (T08-02)."""
+
+    total_elaboraciones: int
+    total_productos: int
+    finalizadas: int
+    borradores: int
+    visibles_publicamente: int
+
+
+class ResumenRelacionadasRead(ResumenLoteRead):
+    """Summary of the query by supply: adds how many elaboraciones registered it without lot (CA6)."""
+
+    elaboraciones_sin_lote: int
+
+
+class ElaboracionesDeInsumoRead(BaseModel):
+    insumo: InsumoEncabezadoRead
+    resumen: ResumenRelacionadasRead
+    elaboraciones: list[ElaboracionRelacionadaRead]
+
+
+class LoteEncabezadoRead(BaseModel):
+    id: int
+    codigo: str
+
+
+class OtrasSinLoteRead(BaseModel):
+    """Elaboraciones of the SAME supply that are NOT in the result and cannot be ruled out (T08-02).
+
+    Only numbers: `sin_lote` counts elaboraciones that registered the supply without lot (finalized or
+    borrador); `lote_pendiente` counts borradores whose lot is not defined yet. They never appear in
+    `elaboraciones`: the query by lot returns only the elaboraciones of that lot (CA8).
+    """
+
+    sin_lote: int
+    lote_pendiente: int
+
+
+class ElaboracionesDeLoteRead(BaseModel):
+    insumo: InsumoEncabezadoRead
+    lote: LoteEncabezadoRead
+    resumen: ResumenLoteRead
+    otras_sin_lote: OtrasSinLoteRead
+    elaboraciones: list[ElaboracionRelacionadaRead]

@@ -1156,8 +1156,13 @@ describe("Alérgenos declarados del insumo", () => {
     vi.mocked(insumoService.listInsumoAlergenos).mockRejectedValueOnce(new Error("fallo"));
     openPage("/insumos/10");
 
-    expect(await screen.findByText("No pudimos cargar los alérgenos.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    const mensajeError = await screen.findByText("No pudimos cargar los alérgenos.");
+    const alertaError = mensajeError.closest('[role="alert"]');
+    expect(alertaError).not.toBeNull();
+
+    const bloqueError = (alertaError as HTMLElement).parentElement;
+    expect(bloqueError).not.toBeNull();
+    await user.click(within(bloqueError as HTMLElement).getByRole("button", { name: "Reintentar" }));
 
     expect(await screen.findByRole("region", { name: "Contiene" })).toBeInTheDocument();
   });

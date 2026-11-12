@@ -34,7 +34,7 @@ Además, para HU08:
 - **Rama:** `feature/hu08-elaboraciones-relacionadas`, creada desde `main` actualizado **después del merge de HU10**.
 - **Entorno local:** Docker Compose. API en **8010**, PostgreSQL en **5442**. Corre las pruebas en el contenedor (`unset TEST_DATABASE_URL` para SQLite; nunca dos suites a la vez sobre `trazapp_test`).
 - **Migración vigente:** `018_publicacion_producto_hu09`. Si HU08 necesita índices, la siguiente libre es la **019** (se numeran por orden de merge; HU14 tomará la que siga).
-- **Convención de errores:** `404` inexistente o de otro productor; `422` datos inválidos; `409` conflicto de estado; `detail` con `{mensaje, ...}`.
+- **Convención de errores:** `404` inexistente o de otro productor, con `detail` de texto (la interfaz decide por el código de estado, porque `parseError` no lee el `detail` del 404); `422` datos inválidos y `409` conflicto de estado, con `{mensaje, …}` cuando llevan datos.
 - **Prueba en celular (T08-05):** con la configuración de red local ya documentada en HU10 (`URL_PUBLICA_APP`, `VITE_API_URL` configurable desde `.env` y CORS con la IP).
 
 ---
@@ -43,9 +43,20 @@ Además, para HU08:
 
 **Como productor, quiero identificar en qué elaboraciones se utilizó un insumo o un lote determinado, para actuar rápidamente ante un problema informado por su fabricante.**
 
-Prioridad P1 · 5 SP · 5 h · Depende de HU05, HU06 y HU09. Objetivo específico relacionado: **OE3** (elaboraciones relacionadas).
+Prioridad P1 · 5 SP · 5 h · Semana 4 · Depende de HU05 y HU09. Objetivo específico relacionado: **OE3** (elaboraciones relacionadas).
 
-> **[PEGAR AQUÍ los 10 criterios de aceptación oficiales del Product Backlog (CA1 a CA10) en una tabla `| ID | Criterio |`.]**
+| ID | Criterio |
+|---|---|
+| CA1 | El productor puede consultar las elaboraciones relacionadas con un insumo comercial. |
+| CA2 | Puede consultar las elaboraciones relacionadas con un lote específico de un insumo. |
+| CA3 | El resultado muestra producto, fecha y código de cada elaboración relacionada. |
+| CA4 | El resultado incluye las elaboraciones finalizadas y en borrador, indicando el estado de cada una. |
+| CA5 | En las elaboraciones finalizadas, la identificación se obtiene a partir de la información conservada. |
+| CA6 | Al consultar por insumo, el resultado indica las elaboraciones en que el insumo se registró sin lote. |
+| CA7 | El resultado indica si el producto de cada elaboración se encuentra publicado y si la elaboración está oculta. |
+| CA8 | No se incluyen elaboraciones que no utilizaron el insumo o lote consultado. |
+| CA9 | La consulta no modifica la información almacenada. |
+| CA10 | Solo se consideran las elaboraciones del productor autenticado. |
 
 **Escenario de uso:** el fabricante de un insumo comercial informa un problema (por ejemplo, un alérgeno no declarado o una contaminación) en un producto o en un lote específico. El productor busca ese insumo o ese lote en TrazApp y obtiene la lista de sus elaboraciones que lo usaron, con la información necesaria para actuar: qué producto, qué elaboración, cuándo, si está publicada y si está oculta al público.
 
@@ -74,20 +85,20 @@ El planning dice que la consulta se construye "a partir de la información conse
 - **(a)** Columnas de `UsoInsumo` (`insumo_id`, `lote_id`, `sin_lote`): indexables, iguales en SQLite y PostgreSQL. En una finalizada son inmutables por los triggers, así que reflejan lo conservado.
 - **(b)** Ids dentro del JSON `informacion_conservada`: es literalmente la copia conservada, pero consultar JSON difiere entre SQLite y PostgreSQL y es más difícil de indexar.
 
-Verifica si las columnas y la copia pueden divergir en una finalizada (por ejemplo, si un insumo o lote se elimina o se reasigna). Recomienda una opción y justifica cómo se cumple "a partir de la información conservada". **Los datos que se muestran** (nombre del insumo, código del lote) salen de la copia conservada, no del insumo o lote vigente.
+Verifica si las columnas y la copia pueden divergir en una finalizada (por ejemplo, si un insumo o lote se elimina o se reasigna). Recomienda una opción y justifica cómo se cumple **CA5** ("en las finalizadas, la identificación se obtiene a partir de la información conservada"). Si eliges (a), la justificación debe demostrar que en una finalizada las columnas no pueden diferir de la copia, y debe haber una prueba que lo verifique. **Los datos que se muestran** (nombre del insumo, código del lote) salen de la copia conservada, no del insumo o lote vigente.
 
-### D2. Borradores (propuesta)
+### D2. Borradores (resuelto por CA4)
 
-T08-03 pide "el estado de cada elaboración", lo que implica que el resultado puede incluir borradores. Un borrador todavía no tiene información conservada, pero ante un retiro el productor necesita saber que tiene una elaboración **en curso** que usa ese insumo o lote. Propón si se incluyen y, si es así, de dónde salen sus datos (uso vigente) y cómo se distinguen en el resultado.
+Se incluyen finalizadas **y** borradores, indicando el estado de cada una. Un borrador no tiene información conservada: se identifica por su uso vigente. El resultado debe distinguir claramente ambos estados.
 
-### D3. Elaboraciones sin lote en la consulta por lote (propuesta, importante)
+### D3. Elaboraciones sin lote en la consulta por lote (decisión pendiente, importante)
 
-Si el fabricante retira el lote L-42 y una elaboración usó ese insumo **sin registrar lote**, TrazApp no puede descartar que haya usado L-42. Excluirla daría una falsa seguridad. Propuesta: la consulta por lote devuelve dos grupos:
+Si el fabricante retira el lote L-42 y una elaboración usó ese insumo **sin registrar lote**, TrazApp no puede descartar que haya usado L-42. Pero **CA8** y **PT08-02** exigen que la consulta por lote devuelva **solo** las elaboraciones de ese lote. Para no contradecirlos ni dar una falsa seguridad, la propuesta es:
 
-- elaboraciones que usaron **ese lote**;
-- elaboraciones que usaron **el mismo insumo sin lote registrado**, con la indicación "no se puede descartar".
+- el resultado de la consulta por lote contiene **solo** las elaboraciones que usaron ese lote (CA8, PT08-02);
+- **aparte del resultado**, la respuesta informa cuántas elaboraciones usaron **el mismo insumo sin lote registrado** (solo el número), y la interfaz muestra un aviso: "Hay N elaboraciones con este insumo sin lote registrado; no se puede descartar que usaran este lote", con un enlace a la consulta por insumo, donde aparecen marcadas.
 
-Lo mismo en la consulta por insumo: las elaboraciones sin lote se marcan (T08-01: "indicando las registradas sin lote").
+En la consulta por insumo, las elaboraciones sin lote se marcan como "sin lote" (CA6, PT08-05). Confirma esta propuesta o propón otra que cumpla CA8 literalmente.
 
 ### D4. Contenido de cada resultado (T08-03)
 
@@ -108,6 +119,15 @@ Propón también un **resumen** al inicio (por ejemplo: N elaboraciones, M produ
 - Etiquetas con texto, no solo color: "Borrador", "Finalizada", "Publicado", "Oculta al público", "Sin lote registrado".
 - Móvil primero, textos de al menos 12 px y áreas táctiles de 44 px (HT07).
 
+**Decisiones de T08-04 (aprobadas) y diferencias con el diseño vigente:**
+
+- La búsqueda vive en **`/elaboraciones/rastrear`**, una pestaña de Elaboraciones junto a «Historial» (`?insumo=…&lote=…` en la URL). El menú no cambia: «Elaboraciones» queda marcado en ambas.
+- **Diferencia 1 (aprobada):** no hay una pantalla de «detalle del lote». La consulta por lote es la misma pantalla de rastreo con el lote elegido, y se llega desde los enlaces por lote del detalle del insumo.
+- **Diferencia 2 (aprobada):** el lote se elige en un selector (código y fecha de vencimiento, del más reciente al más antiguo, más «Todos los lotes del insumo») y no en un campo de texto libre con coincidencia parcial, porque el backend consulta por `lote_id`. El selector de insumo incluye los inactivos, marcados «(inactivo)».
+- **Diferencia 3 (aprobada):** el panel tiene cinco cifras: Finalizadas, Borradores, De productos publicados, Ocultas y Visibles al público. El diseño tenía cuatro («Publicadas» contaba productos publicados, que no es lo mismo que lo que ve el consumidor).
+- **Diferencia 4:** en el detalle del insumo la sección pasa de la columna lateral a la columna principal, porque lista elaboraciones y necesita ancho. Muestra siempre arriba el total y el aviso de sin lote, las 5 más recientes, el enlace «Ver las N elaboraciones y buscar por lote» y un enlace por lote.
+- Los errores propios de la sección del insumo no afectan al resto del detalle (con «Reintentar»).
+
 ---
 
 ## 6. Tareas
@@ -116,37 +136,48 @@ Propón también un **resumen** al inicio (por ejemplo: N elaboraciones, M produ
 |---|---|---|
 | T08-01 | Consulta de elaboraciones relacionadas con un insumo, a partir de la información conservada en las finalizadas, indicando las registradas sin lote | 1,5 |
 | T08-02 | Consulta de elaboraciones relacionadas con un lote específico | 0,5 |
-| T08-03 | Incluir en el resultado el estado de cada elaboración, la publicación del producto y si la elaboración está oculta | 0,5 |
+| T08-03 | Incluir en el resultado el estado de cada elaboración, la publicación del producto y si la elaboración está oculta (**absorbida por T08-01**: los campos de CA7 ya están en el esquema compartido; 0 h propias) | 0,5 |
 | T08-04 | Interfaz en el detalle del insumo y del lote, reemplazando las secciones "Próximamente" | 1,5 |
 | T08-05 | Ejecutar y documentar pruebas, incluidas mutaciones y prueba en celular | 1 |
 
-**Evidencia esperada:** `docs/test/hu08-test-results.md`, capturas de la prueba en celular y la ejecución de la integración continua.
+**Evidencia esperada:** `docs/test/hu08-test-results.md` con el conteo del escenario (métrica de OE3), la ejecución de la integración continua y capturas en el celular.
 
 ---
 
 ## 7. Plan de pruebas
 
-> **[PEGAR AQUÍ el plan de pruebas oficial PT08-xx.]**
+**Escenario base:** un insumo usado en cuatro elaboraciones (dos productos, tres finalizadas y un borrador, una de ellas sin lote, otra oculta), un segundo lote del mismo insumo y elaboraciones que no lo usan.
 
-Escenarios que deben quedar cubiertos, estén o no en el plan oficial:
+| ID | Caso | Resultado esperado | CA |
+|---|---|---|---|
+| PT08-01 | Consultar por el insumo | Devuelve las cuatro elaboraciones con producto, fecha y código | 1, 3 |
+| PT08-02 | Consultar por uno de los lotes | Devuelve solo las elaboraciones de ese lote | 2 |
+| PT08-03 | Revisar el estado en el resultado | Distingue finalizadas y borrador | 4 |
+| PT08-04 | Después de finalizar, cambiar el insumo de un ingrediente en otro borrador y modificar la ficha del insumo | Las finalizadas siguen identificadas por su información conservada | 5 |
+| PT08-05 | Revisar la elaboración registrada sin lote | Aparece indicada como "sin lote" | 6 |
+| PT08-06 | Revisar publicación y visibilidad | Indica el producto publicado y la elaboración oculta | 7 |
+| PT08-07 | Contar los resultados contra el conjunto esperado | 100 % de las relacionadas y 0 % de no relacionadas (OE3) | 8 |
+| PT08-08 | Comparar la base antes y después de consultar | No cambia ningún registro | 9 |
+| PT08-09 | Consultar un insumo o lote de otro productor | Responde 404 | 10 |
+| PT08-10 | Consultar desde el detalle del insumo en un celular | La sección reemplaza "Próximamente" y se usa sin problemas | 1, 2 |
+
+**PT08-07 (OE3)** se automatiza sobre el escenario base: conjunto esperado de elaboraciones (por id) contra el conjunto devuelto, para el insumo y para cada lote. El resultado se informa como porcentaje de relacionadas encontradas y de no relacionadas incluidas.
+
+**Escenarios adicionales** (no están en el plan oficial, pero deben quedar cubiertos):
 
 | Escenario | Resultado esperado |
 |---|---|
-| Insumo usado en elaboraciones de dos productos | Aparecen todas, con su producto |
-| Insumo usado con lote y sin lote | Las sin lote quedan marcadas |
-| Lote usado en una elaboración; el mismo insumo usado sin lote en otra | La primera en "usó este lote"; la segunda en "no se puede descartar" (según D3) |
-| Otro lote del mismo insumo | No aparece en la consulta por lote |
-| Insumo o lote modificado después de finalizar | Los datos mostrados son los conservados (RT-03) |
-| Borrador que usa el insumo | Según D2 |
-| Elaboración oculta y producto publicado | Las etiquetas lo indican |
-| Insumo o lote de otro productor | 404 |
-| La consulta no escribe | Ningún cambio en la base tras consultar |
+| Datos mostrados de una finalizada tras modificar el insumo o el lote | Nombre del insumo y código del lote conservados, no los vigentes (RT-03) |
+| Borrador que usa el lote consultado | Aparece en la consulta por lote, con estado borrador |
+| Aviso de elaboraciones sin lote en la consulta por lote (según D3) | El número es correcto y esas elaboraciones no están en el resultado |
 | Sin N+1 | Número de consultas constante |
+| Si se eligió D1 (a) | En toda finalizada, las columnas del uso coinciden con la copia conservada |
 
 **Mutaciones sugeridas:**
 
-- excluir las elaboraciones sin lote;
+- excluir las elaboraciones sin lote de la consulta por insumo;
 - incluir usos de otro lote del mismo insumo en la consulta por lote;
+- excluir los borradores (CA4);
 - omitir el filtro por productor;
 - mostrar el nombre del insumo vigente en lugar del conservado;
 - invertir la etiqueta de oculta o de publicado.

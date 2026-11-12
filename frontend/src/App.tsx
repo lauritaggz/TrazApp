@@ -3,6 +3,7 @@ import { ProtectedRoute, PublicOnlyRoute } from "@/auth/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ElaboracionDetail from "@/pages/ElaboracionDetail";
 import Elaboraciones from "@/pages/Elaboraciones";
+import ElaboracionesRastrear from "@/pages/ElaboracionesRastrear";
 import ElaboracionRegistro from "@/pages/ElaboracionRegistro";
 import FichaPublica from "@/pages/FichaPublica";
 import IngredientDetail from "@/pages/IngredientDetail";
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/insumos/:id/editar" element={<InsumoEdit />} />
         <Route path="/insumos/:id" element={<InsumoDetail />} />
         <Route path="/elaboraciones" element={<Elaboraciones />} />
+        <Route path="/elaboraciones/rastrear" element={<ElaboracionesRastrear />} />
         <Route path="/elaboraciones/:id" element={<ElaboracionDetail />} />
         <Route path="/elaboraciones/:id/registro" element={<ElaboracionRegistro />} />
         <Route path="/publicaciones" element={<Publicaciones />} />

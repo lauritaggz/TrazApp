@@ -3,13 +3,14 @@ from typing import Any
 
 from sqlalchemy import Select, and_, case, delete, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 
 from app.models import (
     Elaboracion,
     ElaboracionOculta,
     FormulacionVersionProducto,
     InsumoAlergeno,
+    Ingrediente,
     InsumoComercial,
     LoteInsumo,
     Producto,
@@ -274,6 +275,96 @@ class ElaboracionRepository:
         total = self.db.scalar(select(func.count()).select_from(ids.subquery())) or 0
         filas = [(fila[0], int(fila[1]), int(fila[2]), bool(fila[3])) for fila in self.db.execute(stmt).unique()]
         return filas, int(total)
+
+    def get_lote_propio(self, productor_id: int, insumo_id: int, lote_id: int) -> LoteInsumo | None:
+        """The lot (with its supply loaded), only if it belongs to that supply AND the supply belongs to the
+        productor (ONE query).
+
+        A lot of another productor, a missing lot and a lot of another supply are all None.
+        """
+        stmt = (
+            select(LoteInsumo)
+            .join(InsumoComercial, InsumoComercial.id == LoteInsumo.insumo_id)
+            .options(contains_eager(LoteInsumo.insumo))
+            .where(
+                LoteInsumo.id == lote_id,
+                LoteInsumo.insumo_id == insumo_id,
+                InsumoComercial.productor_id == productor_id,
+            )
+        )
+        return self.db.scalar(stmt)
+
+    def contar_otras_sin_lote(self, productor_id: int, insumo_id: int, lote_id: int) -> tuple[int, int]:
+        """(sin_lote, lote_pendiente): elaboraciones of the supply with a use without lot / with the lot
+        pending, that have no use of the given lot (HU08, D3). ONE query, only counts.
+
+        An elaboración has at most one use of a supply, so these are never in the result of the lot.
+        """
+        usa_este_lote = (
+            exists()
+            .where(
+                UsoInsumo.elaboracion_id == Elaboracion.id,
+                UsoInsumo.lote_id == lote_id,
+            )
+            .correlate(Elaboracion)
+        )
+        sin_lote = UsoInsumo.sin_lote.is_(True)
+        pendiente = and_(UsoInsumo.lote_id.is_(None), UsoInsumo.sin_lote.is_(False))
+        stmt = (
+            select(
+                func.count(func.distinct(case((sin_lote, Elaboracion.id)))),
+                func.count(func.distinct(case((pendiente, Elaboracion.id)))),
+            )
+            .select_from(UsoInsumo)
+            .join(Elaboracion, Elaboracion.id == UsoInsumo.elaboracion_id)
+            .where(
+                UsoInsumo.insumo_id == insumo_id,
+                Elaboracion.productor_id == productor_id,
+                ~usa_este_lote,
+            )
+        )
+        fila = self.db.execute(stmt).one()
+        return int(fila[0]), int(fila[1])
+
+    def list_usos_de_insumo(
+        self, productor_id: int, insumo_id: int, lote_id: int | None = None
+    ) -> list[Any]:
+        """Every use of the supply in the productor's elaboraciones (HU08), in ONE query.
+
+        The use is identified by its columns (`insumo_id`): in a finalizada they are the same record
+        as the conserved copy (see D1 of HU08). The lot and ingredient names joined here are the
+        CURRENT ones and only serve a borrador, which has no copy. Rows come ordered by date desc,
+        id desc (the order of the history), and by use inside an elaboración. With `lote_id`, only the
+        uses of that lot (T08-02).
+        """
+        stmt = (
+            select(
+                UsoInsumo,
+                Elaboracion,
+                Producto,
+                exists().where(ElaboracionOculta.elaboracion_id == Elaboracion.id).correlate(Elaboracion),
+                LoteInsumo.id.label("lote_vigente_id"),
+                LoteInsumo.codigo.label("lote_vigente_codigo"),
+                LoteInsumo.fecha_vencimiento.label("lote_vigente_vencimiento"),
+                Ingrediente.nombre.label("ingrediente_vigente_nombre"),
+            )
+            .join(Elaboracion, Elaboracion.id == UsoInsumo.elaboracion_id)
+            .join(Producto, Producto.id == Elaboracion.producto_id)
+            .join(Ingrediente, Ingrediente.id == UsoInsumo.ingrediente_id)
+            .outerjoin(LoteInsumo, LoteInsumo.id == UsoInsumo.lote_id)
+            .where(
+                UsoInsumo.insumo_id == insumo_id,
+                Elaboracion.productor_id == productor_id,
+            )
+            .order_by(
+                Elaboracion.fecha_elaboracion.desc(),
+                Elaboracion.id.desc(),
+                UsoInsumo.id.asc(),
+            )
+        )
+        if lote_id is not None:
+            stmt = stmt.where(UsoInsumo.lote_id == lote_id)
+        return list(self.db.execute(stmt).all())
 
     def get_oculta(self, elaboracion_id: int) -> ElaboracionOculta | None:
         return self.db.get(ElaboracionOculta, elaboracion_id)
