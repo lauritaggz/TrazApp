@@ -10,6 +10,7 @@ from app.models import (
     ElaboracionOculta,
     FormulacionVersionProducto,
     InsumoAlergeno,
+    Ingrediente,
     InsumoComercial,
     LoteInsumo,
     Producto,
@@ -274,6 +275,41 @@ class ElaboracionRepository:
         total = self.db.scalar(select(func.count()).select_from(ids.subquery())) or 0
         filas = [(fila[0], int(fila[1]), int(fila[2]), bool(fila[3])) for fila in self.db.execute(stmt).unique()]
         return filas, int(total)
+
+    def list_usos_de_insumo(self, productor_id: int, insumo_id: int) -> list[Any]:
+        """Every use of the supply in the productor's elaboraciones (HU08), in ONE query.
+
+        The use is identified by its columns (`insumo_id`): in a finalizada they are the same record
+        as the conserved copy (see D1 of HU08). The lot and ingredient names joined here are the
+        CURRENT ones and only serve a borrador, which has no copy. Rows come ordered by date desc,
+        id desc (the order of the history), and by use inside an elaboración.
+        """
+        stmt = (
+            select(
+                UsoInsumo,
+                Elaboracion,
+                Producto,
+                exists().where(ElaboracionOculta.elaboracion_id == Elaboracion.id).correlate(Elaboracion),
+                LoteInsumo.id.label("lote_vigente_id"),
+                LoteInsumo.codigo.label("lote_vigente_codigo"),
+                LoteInsumo.fecha_vencimiento.label("lote_vigente_vencimiento"),
+                Ingrediente.nombre.label("ingrediente_vigente_nombre"),
+            )
+            .join(Elaboracion, Elaboracion.id == UsoInsumo.elaboracion_id)
+            .join(Producto, Producto.id == Elaboracion.producto_id)
+            .join(Ingrediente, Ingrediente.id == UsoInsumo.ingrediente_id)
+            .outerjoin(LoteInsumo, LoteInsumo.id == UsoInsumo.lote_id)
+            .where(
+                UsoInsumo.insumo_id == insumo_id,
+                Elaboracion.productor_id == productor_id,
+            )
+            .order_by(
+                Elaboracion.fecha_elaboracion.desc(),
+                Elaboracion.id.desc(),
+                UsoInsumo.id.asc(),
+            )
+        )
+        return list(self.db.execute(stmt).all())
 
     def get_oculta(self, elaboracion_id: int) -> ElaboracionOculta | None:
         return self.db.get(ElaboracionOculta, elaboracion_id)

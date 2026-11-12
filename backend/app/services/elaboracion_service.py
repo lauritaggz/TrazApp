@@ -14,16 +14,24 @@ from app.schemas.elaboracion import (
     ElaboracionCreate,
     ElaboracionListaRead,
     ElaboracionRead,
+    ElaboracionRelacionadaRead,
     ElaboracionResumenRead,
+    ElaboracionesDeInsumoRead,
     ElaboracionUpdate,
     ElaboracionVisibilidadRead,
     EstadoElaboracion,
+    IngredienteRelacionadoRead,
+    InsumoEncabezadoRead,
     LoteExistenteInput,
     LoteNuevoInput,
     LoteRead,
+    LoteRelacionadoRead,
+    ProductoRelacionadoRead,
     ProductoResumenRead,
+    ResumenRelacionadasRead,
     SinLoteInput,
     UsoInsumoInput,
+    UsoRelacionadoRead,
     UsosReemplazo,
     VersionResumenRead,
 )
@@ -654,6 +662,120 @@ class ElaboracionService:
         if self.repository.get_insumo_propio(insumo_id, productor.id) is None:
             raise InsumoNotFoundError("Insumo no encontrado")
         return [LoteRead.model_validate(lote) for lote in self.repository.list_lotes(insumo_id)]
+
+    # --- HU08: elaboraciones relacionadas con un insumo (read only) ---
+
+    def list_relacionadas_insumo_mine(self, productor: Productor, insumo_id: int) -> ElaboracionesDeInsumoRead:
+        """Elaboraciones of the productor that use the supply, finalized and borrador (CA1-CA10).
+
+        Never writes. A finalizada is shown from its conserved copy (RT-03); a borrador from the
+        current data of its use. A supply of another productor is a 404.
+        """
+        productor_id = productor.id
+        insumo = self.repository.get_insumo_propio(insumo_id, productor_id)
+        if insumo is None:
+            raise InsumoNotFoundError("Insumo no encontrado")
+        encabezado = InsumoEncabezadoRead(id=insumo.id, nombre=insumo.nombre, activo=insumo.activo)
+        filas = self.repository.list_usos_de_insumo(productor_id, insumo_id)
+
+        # Rows arrive ordered by elaboración: group them keeping that order.
+        grupos: dict[int, list[Any]] = {}
+        for fila in filas:
+            grupos.setdefault(fila[1].id, []).append(fila)
+
+        elaboraciones: list[ElaboracionRelacionadaRead] = []
+        visibles = 0
+        for grupo in grupos.values():
+            elaboracion, producto, oculta = grupo[0][1], grupo[0][2], bool(grupo[0][3])
+            visible = elaboracion_visible_publicamente(producto, elaboracion, oculta)
+            visibles += 1 if visible else 0
+            finalizada = elaboracion.estado == ESTADO_FINALIZADA
+            elaboraciones.append(
+                ElaboracionRelacionadaRead(
+                    id=elaboracion.id,
+                    codigo=elaboracion.codigo,
+                    fecha=elaboracion.fecha_elaboracion,
+                    estado=elaboracion.estado,
+                    finalizada_at=elaboracion.finalizada_at,
+                    producto=ProductoRelacionadoRead(
+                        id=producto.id, nombre=producto.nombre, publicado=bool(producto.publicado)
+                    ),
+                    oculta=oculta,
+                    visible_publicamente=visible,
+                    origen_datos="conservada" if finalizada else "vigente",
+                    usos=[self._uso_relacionado(fila, insumo.nombre) for fila in grupo],
+                )
+            )
+
+        resumen = ResumenRelacionadasRead(
+            total_elaboraciones=len(elaboraciones),
+            total_productos=len({e.producto.id for e in elaboraciones}),
+            finalizadas=sum(1 for e in elaboraciones if e.estado == ESTADO_FINALIZADA),
+            borradores=sum(1 for e in elaboraciones if e.estado == ESTADO_BORRADOR),
+            visibles_publicamente=visibles,
+            elaboraciones_sin_lote=sum(
+                1 for e in elaboraciones if any(uso.lote_estado == "sin_lote" for uso in e.usos)
+            ),
+        )
+        return ElaboracionesDeInsumoRead(insumo=encabezado, resumen=resumen, elaboraciones=elaboraciones)
+
+    @staticmethod
+    def _uso_relacionado(fila: Any, insumo_nombre_vigente: str) -> UsoRelacionadoRead:
+        """One use as the result shows it.
+
+        Finalizada: name, lot and ingredient come ONLY from `informacion_conservada` (a missing piece
+        stays null, it never falls back to the current data). Borrador: current data of the use.
+        """
+        uso, elaboracion = fila[0], fila[1]
+        if elaboracion.estado == ESTADO_FINALIZADA:
+            copia = uso.informacion_conservada if isinstance(uso.informacion_conservada, dict) else {}
+            copia_insumo = copia.get("insumo") if isinstance(copia.get("insumo"), dict) else {}
+            copia_lote = copia.get("lote") if isinstance(copia.get("lote"), dict) else None
+            copia_ingrediente = copia.get("ingrediente") if isinstance(copia.get("ingrediente"), dict) else {}
+            lote = (
+                LoteRelacionadoRead(
+                    id=copia_lote.get("id"),
+                    codigo=copia_lote.get("codigo"),
+                    fecha_vencimiento=copia_lote.get("fecha_vencimiento"),
+                )
+                if copia_lote is not None
+                else None
+            )
+            if copia:
+                tiene_lote, sin_lote = copia_lote is not None, bool(copia.get("sin_lote"))
+            else:
+                # No readable copy: only the STATE of the lot is told from the columns (same record);
+                # every name stays null.
+                tiene_lote, sin_lote = uso.lote_id is not None, bool(uso.sin_lote)
+            return UsoRelacionadoRead(
+                ingrediente=IngredienteRelacionadoRead(
+                    id=copia_ingrediente.get("id"), nombre=copia_ingrediente.get("nombre")
+                ),
+                insumo_nombre=copia_insumo.get("nombre"),
+                lote=lote,
+                lote_estado=ElaboracionService._estado_lote(tiene_lote, sin_lote),
+            )
+        lote = (
+            LoteRelacionadoRead(
+                id=fila.lote_vigente_id,
+                codigo=fila.lote_vigente_codigo,
+                fecha_vencimiento=fila.lote_vigente_vencimiento,
+            )
+            if uso.lote_id is not None
+            else None
+        )
+        return UsoRelacionadoRead(
+            ingrediente=IngredienteRelacionadoRead(id=uso.ingrediente_id, nombre=fila.ingrediente_vigente_nombre),
+            insumo_nombre=insumo_nombre_vigente,
+            lote=lote,
+            lote_estado=ElaboracionService._estado_lote(uso.lote_id is not None, bool(uso.sin_lote)),
+        )
+
+    @staticmethod
+    def _estado_lote(tiene_lote: bool, sin_lote: bool) -> str:
+        if tiene_lote:
+            return "con_lote"
+        return "sin_lote" if sin_lote else "pendiente"
 
     @staticmethod
     def _validar_ingredientes(items: list[UsoInsumoInput], lineas: dict) -> None:

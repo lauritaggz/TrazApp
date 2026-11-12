@@ -9,6 +9,7 @@ from app.schemas.elaboracion import (
     ElaboracionCreate,
     ElaboracionListaRead,
     ElaboracionRead,
+    ElaboracionesDeInsumoRead,
     ElaboracionUpdate,
     ElaboracionVisibilidadRead,
     EstadoElaboracion,
@@ -163,6 +164,19 @@ def listar_lotes_del_insumo(
 ) -> list[LoteRead]:
     try:
         return service.list_lotes_mine(current_productor, insumo_id)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get("/insumos/{insumo_id}/elaboraciones", response_model=ElaboracionesDeInsumoRead)
+def listar_elaboraciones_del_insumo(
+    insumo_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> ElaboracionesDeInsumoRead:
+    """HU08: elaboraciones (finalizadas y borradores) que usaron el insumo. Solo lectura."""
+    try:
+        return service.list_relacionadas_insumo_mine(current_productor, insumo_id)
     except InsumoNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
