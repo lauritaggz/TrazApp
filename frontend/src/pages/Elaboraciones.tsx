@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistorialCifras from "@/components/elaboraciones/historial/HistorialCifras";
 import HistorialFila from "@/components/elaboraciones/historial/HistorialFila";
+import ElaboracionesPestanas from "@/components/elaboraciones/relacionadas/ElaboracionesPestanas";
 import AppShell from "@/components/layout/AppShell";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -100,6 +101,8 @@ export default function Elaboraciones() {
           title="Elaboraciones"
           description="Consulta qué insumos, marcas y lotes se usaron en cada elaboración."
         />
+
+        <ElaboracionesPestanas activa="historial" />
 
         <HistorialCifras />
 

@@ -9,10 +9,10 @@ import Alert from "@/components/ui/Alert";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import ComingSoonCard from "@/components/detail/ComingSoonCard";
+import SeccionUsoInsumo from "@/components/elaboraciones/relacionadas/SeccionUsoInsumo";
 import DetailHero from "@/components/detail/DetailHero";
 import FactTile from "@/components/detail/FactTile";
-import { HistorialIcon, InsumoIcon } from "@/components/detail/icons";
+import { InsumoIcon } from "@/components/detail/icons";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
@@ -204,6 +204,8 @@ export default function InsumoDetail() {
                     <FactTile label="Advertencias">{insumo.advertencias ?? "—"}</FactTile>
                   </dl>
                 </ProductDetailSection>
+
+                <SeccionUsoInsumo insumoId={insumo.id} />
               </div>
 
               <aside className="min-w-0 space-y-6">
@@ -214,13 +216,6 @@ export default function InsumoDetail() {
                     ficha={insumo.ficha}
                   />
                 </ProductDetailSection>
-
-                <ComingSoonCard
-                  id="insumo-soon-uso"
-                  title="Uso reciente en elaboraciones"
-                  description="Verás las elaboraciones donde se usó este insumo y con qué lote."
-                  icon={<HistorialIcon size={20} />}
-                />
 
                 {insumo.activo && (
                   <section

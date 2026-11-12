@@ -55,8 +55,14 @@ describe("Páginas de detalle: maquetas y simplicidad (código fuente)", () => {
     const leer = (r: string) => readFileSync(`src/pages/${r}`, "utf-8");
     for (const pagina of ["ProductDetail.tsx", "InsumoDetail.tsx", "IngredientDetail.tsx"]) {
       expect(leer(pagina), pagina).toContain("<DetailHero");
+    }
+    // Lo que todavía no existe sigue marcado como «Próximamente» en el producto y en el ingrediente.
+    for (const pagina of ["ProductDetail.tsx", "IngredientDetail.tsx"]) {
       expect(leer(pagina), pagina).toMatch(/ComingSoonCard|próximamente/);
     }
+    // HU08 (T08-04): la sección «Uso reciente en elaboraciones» del insumo dejó de ser una maqueta.
+    expect(leer("InsumoDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/);
+    expect(leer("InsumoDetail.tsx")).toContain("SeccionUsoInsumo");
     // HU09 (T09-05): el marcador «Ver QR (próximamente)» se reemplazó por la sección real de publicación.
     expect(leer("ProductDetail.tsx")).not.toContain("Ver QR (próximamente)");
     expect(leer("ProductDetail.tsx")).toContain("Gestionar publicación");

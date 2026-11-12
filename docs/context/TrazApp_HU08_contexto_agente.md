@@ -34,7 +34,7 @@ Además, para HU08:
 - **Rama:** `feature/hu08-elaboraciones-relacionadas`, creada desde `main` actualizado **después del merge de HU10**.
 - **Entorno local:** Docker Compose. API en **8010**, PostgreSQL en **5442**. Corre las pruebas en el contenedor (`unset TEST_DATABASE_URL` para SQLite; nunca dos suites a la vez sobre `trazapp_test`).
 - **Migración vigente:** `018_publicacion_producto_hu09`. Si HU08 necesita índices, la siguiente libre es la **019** (se numeran por orden de merge; HU14 tomará la que siga).
-- **Convención de errores:** `404` inexistente o de otro productor; `422` datos inválidos; `409` conflicto de estado; `detail` con `{mensaje, ...}`.
+- **Convención de errores:** `404` inexistente o de otro productor, con `detail` de texto (la interfaz decide por el código de estado, porque `parseError` no lee el `detail` del 404); `422` datos inválidos y `409` conflicto de estado, con `{mensaje, …}` cuando llevan datos.
 - **Prueba en celular (T08-05):** con la configuración de red local ya documentada en HU10 (`URL_PUBLICA_APP`, `VITE_API_URL` configurable desde `.env` y CORS con la IP).
 
 ---
@@ -118,6 +118,15 @@ Propón también un **resumen** al inicio (por ejemplo: N elaboraciones, M produ
 - Estados: cargando, sin resultados ("Este insumo no se ha usado en ninguna elaboración"), error con "Reintentar".
 - Etiquetas con texto, no solo color: "Borrador", "Finalizada", "Publicado", "Oculta al público", "Sin lote registrado".
 - Móvil primero, textos de al menos 12 px y áreas táctiles de 44 px (HT07).
+
+**Decisiones de T08-04 (aprobadas) y diferencias con el diseño vigente:**
+
+- La búsqueda vive en **`/elaboraciones/rastrear`**, una pestaña de Elaboraciones junto a «Historial» (`?insumo=…&lote=…` en la URL). El menú no cambia: «Elaboraciones» queda marcado en ambas.
+- **Diferencia 1 (aprobada):** no hay una pantalla de «detalle del lote». La consulta por lote es la misma pantalla de rastreo con el lote elegido, y se llega desde los enlaces por lote del detalle del insumo.
+- **Diferencia 2 (aprobada):** el lote se elige en un selector (código y fecha de vencimiento, del más reciente al más antiguo, más «Todos los lotes del insumo») y no en un campo de texto libre con coincidencia parcial, porque el backend consulta por `lote_id`. El selector de insumo incluye los inactivos, marcados «(inactivo)».
+- **Diferencia 3 (aprobada):** el panel tiene cinco cifras: Finalizadas, Borradores, De productos publicados, Ocultas y Visibles al público. El diseño tenía cuatro («Publicadas» contaba productos publicados, que no es lo mismo que lo que ve el consumidor).
+- **Diferencia 4:** en el detalle del insumo la sección pasa de la columna lateral a la columna principal, porque lista elaboraciones y necesita ancho. Muestra siempre arriba el total y el aviso de sin lote, las 5 más recientes, el enlace «Ver las N elaboraciones y buscar por lote» y un enlace por lote.
+- Los errores propios de la sección del insumo no afectan al resto del detalle (con «Reintentar»).
 
 ---
 
