@@ -3,9 +3,9 @@
 **Fecha:** 2026-11-11  
 **Rama:** `feature/hu10-consulta-publica` (Pull Request en draft hacia `main`)  
 **Historia:** HU10 — Consulta pública mediante QR (Sprint 3, P1, 8 SP)  
-**Criterios de referencia:** CA1 … CA11 y PT10-01 … PT10-13 (`docs/TrazApp_HU10_contexto_agente.md`, secciones 3 y 7; contrato en las secciones 9.x)  
+**Criterios de referencia:** CA1 … CA11 y PT10-01 … PT10-13 (`docs/context/TrazApp_HU10_contexto_agente.md`, secciones 3 y 7; contrato en las secciones 9.x)  
 **Entorno:** backend con Python 3.12 (contenedor `trazapp-backend`) sobre SQLite y PostgreSQL 16; frontend con Vitest y Vite. **Sin migración nueva** (la vigente sigue siendo `018_publicacion_producto_hu09`). Sin dependencias nuevas.  
-**Integración continua:** enlace **PENDIENTE** (la desarrolladora lo agrega tras el push). Captura esperada: `docs/validacion_hu10/ci_verde_hu10.png` — *(espacio reservado; la captura aún no existe)*. La única ejecución del CI de HU10 informada hasta hoy es la del commit de T10-04 entrega B: frontend, 60 archivos, 1284 pruebas, **1283 aprobadas y 1 fallida** (`ui/ht07.bloque4.test.tsx`: mayúsculas forzadas en la ficha pública); se corrigió en el commit `3b6c8a9` y **no hay todavía una ejecución en verde que citar**.
+**Integración continua:** enlace **PENDIENTE** (la desarrolladora lo agrega tras el push). Captura esperada: `docs/test/validacion_hu10/ci_verde_hu10.png` — *(espacio reservado; la captura aún no existe)*. La única ejecución del CI de HU10 informada hasta hoy es la del commit de T10-04 entrega B: frontend, 60 archivos, 1284 pruebas, **1283 aprobadas y 1 fallida** (`ui/ht07.bloque4.test.tsx`: mayúsculas forzadas en la ficha pública); se corrigió en el commit `3b6c8a9` y **no hay todavía una ejecución en verde que citar**.
 
 **Convención de las fuentes de los números:** **(L)** corrida local de hoy (11-11-2026) en el contenedor; **(E)** última corrida local informada en el reporte de la tarea; **(C)** corrida del CI. Nada de este documento se da por pasado en el CI.
 
@@ -59,7 +59,7 @@ Pruebas existentes adaptadas en el frontend: `elaboraciones/hu09.visibilidad.tes
 
 ## b) Trazabilidad PT10-01 … PT10-13
 
-Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend/src/`) o captura (en `docs/validacion_hu10/`, con su nombre de archivo real). Los números de PT salen de la sección 7 del contexto. **«Manual» = hoja de resultados manuales de la desarrolladora, informada en el chat el 11-11-2026.**
+Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend/src/`) o captura (en `docs/test/validacion_hu10/`, con su nombre de archivo real). Los números de PT salen de la sección 7 del contexto. **«Manual» = hoja de resultados manuales de la desarrolladora, informada en el chat el 11-11-2026.**
 
 | ID | Caso | Tipo | Resultado esperado | Evidencia | Resultado obtenido | Estado |
 |---|---|---|---|---|---|---|
@@ -75,7 +75,7 @@ Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend
 | PT10-10 | Revisar el aviso | Automatizada + captura | Aviso al consumidor visible | `hu10.ficha`: «CA9: el aviso está al final de la ficha, visible y fuera de cualquier bloque plegable»; `hu10.estados`: «el aviso al consumidor está visible en la ficha, en cada estado con datos del producto». Captura: `WhatsApp Image 2026-11-11 at 6.55.40 PM (2).jpeg` («Información complementaria») | El aviso (no reemplaza el rotulado ni certifica…) está visible sin desplegar nada | Aprobado |
 | PT10-11 | Previsualizar un producto aún no publicado | Automatizada + manual | Se ve la ficha; el enlace público sigue no disponible | `test_vista_publica_gestion_hu10.py`: `test_pt10_11_previsualiza_un_producto_no_publicado_y_no_cambia_su_publicacion`, `test_pt10_11_despues_de_previsualizar_la_consulta_publica_sigue_no_disponible`; `hu10.vistaprevia` (9). Captura: `WhatsApp Image 2026-11-11 at 7.18.27 PM.jpeg` (vista previa de un producto **publicado**) | 200 con la ficha; `publicado`, `id_publico` y `publicado_en` sin cambio; la consulta pública sigue con el 404 uniforme. La captura muestra la barra «Vista previa pública», «Así verá el consumidor esta ficha…», la insignia «Publicado» y «Volver a la publicación» sobre la ficha; **es de un producto publicado: el caso «no publicado» de PT10-11 lo cubren solo las pruebas automatizadas** | Aprobado (automatizado); captura del caso publicado |
 | PT10-12 | Escanear el QR impreso con un celular y recorrer la ficha | Manual | Sin desplazamiento horizontal y con texto legible | Ver «PT10-12 y la prueba en celular» | Redmi Note 13 5G, Android 15: el QR abrió la ficha, **sin desplazamiento horizontal**, textos legibles, selector y búsquedas por código y por fecha funcionan (informado por la desarrolladora el 11-11-2026); las capturas muestran la ficha en el celular | Aprobado (manual informado; sin captura del escaneo) |
-| PT10-13 | Medir 100 consultas de prueba | Medición | ≥ 95 % responde en ≤ 2 s (OE4) | `backend/scripts/medir_oe4_hu10.py`; `docs/validacion_hu10/oe4_mediciones.csv` y `oe4_resultados.md`; ver g) | n = 100: p50 = 15,5 ms, p95 = 24,9 ms, máximo = 31,1 ms; 100,0 % responde 200 en ≤ 2000 ms; 0 fallidas (ver g) | Aprobado (medición local) |
+| PT10-13 | Medir 100 consultas de prueba | Medición | ≥ 95 % responde en ≤ 2 s (OE4) | `backend/scripts/medir_oe4_hu10.py`; `docs/test/validacion_hu10/oe4_mediciones.csv` y `oe4_resultados.md`; ver g) | n = 100: p50 = 15,5 ms, p95 = 24,9 ms, máximo = 31,1 ms; 100,0 % responde 200 en ≤ 2000 ms; 0 fallidas (ver g) | Aprobado (medición local) |
 
 ---
 
@@ -102,7 +102,7 @@ Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend
 | Insumos plegables: ¿se nota que hay advertencias sin abrirlos? | **Sí** |
 | Observaciones | Ninguna informada |
 
-**Capturas en `docs/validacion_hu10/`.** Los archivos llegaron con nombres de WhatsApp, no con los nombres esperados; **no se movieron ni renombraron**. Correspondencia establecida según el contenido de cada captura (la desarrolladora delegó esta correspondencia):
+**Capturas en `docs/test/validacion_hu10/`.** Los archivos llegaron con nombres de WhatsApp, no con los nombres esperados; **no se movieron ni renombraron**. Correspondencia establecida según el contenido de cada captura (la desarrolladora delegó esta correspondencia):
 
 | Nombre esperado | Archivo existente | Qué muestra |
 |---|---|---|
@@ -140,7 +140,7 @@ Observaciones: dos nombres esperados (`pt10-12_aviso` y `pt09-09_elaboracion_ocu
 | Sin N+1 | `test_la_cantidad_de_consultas_es_constante_y_no_supera_el_maximo` (máx. 4), `test_la_seleccion_por_codigo_y_por_fecha_no_supera_el_maximo_de_consultas`, `test_las_consultas_no_superan_el_maximo_con_varios_insumos_y_version_anterior`; previsualización: `test_la_cantidad_de_consultas_es_la_de_la_ficha_mas_la_autenticacion` (**5 = 4 de la ficha + 1 de autenticación**) | Aprobado (L) |
 | Fail-closed: copia incompleta | `test_una_copia_sin_una_clave_obligatoria_falla_en_lugar_de_declarar_sin_alergenos`, `test_una_copia_incompleta_responde_500_sin_datos_y_el_log_solo_trae_el_uso_y_la_clave`, `test_una_copia_sin_la_clave_alergenos_sigue_dando_500_y_una_lista_vacia_no` | Aprobado (L) |
 | Parámetros inválidos: 422 idéntico con `id_publico` existente e inexistente | `test_parametros_invalidos_dan_422_identico_con_id_publico_existente_e_inexistente` (8 variantes) | Aprobado (L) |
-| Pendientes de HU09: PT09-04, PT09-09 y PT09-10 con la vista real | Completados en `docs/hu09-test-results.md` (sección «PT09-04, PT09-09 y PT09-10 completados en HU10») con las capturas citadas | PT09-09 y PT09-10: Aprobado (captura y pruebas); PT09-04: la apertura de la ficha en el celular está en la captura, la lectura del QR con la cámara se **informó como funcional, sin captura** |
+| Pendientes de HU09: PT09-04, PT09-09 y PT09-10 con la vista real | Completados en `docs/test/hu09-test-results.md` (sección «PT09-04, PT09-09 y PT09-10 completados en HU10») con las capturas citadas | PT09-09 y PT09-10: Aprobado (captura y pruebas); PT09-04: la apertura de la ficha en el celular está en la captura, la lectura del QR con la cámara se **informó como funcional, sin captura** |
 
 ---
 
@@ -206,7 +206,7 @@ Todas con copia y restauración, confirmadas con `cmp` (y `git diff` con solo lo
 
 Aprobadas en SQLite y PostgreSQL (L).
 
-**Capturas `rt03_antes.png`, `rt03_insumo_modificado.png`, `rt03_ficha_sin_cambios.png`: no existen** en `docs/validacion_hu10/` (la desarrolladora indicó que no las tomará). **RT-03 manual: sí**, la ficha siguió mostrando lo original tras modificar el insumo (informado por la desarrolladora el 11-11-2026); es un dato informado, sin captura que lo respalde. La verificación documentada es la automatizada.
+**Capturas `rt03_antes.png`, `rt03_insumo_modificado.png`, `rt03_ficha_sin_cambios.png`: no existen** en `docs/test/validacion_hu10/` (la desarrolladora indicó que no las tomará). **RT-03 manual: sí**, la ficha siguió mostrando lo original tras modificar el insumo (informado por la desarrolladora el 11-11-2026); es un dato informado, sin captura que lo respalde. La verificación documentada es la automatizada.
 
 ---
 
@@ -225,7 +225,7 @@ Aprobadas en SQLite y PostgreSQL (L).
 | Consultas fallidas (código distinto de 200) | 0 |
 | Respuestas 200 con estado inesperado | 0 |
 
-Por variante (25 cada una; p50 / p95 / máximo en ms): sin parámetros 16,8 / 26,7 / 28,8; `?codigo=` 15,8 / 24,1 / 31,1; `?fecha=` 15,5 / 24,6 / 28,5; código inexistente 13,8 / 22,9 / 26,7. Datos completos: `docs/validacion_hu10/oe4_mediciones.csv` (n, variante, código HTTP, ms) y `docs/validacion_hu10/oe4_resultados.md`.
+Por variante (25 cada una; p50 / p95 / máximo en ms): sin parámetros 16,8 / 26,7 / 28,8; `?codigo=` 15,8 / 24,1 / 31,1; `?fecha=` 15,5 / 24,6 / 28,5; código inexistente 13,8 / 22,9 / 26,7. Datos completos: `docs/test/validacion_hu10/oe4_mediciones.csv` (n, variante, código HTTP, ms) y `docs/test/validacion_hu10/oe4_resultados.md`.
 
 **Método.** `backend/scripts/medir_oe4_hu10.py`: httpx 0.28.1 contra la API real en ejecución (`http://localhost:8000`), dentro del contenedor del backend; no usa `TestClient`. **Solo lee** (únicamente `GET /publico/productos/{id_publico}`, sin token). Descubrimiento de las elaboraciones visibles (no medido), 5 consultas de calentamiento descartadas y 100 consultas secuenciales en cuatro variantes alternadas de 25 (sin parámetros, `?codigo=` visible, `?fecha=` visible, `?codigo=` inexistente), con una conexión reutilizada y tiempo medido con `time.perf_counter()` hasta leer todo el cuerpo. Toda respuesta con un código distinto de 200 cuenta como fallida y se reporta; una fallida nunca cuenta como «dentro de 2 s». Si el producto no está disponible, el script aborta sin escribir nada (así ocurrió en un primer intento, con el producto despublicado; se repitió una sola vez tras republicarlo).
 
@@ -252,7 +252,7 @@ Por variante (25 cada una; p50 / p95 / máximo en ms): sin parámetros 16,8 / 26
 
 ## i) Diferencias con el diseño (HT05)
 
-Registradas y aprobadas por la desarrolladora en la sección 9.7 del contexto (`docs/TrazApp_HU10_contexto_agente.md`); resumen:
+Registradas y aprobadas por la desarrolladora en la sección 9.7 del contexto (`docs/context/TrazApp_HU10_contexto_agente.md`); resumen:
 
 - **Se quitan:** insignia «Información publicada» y escudo «Información trazable» (sugieren una verificación que TrazApp no hace); crédito de foto de ejemplo; «Consumir preferentemente» (vencimiento del lote, dato interno); bloque «Ingredientes declarados» de la fórmula completa (contradice D3; cada insumo muestra el suyo); etiqueta «Rotulación obligatoria» (`obligatorio_chile` no es público). La barra `PreviewToolbar` no se quita: es la `BarraVistaPrevia` de T10-05.
 - **Se cambian:** «Marca» / «Origen» pasan a «Marca u origen»; «Advertencias» pasa de lista a un texto; los alérgenos suben antes del detalle de insumos (CA5); lista vacía: «No se declararon alérgenos» / «No se declararon trazas», nunca «No contiene alérgenos» ni «Libre de…»; los estados «elaboración oculta» y «código no encontrado» se fusionan (sección h.3); aviso con el texto de CA9, siempre visible y fuera de bloques plegables; pie «Información declarada por el productor»; textos de 10 px pasan a 12 px como mínimo y controles de 44 px (HT07); colores del prototipo reemplazados por tokens (el modo oscuro funciona solo); **insumos plegables** (pedido de la desarrolladora tras la revisión): cada insumo muestra siempre ingrediente, nombre, «Marca u origen», sus alérgenos y su advertencia, y la flecha despliega solo los ingredientes declarados; nota de versión anterior sin número.

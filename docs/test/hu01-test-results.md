@@ -4,7 +4,7 @@
 **Versión / rama:** `feature/hu01-product-refinement`
 **HEAD:** `009f749`
 **Entorno:** Docker Compose (frontend + backend + PostgreSQL)
-**Plan de referencia:** `docs/Plan de pruebas HU01.pdf` (PT01-01 … PT01-32) + extensiones T01-10 … T01-15
+**Plan de referencia:** `docs/test/Plan de pruebas HU01.pdf` (PT01-01 … PT01-32) + extensiones T01-10 … T01-15
 **Total de casos:** 46 (32 originales + 14 extensiones por refinamiento HU01)
 
 ---

@@ -2,7 +2,7 @@
 
 **Rama:** `feature/hu06-historial-elaboraciones` (Pull Request draft hacia `main`)
 **Historia:** HU06 — Consulta del historial de elaboraciones (Sprint 3)
-**Criterios de referencia:** CA1 … CA7 y PT06-01 … PT06-10 (`docs/TrazApp_HU06_contexto_agente.md`, secciones 3 y 7)
+**Criterios de referencia:** CA1 … CA7 y PT06-01 … PT06-10 (`docs/context/TrazApp_HU06_contexto_agente.md`, secciones 3 y 7)
 **Entorno:** backend con Python 3.12 (contenedor `trazapp-backend`) sobre SQLite en memoria y sobre PostgreSQL 16 (contenedor `trazapp-database`, base aislada `trazapp_test`); frontend con Vitest. Las suites completas corren en GitHub Actions sobre el Pull Request.
 
 **Línea base (medida al iniciar T06-01, commit `a085ad6`):** backend SQLite 1.281 aprobadas y 148 omitidas; backend PostgreSQL 1.429 aprobadas; frontend 42 archivos y 970 aprobadas.

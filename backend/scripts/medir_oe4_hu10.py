@@ -22,7 +22,7 @@ Use (inside the backend container, against the API in the same container):
     python scripts/medir_oe4_hu10.py --id-publico <otro> --salida /tmp/prueba     # a dry run on another product
 
 It writes `oe4_mediciones.csv` (n, variante, codigo_http, ms) and `oe4_resultados.md` in `--salida` (by default
-`docs/validacion_hu10` of the repository). It measures the server and the database in the local environment, NOT the
+`docs/test/validacion_hu10` of the repository). It measures the server and the database in the local environment, NOT the
 mobile network.
 """
 
@@ -51,7 +51,7 @@ CODIGO_INEXISTENTE = "NO-EXISTE-OE4"
 TIMEOUT_SEGUNDOS = 30.0
 
 RAIZ_REPO = Path(__file__).resolve().parents[2]
-SALIDA_POR_DEFECTO = RAIZ_REPO / "docs" / "validacion_hu10"
+SALIDA_POR_DEFECTO = RAIZ_REPO / "docs" / "test" / "validacion_hu10"
 
 
 class MedicionAbortada(Exception):

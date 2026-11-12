@@ -108,8 +108,8 @@ En HT07 se resolvió **una** prueba intermitente.
 
 | Origen | Prueba | Dónde está documentada |
 |---|---|---|
-| T13-08 (HU13) | Formularios de producto que tecleaban (`hu01.products`, «Nuevo producto»): bajo carga superaban el límite de 15 s | `docs/hu13-test-results.md` |
-| HT06-08 | Recorrido del escenario B | `docs/ht06-test-results.md`, sección «La prueba intermitente de los recorridos (escenario B)» |
+| T13-08 (HU13) | Formularios de producto que tecleaban (`hu01.products`, «Nuevo producto»): bajo carga superaban el límite de 15 s | `docs/test/hu13-test-results.md` |
+| HT06-08 | Recorrido del escenario B | `docs/test/ht06-test-results.md`, sección «La prueba intermitente de los recorridos (escenario B)» |
 
 ---
 

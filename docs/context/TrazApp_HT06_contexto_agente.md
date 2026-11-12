@@ -180,7 +180,7 @@ Se prefiere hacerlo en el backend y no en el frontend por tres razones:
 | HT06-05 | Selector de alérgenos en `InsumoForm` (creación y modo embebido), confirmación "no contiene" y estado de revisión en listado y detalle | Frontend | 5 |
 | HT06-06 | Registro de elaboración: resolver alérgenos sin revisar en un diálogo, aceptar lotes sugeridos (por línea y "usar los mismos lotes") | Frontend | 5 |
 | HT06-07 | Navegación: producto nuevo → detalle; Dashboard con "Nueva elaboración" y "Elaboraciones en curso"; "Registrar otra elaboración" | Frontend | 4 |
-| HT06-08 | Medición del escenario A y del B antes y después, y documento `docs/ht06-test-results.md` | Ambas | 2 |
+| HT06-08 | Medición del escenario A y del B antes y después, y documento `docs/test/ht06-test-results.md` | Ambas | 2 |
 | | **Total** | | **30** |
 
 ---

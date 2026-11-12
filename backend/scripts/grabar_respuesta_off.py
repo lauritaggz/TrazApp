@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.config import get_settings  # noqa: E402
 from app.services.recuperacion.open_food_facts import CAMPOS, construir_url  # noqa: E402
 
-# Conjunto de prueba de la HT04 (docs/TrazApp_HU13_contexto_agente.md, sección 7).
+# Conjunto de prueba de la HT04 (docs/context/TrazApp_HU13_contexto_agente.md, sección 7).
 CODIGOS = (
     "7802910000971",  # Loncoleche sin lactosa: "leche" en ingredientes, sin alérgeno etiquetado
     "8445291716841",  # Galleta Triton vainilla: ingredientes y alérgenos

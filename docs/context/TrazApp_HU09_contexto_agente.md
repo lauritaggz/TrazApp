@@ -16,7 +16,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md` (stack, conven
    - **No hagas commit ni push ni esperes el CI.** Deja los cambios sin commit y entrega el mensaje de commit listo para copiar, terminado en la línea `Co-Authored-By` que ya usan los commits de HU06 y HU07. La desarrolladora hace commit, push y revisa el CI.
    - Fase 1 (análisis sin código y espera) solo cuando el prompt la pida. **T09-01 y T09-05 la llevan** (ver sección 5).
    - Pruebas locales: solo las nuevas y las afectadas. Mutaciones solo en lógica nueva (máximo 4 por tarea, salvo que el prompt pida más).
-   - `docs/hu09-test-results.md` se completa en la tarea de cierre (T09-06); en cada tarea anota horas y desvíos en el reporte.
+   - `docs/test/hu09-test-results.md` se completa en la tarea de cierre (T09-06); en cada tarea anota horas y desvíos en el reporte.
 3. **Formato del reporte** (y nada más):
    1. Desvíos respecto de lo pedido (o "ninguno").
    2. Decisiones que necesitas (o "ninguna").
@@ -166,7 +166,7 @@ Criterios a confirmar:
 La nota del plan de pruebas dice que PT09-09 y PT09-10 se verifican "sobre la respuesta de la API" antes de HU10, pero ninguna tarea de HU09 crea un endpoint público, porque eso es T10-01. Propón una de estas opciones:
 
 - **(a)** Crear en HU09 un endpoint público mínimo que solo resuelva la disponibilidad, sin datos de la elaboración. HU10 lo extendería después.
-- **(b)** Dejar PT09-09 y PT09-10 como "pendientes de HU10" en `docs/hu09-test-results.md` y probar en HU09 solo las reglas de dominio (servicio) que usará el endpoint.
+- **(b)** Dejar PT09-09 y PT09-10 como "pendientes de HU10" en `docs/test/hu09-test-results.md` y probar en HU09 solo las reglas de dominio (servicio) que usará el endpoint.
 
 En cualquier caso, la regla de no exponer datos se aplica así:
 
@@ -214,9 +214,9 @@ Entrega en cuatro partes, cada una con su revisión visual: B) backend de conteo
 | T09-03 | Generación del código QR del producto en PNG de alta resolución y SVG | 1 |
 | T09-04 | Endpoints para ocultar y volver a mostrar una elaboración finalizada | 0,5 |
 | T09-05 | Interfaz de publicación, descarga del QR y acción de ocultar elaboraciones | 1,75 |
-| T09-06 | Ejecutar y documentar pruebas, incluidas mutaciones y prueba en celular (`docs/hu09-test-results.md`) | 1,25 |
+| T09-06 | Ejecutar y documentar pruebas, incluidas mutaciones y prueba en celular (`docs/test/hu09-test-results.md`) | 1,25 |
 
-**Evidencia esperada:** `docs/hu09-test-results.md`, los QR generados (un PNG y un SVG de un producto de prueba) y la ejecución de la integración continua.
+**Evidencia esperada:** `docs/test/hu09-test-results.md`, los QR generados (un PNG y un SVG de un producto de prueba) y la ejecución de la integración continua.
 
 ---
 

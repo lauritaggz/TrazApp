@@ -32,7 +32,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md`. Léelo comple
 - **Integración continua:** `.github/workflows/ci.yml` ejecuta tres trabajos en cada Pull Request hacia `main`: backend en SQLite, backend en PostgreSQL (con `TEST_DATABASE_URL` a una base `trazapp_test` temporal) y frontend (Vitest y `npm run build`). La variable `UPLOADS_ROOT` se define en el paso de pruebas. Las pruebas nuevas deben pasar en los tres trabajos.
 - **Revisión de la base:** `017_alergenos_revisados_ht06`. **La HU13 no agrega ninguna migración** (no existe la 018): las columnas `ficha`, `fuente` y `fecha_recuperacion` ya estaban desde la HU04. La siguiente migración que se necesite sería la 018 (identificador de máximo 32 caracteres).
 - **Línea base de pruebas** (merge de HT06, al empezar la HU13): backend SQLite 896 aprobadas y 147 omitidas; backend PostgreSQL 1043 aprobadas; frontend 555 aprobadas en 23 archivos (553 al cierre de HT06-08 más las 2 pruebas de la prueba intermitente de los recorridos).
-- **Cierre de la HU13 (T13-08):** SQLite 1250 aprobadas y 148 omitidas; PostgreSQL 1398 aprobadas; frontend 898 aprobadas en 39 archivos. Detalle en `docs/hu13-test-results.md`.
+- **Cierre de la HU13 (T13-08):** SQLite 1250 aprobadas y 148 omitidas; PostgreSQL 1398 aprobadas; frontend 898 aprobadas en 39 archivos. Detalle en `docs/test/hu13-test-results.md`.
 - **Pruebas de recorrido** (`frontend/src/recorridos`): miden los escenarios de uso con un contador de interacciones. HU13 no debe alargar el escenario B; si se agrega el escaneo al flujo de insumos, agrega o ajusta un recorrido que lo mida.
 
 ### Historias del Sprint 2
@@ -146,7 +146,7 @@ Como productor, quiero escanear con la cámara de mi celular el código de barra
 | T13-07 | Probar el escaneo en Chrome para Android y Safari para iOS con productos del conjunto de validación | 1 h |
 | T13-08 | Ejecutar y documentar pruebas automatizadas | 0,75 h |
 
-**Estado de las tareas:** T13-01 a T13-06 y T13-08 terminadas. T13-07: la preparación (HTTPS de desarrollo y guía) está terminada; la prueba en Chrome para Android se hizo el 20-10-2026 (11 códigos aprobados) y la de **Safari para iOS está pendiente por falta de dispositivo** (tarea «Verificar HU13 en Safari iOS»); los resultados están en `docs/hu13-prueba-celular.md`. **T13-09** (crear un ingrediente sin salir del registro de insumo) y **T13-10** (limpiar el texto de ingredientes recuperado: se corta el fabricante y los datos de contacto, se conserva un aviso de alérgenos posterior; la detección y la ficha usan el texto original) terminadas; ambas nacieron de la prueba en Android. Los resultados de las pruebas están en `docs/hu13-test-results.md`.
+**Estado de las tareas:** T13-01 a T13-06 y T13-08 terminadas. T13-07: la preparación (HTTPS de desarrollo y guía) está terminada; la prueba en Chrome para Android se hizo el 20-10-2026 (11 códigos aprobados) y la de **Safari para iOS está pendiente por falta de dispositivo** (tarea «Verificar HU13 en Safari iOS»); los resultados están en `docs/test/hu13-prueba-celular.md`. **T13-09** (crear un ingrediente sin salir del registro de insumo) y **T13-10** (limpiar el texto de ingredientes recuperado: se corta el fabricante y los datos de contacto, se conserva un aviso de alérgenos posterior; la detección y la ficha usan el texto original) terminadas; ambas nacieron de la prueba en Android. Los resultados de las pruebas están en `docs/test/hu13-test-results.md`.
 
 ### Plan de pruebas
 
@@ -261,7 +261,7 @@ Sin servidor de producción, la prueba en el celular se hace desde la red local,
 - La cámara solo funciona en un **contexto seguro**: `localhost` en el computador, o HTTPS desde el celular. Una dirección IP local sin HTTPS no permite usar la cámara.
 - Si el frontend se sirve por HTTPS y el backend por HTTP, el navegador bloquea las llamadas (contenido mixto). La forma más simple es que el servidor de desarrollo de Vite sirva por HTTPS y **reenvíe las llamadas a la API** (proxy), para que el celular solo hable con un origen.
 - Safari para iOS es más estricto con los certificados autofirmados que Chrome.
-- **Implementado en T13-07:** `npm run dev:https` (en `frontend/`) sirve la aplicación por HTTPS con un certificado propio (`@vitejs/plugin-basic-ssl`, versión exacta, solo con `VITE_DEV_HTTPS=1`), la expone en la red local y reenvía `/api/...` al backend local. No afecta a `npm run dev` ni al build. Los pasos y las tablas de resultados están en `docs/hu13-prueba-celular.md`; la prueba con el celular la hace la desarrolladora.
+- **Implementado en T13-07:** `npm run dev:https` (en `frontend/`) sirve la aplicación por HTTPS con un certificado propio (`@vitejs/plugin-basic-ssl`, versión exacta, solo con `VITE_DEV_HTTPS=1`), la expone en la red local y reenvía `/api/...` al backend local. No afecta a `npm run dev` ni al build. Los pasos y las tablas de resultados están en `docs/test/hu13-prueba-celular.md`; la prueba con el celular la hace la desarrolladora.
 
 ---
 
