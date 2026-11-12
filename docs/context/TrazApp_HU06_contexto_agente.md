@@ -93,7 +93,7 @@ Las marcadas como **propuesta** se confirman en el análisis de la primera tarea
 - `producto_id` y `estado` se mantienen.
 - `fecha_desde` y `fecha_hasta` (fechas, ambas inclusivas, sobre `fecha_elaboracion`). Si `fecha_desde > fecha_hasta` → **422**.
 - `codigo`: búsqueda **parcial y sin distinguir mayúsculas** sobre el código de elaboración (por ejemplo, `e-01` encuentra `E-014`), implementada con `func.lower(codigo).like('%texto%', escape='\\')`, con el texto recortado, en minúsculas y con `%`, `_` y `\` escapados. Si queda vacío, se ignora. Se descartó `ILIKE` porque SQLAlchemy lo traduce distinto en cada motor.
-- **Limitación conocida:** `lower()` de SQLite solo pliega ASCII (PostgreSQL pliega Unicode). Para códigos como `E-014` no hay diferencia; se documenta en `docs/hu06-test-results.md`.
+- **Limitación conocida:** `lower()` de SQLite solo pliega ASCII (PostgreSQL pliega Unicode). Para códigos como `E-014` no hay diferencia; se documenta en `docs/test/hu06-test-results.md`.
 - `fecha_desde > fecha_hasta` → 422 con `detail {mensaje}`.
 - Los filtros se combinan con Y lógico.
 - Un `producto_id` de otro productor no da error: simplemente no devuelve resultados (el filtro por productor ya lo garantiza).
@@ -139,7 +139,7 @@ Las marcadas como **propuesta** se confirman en el análisis de la primera tarea
 | T06-02 | Ajustar el detalle para mostrar la versión del producto y, en las finalizadas, la información conservada | Backend y frontend | 0,5 |
 | T06-03 | Interfaz del historial con filtros, búsqueda y paginación, adaptable a móviles | Frontend | 1,75 |
 | T06-04 | Panel de inicio con el endpoint paginado (borradores y «Primeros pasos») | Frontend | 0,5 |
-| T06-05 | Ejecutar y documentar pruebas (mutaciones, prueba en celular y `docs/hu06-test-results.md`) | Ambas | 1 |
+| T06-05 | Ejecutar y documentar pruebas (mutaciones, prueba en celular y `docs/test/hu06-test-results.md`) | Ambas | 1 |
 
 ---
 

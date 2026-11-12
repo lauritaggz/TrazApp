@@ -2,9 +2,9 @@
 
 **Fecha:** 2026-10-20 (T13-08), 2026-10-21 (T13-09 y T13-10); pruebas en Android del 20 y 21-10-2026
 **Rama:** `feature/hu13-codigo-barras`
-**HEAD al ejecutar:** `1fe8247` (T13-01 a T13-07 comprometidas) más los cambios de T13-08, T13-09 y T13-10, todavía sin commit: este documento, el documento de contexto, `docs/hu13-prueba-celular.md` (resultados de Android), el helper de `hu01.products.test.tsx` y lo de T13-09 (ver «T13-09»)
+**HEAD al ejecutar:** `1fe8247` (T13-01 a T13-07 comprometidas) más los cambios de T13-08, T13-09 y T13-10, todavía sin commit: este documento, el documento de contexto, `docs/test/hu13-prueba-celular.md` (resultados de Android), el helper de `hu01.products.test.tsx` y lo de T13-09 (ver «T13-09»)
 **Historia:** HU13 — Búsqueda de insumos mediante código de barras
-**Criterios de referencia:** CA01 … CA13 y PT13-01 … PT13-15 (`docs/TrazApp_HU13_contexto_agente.md`, sección 4)
+**Criterios de referencia:** CA01 … CA13 y PT13-01 … PT13-15 (`docs/context/TrazApp_HU13_contexto_agente.md`, sección 4)
 **Entorno:** backend con Python 3.12 (contenedor `trazapp-backend`) sobre SQLite en memoria y sobre PostgreSQL 16 (contenedor `trazapp-database`, base aislada `trazapp_test`); frontend con Vitest y Vite (Node local). Revisión de la base: `017_alergenos_revisados_ht06` (`alembic current`); **la HU13 no agrega migración**.
 
 ---
@@ -62,7 +62,7 @@ Evolución de las suites completas durante la historia:
 | **T13-04** — Detección de alérgenos | Función pura `detectar_alergenos` y tablas en `alergenos_palabras.py`: etiquetas de la fuente → catálogo, palabras clave en español, trazas, negaciones y excepciones; «contiene» gana sobre «trazas»; lo no reconocible va a `sin_reconocer`. |
 | **T13-05** — Precarga e integración | Búsqueda en «Nuevo insumo» y en el diálogo de la elaboración (hook `useBusquedaCodigoBarras`, `BuscarPorCodigo`, formulario vuelto a montar con `key`), confirmación antes de reemplazar lo escrito, alérgenos sugeridos con su origen en `AlergenosSelector`, duplicados (usar, ver o reactivar) y recorridos de interacciones. |
 | **T13-06** — Código, fuente y fecha | `POST` rechaza una fuente externa sin fecha (422), copia con `codigo_barras` al finalizar, bloque «Origen de la información» en el detalle (fecha en hora de Chile y enlace a la ficha), mapa de fuentes en `lib/fuentesInsumo.ts`. |
-| **T13-07** — Preparación de la prueba en celular | Cierre de dos huecos de T13-06 (misma regla de fuente sin fecha en `PATCH`; la URL de la ficha solo http o https en `POST` y `PATCH`), `npm run dev:https` (HTTPS propio, red local y proxy `/api`), `docs/hu13-prueba-celular.md` y el botón de linterna sobre el video. **La prueba con los celulares queda a cargo de la desarrolladora.** |
+| **T13-07** — Preparación de la prueba en celular | Cierre de dos huecos de T13-06 (misma regla de fuente sin fecha en `PATCH`; la URL de la ficha solo http o https en `POST` y `PATCH`), `npm run dev:https` (HTTPS propio, red local y proxy `/api`), `docs/test/hu13-prueba-celular.md` y el botón de linterna sobre el video. **La prueba con los celulares queda a cargo de la desarrolladora.** |
 | **T13-09** — Crear un ingrediente sin salir del registro de insumo | Botón «Crear ingrediente» junto al selector (en «Nuevo insumo» y en la edición) que abre el `IngredientCreateDialog` de HU03 y reemplaza al enlace a `/ingredientes/nuevo`. El ingrediente creado queda elegido y el resto del formulario (lo escrito, lo precargado por el código, los alérgenos y la fuente, la fecha y la ficha) queda intacto; cancelar no cambia nada; el foco vuelve al selector; con el ingrediente fijo del diálogo de la elaboración no se muestra. Originada por la prueba en Android. |
 | **T13-10** — Limpiar el texto de ingredientes recuperado | En el servicio de recuperación, `ingredientes_declarados` de la propuesta sale sin el fabricante y los datos de contacto: se corta desde la primera frase de fabricante («elaborado por», «elaborado y envasado por», «envasado por», «fabricado por», «importado por», «distribuido por», «producido por», «comercializado por») o dato de contacto (fono, teléfono, correo, sitio web, `www.`) hasta el final, y se conserva al final un aviso de alérgenos posterior (`puede contener`, `contiene`, `trazas de`, `elaborado en una línea que procesa…`). Las frases de trazas como «elaborado en una línea que procesa…» no se cortan. **La detección de alérgenos sigue corriendo sobre el texto original** y la `ficha` conserva el original. Si el corte no deja ingredientes, se usa el original. Función pura en `backend/app/services/recuperacion/limpieza.py`. Originada por el hallazgo con el azúcar flor. |
 | **T13-08** — Cierre | Investigación y corrección de la prueba intermitente de `hu01.products`, suites completas, este documento y revisión del documento de contexto. |
@@ -106,7 +106,7 @@ Los nombres que siguen son los de la prueba; cuando hay un bloque `describe` rel
 
 ## Trazabilidad CA01 … CA13
 
-**Cómo se verificó cada criterio.** «Automatizado» = pruebas de las tablas. «Celular» = lo verificado a mano en **Chrome para Android** (Redmi Note 13 5G, 20 y 21-10-2026) según `docs/hu13-prueba-celular.md`; **Safari para iOS no se probó**. Solo se marcó lo que se informó; «No informado» o «No probado» significa que no hay resultado en dispositivo y no equivale a aprobado.
+**Cómo se verificó cada criterio.** «Automatizado» = pruebas de las tablas. «Celular» = lo verificado a mano en **Chrome para Android** (Redmi Note 13 5G, 20 y 21-10-2026) según `docs/test/hu13-prueba-celular.md`; **Safari para iOS no se probó**. Solo se marcó lo que se informó; «No informado» o «No probado» significa que no hay resultado en dispositivo y no equivale a aprobado.
 
 | Criterio | Automatizado | Verificado a mano en el celular |
 |---|---|---|
@@ -229,7 +229,7 @@ Los nombres que siguen son los de la prueba; cuando hay un bloque `describe` rel
 
 ## Trazabilidad PT13-01 … PT13-15
 
-«Automatizado» se refiere a las pruebas de las tablas anteriores; «Celular» a `docs/hu13-prueba-celular.md` (Chrome para Android, 20 y 21-10-2026; **Safari para iOS no se probó**). Las celdas que no se informaron figuran como «No informado» o «No probado».
+«Automatizado» se refiere a las pruebas de las tablas anteriores; «Celular» a `docs/test/hu13-prueba-celular.md` (Chrome para Android, 20 y 21-10-2026; **Safari para iOS no se probó**). Las celdas que no se informaron figuran como «No informado» o «No probado».
 
 | Caso | Automatizado | Pruebas principales | Celular |
 |---|---|---|---|
@@ -253,7 +253,7 @@ Los nombres que siguen son los de la prueba; cuando hay un bloque `describe` rel
 
 ## Prueba en el celular
 
-La guía y las tablas están en `docs/hu13-prueba-celular.md`; la prueba la hizo la desarrolladora con `npm run dev:https` (T13-07).
+La guía y las tablas están en `docs/test/hu13-prueba-celular.md`; la prueba la hizo la desarrolladora con `npm run dev:https` (T13-07).
 
 **Android: probado.** Redmi Note 13 5G, Chrome (versión del navegador y de Android no indicadas), 20-10-2026 y 21-10-2026, por IP local (`https://192.168.1.28:5175`). Quién probó y el commit probado no están indicados en las tablas.
 
@@ -447,7 +447,7 @@ Pruebas: B9 (59), SQLite y PostgreSQL. Ninguna prueba existente cambió.
 
 ## Preparación de la prueba en celular (T13-07)
 
-La prueba con cámara real la hace la desarrolladora; la guía está en `docs/hu13-prueba-celular.md`. Lo preparado:
+La prueba con cámara real la hace la desarrolladora; la guía está en `docs/test/hu13-prueba-celular.md`. Lo preparado:
 
 - **`npm run dev:https`:** sirve la aplicación por HTTPS con un certificado propio (`@vitejs/plugin-basic-ssl` 2.3.0, devDependency con versión exacta), expuesta en la red local (`0.0.0.0`), y reenvía `/api/...` al backend local (`http://localhost:8000`, o `VITE_DEV_API_TARGET`) quitando el prefijo. El celular habla con un solo origen HTTPS: sin contenido mixto ni CORS.
 - **Solo se activa con `VITE_DEV_HTTPS=1`**, que fija el script `scripts/dev-https.mjs` (junto con `VITE_API_URL=/api`). La aplicación arma las direcciones como `${VITE_API_URL}${ruta}`, así que una base relativa funciona sin cambiar código. Sin la variable, `npm run dev` y `npm run build` quedan como antes: el build produce **exactamente los mismos archivos** (mismos nombres con hash) con y sin la variable, y el plugin del certificado ni siquiera se carga.

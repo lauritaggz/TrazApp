@@ -4,7 +4,7 @@
 
 *Creado el 09-11-2026.*
 
-Este documento complementa a `TrazApp_Sprint2_contexto_agente.md` (stack, convenciones, glosario y modelo), a `TrazApp_HU06_contexto_agente.md` (metodología de Pull Request draft), a `TrazApp_HU09_contexto_agente.md` (publicación, identificador público y elaboraciones ocultas) y a `docs/hu09-test-results.md` (sección de pendientes para HU10). Léelo completo antes de trabajar en la HU10. Si algo de este documento contradice un prompt de tarea, **el prompt de tarea manda**. Si algo no está claro, pregunta antes de suponer.
+Este documento complementa a `TrazApp_Sprint2_contexto_agente.md` (stack, convenciones, glosario y modelo), a `TrazApp_HU06_contexto_agente.md` (metodología de Pull Request draft), a `TrazApp_HU09_contexto_agente.md` (publicación, identificador público y elaboraciones ocultas) y a `docs/test/hu09-test-results.md` (sección de pendientes para HU10). Léelo completo antes de trabajar en la HU10. Si algo de este documento contradice un prompt de tarea, **el prompt de tarea manda**. Si algo no está claro, pregunta antes de suponer.
 
 ---
 
@@ -15,7 +15,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md` (stack, conven
    - No uses el navegador ni levantes servidores; al final entrega una lista corta de qué debe revisar la desarrolladora visualmente.
    - **No hagas commit ni push ni esperes el CI.** Deja los cambios sin commit y entrega el mensaje de commit listo para copiar, terminado en la línea `Co-Authored-By` que ya usan los commits de HU09. La desarrolladora hace commit, push y revisa el CI.
    - Fase 1 (análisis sin código y espera) solo cuando el prompt la pida.
-   - `docs/hu10-test-results.md` se completa en la tarea de cierre (T10-06); en cada tarea anota horas y desvíos en el reporte.
+   - `docs/test/hu10-test-results.md` se completa en la tarea de cierre (T10-06); en cada tarea anota horas y desvíos en el reporte.
 3. **Pruebas: local vs. CI.**
    - Localmente, dentro del contenedor Docker, corres **solo** las pruebas nuevas de la tarea y las directamente afectadas por sus cambios.
    - La regresión completa (SQLite, PostgreSQL y frontend) la ejecuta el CI cuando la desarrolladora hace push. No la corras localmente salvo que el prompt lo pida.
@@ -204,7 +204,7 @@ HU11 asociará cada evaluación "al contexto de la consulta". La respuesta públ
 | T10-05 | Previsualización de la ficha pública por el productor antes de publicar | 0,5 |
 | T10-06 | Ejecutar y documentar pruebas: insumo modificado después de la elaboración (RT-03), tiempo de respuesta (OE4) y prueba en celular | 1,75 |
 
-**Evidencia esperada:** `docs/hu10-test-results.md`, la medición de OE4, las capturas de la prueba en celular y la ejecución de la integración continua.
+**Evidencia esperada:** `docs/test/hu10-test-results.md`, la medición de OE4, las capturas de la prueba en celular y la ejecución de la integración continua.
 
 ---
 
@@ -377,7 +377,7 @@ Ruta `/p/:idPublico`, fuera de todo guard y sin el menú del productor (`pages/F
 
 ### 9.9 Cierre (T10-06)
 
-- `docs/hu10-test-results.md` reúne las pruebas por archivo, PT10-01 a PT10-13, CA1 a CA11, las mutaciones de T10-01 a T10-05, RT-03, OE4, decisiones, limitaciones e incidencias. `docs/hu09-test-results.md` completa PT09-04, PT09-09 y PT09-10 con la vista real.
-- Medición de OE4: `backend/scripts/medir_oe4_hu10.py` (solo lee; httpx contra la API en ejecución). Se corre dentro del contenedor del backend con un producto **publicado** (si la consulta pública no responde 200, aborta sin escribir nada). La salida va a `docs/validacion_hu10/oe4_mediciones.csv` y `oe4_resultados.md`.
-- Las capturas del celular están en `docs/validacion_hu10/` con sus nombres de WhatsApp; se citan sin renombrarlas.
+- `docs/test/hu10-test-results.md` reúne las pruebas por archivo, PT10-01 a PT10-13, CA1 a CA11, las mutaciones de T10-01 a T10-05, RT-03, OE4, decisiones, limitaciones e incidencias. `docs/test/hu09-test-results.md` completa PT09-04, PT09-09 y PT09-10 con la vista real.
+- Medición de OE4: `backend/scripts/medir_oe4_hu10.py` (solo lee; httpx contra la API en ejecución). Se corre dentro del contenedor del backend con un producto **publicado** (si la consulta pública no responde 200, aborta sin escribir nada). La salida va a `docs/test/validacion_hu10/oe4_mediciones.csv` y `oe4_resultados.md`.
+- Las capturas del celular están en `docs/test/validacion_hu10/` con sus nombres de WhatsApp; se citan sin renombrarlas.
 

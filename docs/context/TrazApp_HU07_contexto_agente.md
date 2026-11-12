@@ -16,7 +16,7 @@ Este documento complementa a `TrazApp_Sprint2_contexto_agente.md` (stack, conven
    - **No hagas commit ni push ni esperes el CI.** Deja los cambios sin commit y entrega el mensaje de commit listo para copiar, terminado en la línea `Co-Authored-By` que ya usan los commits de HU06. La desarrolladora hace commit, push y revisa el CI.
    - Fase 1 (análisis sin código y espera) solo cuando el prompt la pida.
    - Pruebas locales: solo las nuevas y las afectadas. Mutaciones solo en lógica nueva (máximo 4 por tarea, salvo que el prompt pida más).
-   - `docs/hu07-test-results.md` se completa en la tarea de cierre (T07-10); en cada tarea anota horas y desvíos en el reporte.
+   - `docs/test/hu07-test-results.md` se completa en la tarea de cierre (T07-10); en cada tarea anota horas y desvíos en el reporte.
 3. **Formato del reporte** (y nada más):
    1. Desvíos respecto de lo pedido (o "ninguno").
    2. Decisiones que necesitas (o "ninguna").
@@ -159,7 +159,7 @@ Hallazgos de Jumbo: la búsqueda con el código de barras como texto devuelve 0 
 5. **Marca** en la búsqueda por nombre: se toma de la ficha (JSON-LD), no del `brand` de la búsqueda.
 6. **Granel (PLU o `gtin` inválido):** no se combina y no se guarda como `codigo_barras`.
 7. **Consultas reales:** se respeta el número que indique el prompt; si hace falta más, se pregunta. Todo exceso se reporta como desvío.
-8. **Pendiente para T07-10:** agregar a la sección de riesgos de `docs/hu07-test-results.md` la fragilidad del HTML de Jumbo (el bloque "Puede contener" depende del marcado del servidor y puede cambiar sin aviso).
+8. **Pendiente para T07-10:** agregar a la sección de riesgos de `docs/test/hu07-test-results.md` la fragilidad del HTML de Jumbo (el bloque "Puede contener" depende del marcado del servidor y puede cambiar sin aviso).
 9. **Condiciones de uso (ai.txt/robots.txt):** solo `/api/catalog` y `/{slug}/p` sin query strings; atribución "Fuente: Jumbo" visible; `User-Agent` genérico; una consulta por acción del usuario.
 
 ### Decisiones confirmadas en T07-06 (06-11-2026)
@@ -169,7 +169,7 @@ Hallazgos de Jumbo: la búsqueda con el código de barras como texto devuelve 0 
 3. **Granel / `gtin` no válido:** no hay detección de duplicados y la respuesta lleva `codigo_barras: ""`; el `gtin` crudo queda solo en la ficha.
 4. **Tamaño de página de Jumbo:** la búsqueda se hace con `POST /api/catalog` y solo `{"fullText": ...}`; no se envió ningún parámetro de tamaño. El tope de 10 es el de nuestro adaptador; el tamaño real de la respuesta de Jumbo no se verificó (queda para T07-09).
 5. **Campos editados:** el cliente compara lo confirmado con lo precargado (después de `trim`) y envía `campos_editados`, `fuentes_campos`, `fuentes_alergenos` y `fuentes_por_alergeno` (T07-05).
-6. **Limitación aprobada (granel):** un producto de Jumbo sin `gtin` válido (granel con PLU, números de circulación restringida) **no tiene detección de duplicados**: se puede registrar dos veces como insumo. No se agrega criterio por nombre y marca. Debe figurar en la sección de limitaciones de `docs/hu07-test-results.md` (pendiente para T07-10, el archivo aún no existe).
+6. **Limitación aprobada (granel):** un producto de Jumbo sin `gtin` válido (granel con PLU, números de circulación restringida) **no tiene detección de duplicados**: se puede registrar dos veces como insumo. No se agrega criterio por nombre y marca. Debe figurar en la sección de limitaciones de `docs/test/hu07-test-results.md` (pendiente para T07-10, el archivo aún no existe).
 7. **Tope de 10 resultados:** aprobado. La verificación con una consulta real (tamaño de página por defecto y si el cuerpo admite un parámetro de tamaño) queda para T07-09.
 8. **Duplicado por nombre:** "Usar el insumo existente" es un enlace al detalle en la página; en el diálogo de la elaboración se mantiene "Usar este insumo".
 9. **Miniatura del producto (cambio de alcance menor):** campo opcional `imagen_url` (y `imagen_fuente` en la propuesta) con solo la dirección; no se descarga ni se guarda, y no forma parte de `ficha`. Solo `https`. Jumbo la entrega en el JSON-LD (`image`) y, por resultado, en `items[0].images`; OFF en `image_url` (que ahora se pide en `fields`). La combinada prioriza Jumbo. **Sin verificar con Jumbo real:** el nombre y la forma de esos campos se tomaron del estándar schema.org y quedaron como valores de prueba en las fixtures; confirmar en T07-09.
@@ -210,7 +210,7 @@ Referencia: `docs/diseno/DISEÑOS SPRINT 3/` (NewSupply.tsx). Se entrega en tres
 | T07-07 | Fuente de cada dato y alérgeno, y confirmación de "puede contener" | 1 |
 | T07-08 | Ofrecer búsqueda por nombre cuando Open Food Facts no encuentra el código | 0,5 |
 | T07-09 | Medir fichas correctas y tiempo sobre el conjunto de validación (OE5) | 1 |
-| T07-10 | Ejecutar y documentar pruebas (respuestas grabadas, mutaciones, celular, `docs/hu07-test-results.md`) | 1,25 |
+| T07-10 | Ejecutar y documentar pruebas (respuestas grabadas, mutaciones, celular, `docs/test/hu07-test-results.md`) | 1,25 |
 
 ---
 

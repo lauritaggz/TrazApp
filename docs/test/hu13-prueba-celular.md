@@ -117,7 +117,7 @@ Si el escáner no abre la cámara pero el campo manual funciona, anótalo en la 
 - Detén el servidor con `Ctrl + C`.
 - Quita la regla del firewall (apartado 5) y cierra el túnel si lo usaste.
 - El certificado queda en `frontend/node_modules/.vite/basic-ssl/_cert.pem` (ignorado por git, vence a los 30 días). **No lo agregues al repositorio.**
-- Pasa los resultados de las tablas a `docs/hu13-test-results.md` (T13-08).
+- Pasa los resultados de las tablas a `docs/test/hu13-test-results.md` (T13-08).
 
 ---
 

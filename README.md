@@ -162,7 +162,7 @@ cd frontend && npm test                   # frontend
 ```
 
 Regresión RT-01: `backend/tests/test_trazabilidad_historica.py`.
-Resultados documentados en `docs/hu01-test-results.md` y `docs/hu12-test-results.md`.
+Resultados documentados en `docs/test/hu01-test-results.md` y `docs/test/hu12-test-results.md`.
 
 ## API
 

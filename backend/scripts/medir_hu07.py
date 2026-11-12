@@ -1,6 +1,6 @@
 """Measurement of the product lookup of HU07 against a reference set (T07-09, CA13).
 
-For each row of `docs/validacion_hu07/referencia.csv` it runs the real flow:
+For each row of `docs/test/validacion_hu07/referencia.csv` it runs the real flow:
 
 - with a barcode: `FuenteCombinada` (Open Food Facts by code, completed with Jumbo only if the `gtin`
   matches), the same one the `consulta-codigo` route uses;
@@ -27,7 +27,7 @@ Use (from `backend/`):
     python scripts/medir_hu07.py                  # runs the measurement (real queries!)
     python scripts/medir_hu07.py --limite 5       # only the first five products
 
-It writes `resultados.csv` and `resultados.md` (metrics and the discrepancy table) in docs/validacion_hu07.
+It writes `resultados.csv` and `resultados.md` (metrics and the discrepancy table) in docs/test/validacion_hu07.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ from app.services.recuperacion.jumbo import JumboFuente  # noqa: E402
 from app.services.recuperacion.modelos import ProductoFuente  # noqa: E402
 from app.services.recuperacion.open_food_facts import OpenFoodFactsFuente  # noqa: E402
 
-REFERENCIA_POR_DEFECTO = RAIZ_BACKEND.parent / "docs" / "validacion_hu07" / "referencia.csv"
+REFERENCIA_POR_DEFECTO = RAIZ_BACKEND.parent / "docs" / "test" / "validacion_hu07" / "referencia.csv"
 SALIDA_POR_DEFECTO = REFERENCIA_POR_DEFECTO.parent
 CACHE_POR_DEFECTO = Path.home() / ".cache" / "trazapp" / "validacion_hu07"
 PAUSA_POR_DEFECTO = 2.0
