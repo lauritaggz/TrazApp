@@ -459,16 +459,48 @@ class InsumoEncabezadoRead(BaseModel):
     activo: bool
 
 
-class ResumenRelacionadasRead(BaseModel):
+class ResumenLoteRead(BaseModel):
+    """Summary of a result; it is the whole summary of the query by lot (T08-02)."""
+
     total_elaboraciones: int
     total_productos: int
     finalizadas: int
     borradores: int
     visibles_publicamente: int
+
+
+class ResumenRelacionadasRead(ResumenLoteRead):
+    """Summary of the query by supply: adds how many elaboraciones registered it without lot (CA6)."""
+
     elaboraciones_sin_lote: int
 
 
 class ElaboracionesDeInsumoRead(BaseModel):
     insumo: InsumoEncabezadoRead
     resumen: ResumenRelacionadasRead
+    elaboraciones: list[ElaboracionRelacionadaRead]
+
+
+class LoteEncabezadoRead(BaseModel):
+    id: int
+    codigo: str
+
+
+class OtrasSinLoteRead(BaseModel):
+    """Elaboraciones of the SAME supply that are NOT in the result and cannot be ruled out (T08-02).
+
+    Only numbers: `sin_lote` counts elaboraciones that registered the supply without lot (finalized or
+    borrador); `lote_pendiente` counts borradores whose lot is not defined yet. They never appear in
+    `elaboraciones`: the query by lot returns only the elaboraciones of that lot (CA8).
+    """
+
+    sin_lote: int
+    lote_pendiente: int
+
+
+class ElaboracionesDeLoteRead(BaseModel):
+    insumo: InsumoEncabezadoRead
+    lote: LoteEncabezadoRead
+    resumen: ResumenLoteRead
+    otras_sin_lote: OtrasSinLoteRead
     elaboraciones: list[ElaboracionRelacionadaRead]

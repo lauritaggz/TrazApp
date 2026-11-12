@@ -127,11 +127,11 @@ Propón también un **resumen** al inicio (por ejemplo: N elaboraciones, M produ
 |---|---|---|
 | T08-01 | Consulta de elaboraciones relacionadas con un insumo, a partir de la información conservada en las finalizadas, indicando las registradas sin lote | 1,5 |
 | T08-02 | Consulta de elaboraciones relacionadas con un lote específico | 0,5 |
-| T08-03 | Incluir en el resultado el estado de cada elaboración, la publicación del producto y si la elaboración está oculta | 0,5 |
+| T08-03 | Incluir en el resultado el estado de cada elaboración, la publicación del producto y si la elaboración está oculta (**absorbida por T08-01**: los campos de CA7 ya están en el esquema compartido; 0 h propias) | 0,5 |
 | T08-04 | Interfaz en el detalle del insumo y del lote, reemplazando las secciones "Próximamente" | 1,5 |
 | T08-05 | Ejecutar y documentar pruebas, incluidas mutaciones y prueba en celular | 1 |
 
-**Evidencia esperada:** `docs/hu08-test-results.md` con el conteo del escenario (métrica de OE3), la ejecución de la integración continua y capturas en el celular.
+**Evidencia esperada:** `docs/test/hu08-test-results.md` con el conteo del escenario (métrica de OE3), la ejecución de la integración continua y capturas en el celular.
 
 ---
 

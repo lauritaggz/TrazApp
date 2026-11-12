@@ -455,34 +455,40 @@ def test_requiere_autenticacion(client, base) -> None:
 # --- Performance: no N+1 -------------------------------------------------------------------------------
 
 
-def _contar_consultas(client, db_session, ctx: dict, insumo_id: int) -> int:
+def contar_consultas(client, db_session, url: str, headers: dict) -> tuple[int, int]:
+    """(authentication, data) statements one GET sends. The authentication one is the lookup of the
+    productor of the token; the rest are the queries of the endpoint itself."""
     sentencias: list[str] = []
 
     def registrar_sentencia(conn, cursor, statement, *args):
-        sentencias.append(statement)
+        sentencias.append(" ".join(statement.split()))
 
     motor = db_session.get_bind()
     event.listen(motor, "before_cursor_execute", registrar_sentencia)
     try:
-        assert client.get(f"/gestion/insumos/{insumo_id}/elaboraciones", headers=ctx["headers"]).status_code == 200
+        assert client.get(url, headers=headers).status_code == 200
     finally:
         event.remove(motor, "before_cursor_execute", registrar_sentencia)
-    return len(sentencias)
+    autenticacion = [s for s in sentencias if "FROM productores" in s and "JOIN" not in s]
+    return len(autenticacion), len(sentencias) - len(autenticacion)
+
+
+# Exact statements of each request (HU08): the lookup of the productor of the token, then
+#   by supply: the supply of the productor + the uses with their elaboración, product and hidden mark;
+#   by lot:    the lot with its supply + the same uses + the count of the other elaboraciones without lot.
+CONSULTAS_DE_AUTENTICACION = 1
+CONSULTAS_DE_DATOS_POR_INSUMO = 2
 
 
 def test_la_cantidad_de_consultas_es_constante_sin_n_mas_1(client, base, db_session) -> None:
-    pocas = _contar_consultas(client, db_session, base, base["x"])
+    url = f"/gestion/insumos/{base['x']}/elaboraciones"
+    pocas = contar_consultas(client, db_session, url, base["headers"])
 
     for numero in range(10, 16):
         _elaborar(client, base, base["producto"]["id"], f"M-{numero}", "2026-10-02", {"insumo_id": base["x"], "lote": SIN_LOTE})
     _elaborar(client, base, base["galletas"]["id"], "M-20", "2026-10-03", {"insumo_id": base["x"], "lote": None}, finalizar=False)
     assert _consultar(client, base, base["x"])["resumen"]["total_elaboraciones"] == 11
 
-    muchas = _contar_consultas(client, db_session, base, base["x"])
+    muchas = contar_consultas(client, db_session, url, base["headers"])
 
-    assert pocas == muchas
-    assert muchas <= CONSULTAS_MAXIMAS
-
-
-# Authentication (token + productor), ownership of the supply and the single query of the uses.
-CONSULTAS_MAXIMAS = 4
+    assert pocas == muchas == (CONSULTAS_DE_AUTENTICACION, CONSULTAS_DE_DATOS_POR_INSUMO)

@@ -17,17 +17,21 @@ from app.schemas.elaboracion import (
     ElaboracionRelacionadaRead,
     ElaboracionResumenRead,
     ElaboracionesDeInsumoRead,
+    ElaboracionesDeLoteRead,
     ElaboracionUpdate,
     ElaboracionVisibilidadRead,
     EstadoElaboracion,
     IngredienteRelacionadoRead,
     InsumoEncabezadoRead,
+    LoteEncabezadoRead,
     LoteExistenteInput,
     LoteNuevoInput,
     LoteRead,
     LoteRelacionadoRead,
+    OtrasSinLoteRead,
     ProductoRelacionadoRead,
     ProductoResumenRead,
+    ResumenLoteRead,
     ResumenRelacionadasRead,
     SinLoteInput,
     UsoInsumoInput,
@@ -66,6 +70,11 @@ MENSAJE_FINALIZACION_BLOQUEADA = (
 ESQUEMA_INFORMACION_CONSERVADA = 2
 MENSAJE_INSUMO_NO_VALIDO = "Insumo no válido"
 MENSAJE_LOTE_NO_VALIDO = "Lote no válido"
+
+
+class LoteNotFoundError(Exception):
+    """The lot is not visible to the productor: it does not exist, it is of another productor or it
+    belongs to another supply. One error (and one message) for the three cases (404)."""
 
 
 class ElaboracionNotFoundError(Exception):
@@ -677,8 +686,46 @@ class ElaboracionService:
             raise InsumoNotFoundError("Insumo no encontrado")
         encabezado = InsumoEncabezadoRead(id=insumo.id, nombre=insumo.nombre, activo=insumo.activo)
         filas = self.repository.list_usos_de_insumo(productor_id, insumo_id)
+        elaboraciones, resumen = self._armar_resultado(filas, insumo.nombre)
+        return ElaboracionesDeInsumoRead(
+            insumo=encabezado,
+            resumen=ResumenRelacionadasRead(
+                **resumen.model_dump(),
+                elaboraciones_sin_lote=sum(
+                    1 for e in elaboraciones if any(uso.lote_estado == "sin_lote" for uso in e.usos)
+                ),
+            ),
+            elaboraciones=elaboraciones,
+        )
 
-        # Rows arrive ordered by elaboración: group them keeping that order.
+    def list_relacionadas_lote_mine(
+        self, productor: Productor, insumo_id: int, lote_id: int
+    ) -> ElaboracionesDeLoteRead:
+        """Elaboraciones of the productor that used THIS lot, finalized and borrador (T08-02, CA2/CA8).
+
+        Only those of the lot. The elaboraciones of the same supply without lot (or with the lot still
+        pending) are not in the result: they are only counted in `otras_sin_lote`. Never writes.
+        """
+        productor_id = productor.id
+        lote = self.repository.get_lote_propio(productor_id, insumo_id, lote_id)
+        if lote is None:
+            raise LoteNotFoundError("Lote no encontrado")
+        insumo = lote.insumo  # loaded by the same query; it is the productor's supply
+        filas = self.repository.list_usos_de_insumo(productor_id, insumo_id, lote_id)
+        elaboraciones, resumen = self._armar_resultado(filas, insumo.nombre)
+        sin_lote, lote_pendiente = self.repository.contar_otras_sin_lote(productor_id, insumo_id, lote_id)
+        return ElaboracionesDeLoteRead(
+            insumo=InsumoEncabezadoRead(id=insumo.id, nombre=insumo.nombre, activo=insumo.activo),
+            lote=LoteEncabezadoRead(id=lote.id, codigo=lote.codigo),
+            resumen=resumen,
+            otras_sin_lote=OtrasSinLoteRead(sin_lote=sin_lote, lote_pendiente=lote_pendiente),
+            elaboraciones=elaboraciones,
+        )
+
+    def _armar_resultado(
+        self, filas: list[Any], insumo_nombre_vigente: str
+    ) -> tuple[list[ElaboracionRelacionadaRead], ResumenLoteRead]:
+        """Group the rows by elaboración (they arrive ordered) and build the shared summary."""
         grupos: dict[int, list[Any]] = {}
         for fila in filas:
             grupos.setdefault(fila[1].id, []).append(fila)
@@ -703,21 +750,17 @@ class ElaboracionService:
                     oculta=oculta,
                     visible_publicamente=visible,
                     origen_datos="conservada" if finalizada else "vigente",
-                    usos=[self._uso_relacionado(fila, insumo.nombre) for fila in grupo],
+                    usos=[self._uso_relacionado(fila, insumo_nombre_vigente) for fila in grupo],
                 )
             )
-
-        resumen = ResumenRelacionadasRead(
+        resumen = ResumenLoteRead(
             total_elaboraciones=len(elaboraciones),
             total_productos=len({e.producto.id for e in elaboraciones}),
             finalizadas=sum(1 for e in elaboraciones if e.estado == ESTADO_FINALIZADA),
             borradores=sum(1 for e in elaboraciones if e.estado == ESTADO_BORRADOR),
             visibles_publicamente=visibles,
-            elaboraciones_sin_lote=sum(
-                1 for e in elaboraciones if any(uso.lote_estado == "sin_lote" for uso in e.usos)
-            ),
         )
-        return ElaboracionesDeInsumoRead(insumo=encabezado, resumen=resumen, elaboraciones=elaboraciones)
+        return elaboraciones, resumen
 
     @staticmethod
     def _uso_relacionado(fila: Any, insumo_nombre_vigente: str) -> UsoRelacionadoRead:
