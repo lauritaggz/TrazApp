@@ -130,18 +130,25 @@ def _productos(engine: Engine) -> list[tuple]:
 # --- upgrade -------------------------------------------------------------------------------------
 
 
-def test_la_cabeza_de_alembic_es_la_018(alembic_cfg: Config) -> None:
-    assert ScriptDirectory.from_config(alembic_cfg).get_current_head() == REV_018
+def test_la_cabeza_de_alembic_es_la_018_o_una_posterior_que_cuelga_de_ella(alembic_cfg: Config) -> None:
+    """The head is pinned by the newest migration's own tests (019 moved it past the 018)."""
+    scripts = ScriptDirectory.from_config(alembic_cfg)
+    cadena = [revision.revision for revision in scripts.walk_revisions()]
+
+    assert len(scripts.get_heads()) == 1
+    assert REV_018 in cadena
+    assert scripts.get_revision(REV_018).down_revision == REV_017
     assert len(REV_018) <= 32
 
 
-def test_la_cabeza_real_es_la_018_y_cuelga_de_la_017() -> None:
+def test_la_018_esta_en_la_cadena_real_y_cuelga_de_la_017() -> None:
     """Against the real script directory (not the temporary copy of the fixtures)."""
     cfg = Config()
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     scripts = ScriptDirectory.from_config(cfg)
 
-    assert scripts.get_heads() == [REV_018]
+    assert len(scripts.get_heads()) == 1
+    assert REV_018 in [revision.revision for revision in scripts.walk_revisions()]
     assert scripts.get_revision(REV_018).down_revision == REV_017
 
 

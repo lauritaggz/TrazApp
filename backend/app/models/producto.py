@@ -43,6 +43,11 @@ class Producto(Base):
             "precio_venta IS NULL OR precio_venta >= 0",
             name="ck_producto_precio_venta_no_negativo",
         ),
+        # HU14: how many products one batch yields (NULL = not set).
+        CheckConstraint(
+            "rendimiento IS NULL OR rendimiento > 0",
+            name="ck_producto_rendimiento_positivo",
+        ),
         # HU09: the public identifier is unique (several NULLs are allowed: never published).
         UniqueConstraint("id_publico", name="uq_producto_id_publico"),
         # A published product always has its public identifier.
@@ -72,6 +77,8 @@ class Producto(Base):
         nullable=True,
     )
     imagen_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    # HU14: products that one batch yields; used by the cost calculator (cost per unit).
+    rendimiento: Mapped[int | None] = mapped_column(Integer, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

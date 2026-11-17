@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -9,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     false,
@@ -20,6 +22,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.costos import UNIDADES_COSTO_SQL
 
 FUENTE_MANUAL = "manual"
 
@@ -37,6 +40,39 @@ class InsumoComercial(Base):
     """
 
     __tablename__ = "insumos_comerciales"
+    __table_args__ = (
+        # HU14: reference price and content, all NULL until obtained or typed in.
+        CheckConstraint(
+            "precio_referencia IS NULL OR precio_referencia >= 0",
+            name="ck_insumo_precio_no_negativo",
+        ),
+        CheckConstraint(
+            "precio_fuente IS NULL OR precio_fuente IN ('jumbo', 'manual')",
+            name="ck_insumo_precio_fuente",
+        ),
+        CheckConstraint(
+            "(precio_referencia IS NULL) = (precio_fuente IS NULL) "
+            "AND (precio_referencia IS NULL) = (precio_fecha IS NULL)",
+            name="ck_insumo_precio_completo",
+        ),
+        CheckConstraint(
+            "contenido_cantidad IS NULL OR contenido_cantidad > 0",
+            name="ck_insumo_contenido_positivo",
+        ),
+        CheckConstraint(
+            f"contenido_unidad IS NULL OR contenido_unidad IN {UNIDADES_COSTO_SQL}",
+            name="ck_insumo_contenido_unidad",
+        ),
+        CheckConstraint(
+            "contenido_fuente IS NULL OR contenido_fuente IN ('jumbo', 'open_food_facts', 'manual')",
+            name="ck_insumo_contenido_fuente",
+        ),
+        CheckConstraint(
+            "(contenido_cantidad IS NULL) = (contenido_unidad IS NULL) "
+            "AND (contenido_cantidad IS NULL) = (contenido_fuente IS NULL)",
+            name="ck_insumo_contenido_completo",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     productor_id: Mapped[int] = mapped_column(
@@ -78,6 +114,14 @@ class InsumoComercial(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Reference price (CLP) and net content for the cost calculator (HU14). The price and the content
+    # have their own source: Open Food Facts has no prices. Source and date are set by the server.
+    precio_referencia: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    precio_fuente: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    precio_fecha: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    contenido_cantidad: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    contenido_unidad: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    contenido_fuente: Mapped[str | None] = mapped_column(String(20), nullable=True)
     habitual: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
