@@ -1,4 +1,5 @@
-"""Cost calculator of a product (HU14 / T14-04). It only reads: it never writes anything.
+"""Cost calculator of a product (HU14). `calcular` (T14-04) only reads: it never writes anything.
+`guardar` (T14-05) saves quantities, rendimiento and other costs, and nothing else.
 
 The lines come from the CURRENT version of the formulation. Each one takes its quantity from
 `producto_ingrediente_cantidades` and its supply from, in this order: what the last finalized
@@ -10,10 +11,12 @@ calculation: nothing is saved.
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
 from app.core import costos_calculo
+from app.models import CantidadIngredienteProducto
 from app.repositories.costos_repository import (
     CantidadGuardada,
     CostosRepository,
@@ -22,6 +25,9 @@ from app.repositories.costos_repository import (
 )
 from app.repositories.elaboracion_repository import ElaboracionRepository
 from app.services.producto_service import ProductoNotFoundError
+
+if TYPE_CHECKING:
+    from app.schemas.costos import CantidadIngredienteInput, CostosProductoUpdate
 
 # Where the supply of a line comes from.
 ORIGEN_ULTIMA_ELABORACION = "ultima_elaboracion"
@@ -39,7 +45,11 @@ FALTA_UNIDADES = "unidades_incompatibles"
 
 
 class CostosValidationError(Exception):
-    """A chosen alternative is not valid (the endpoint answers 422)."""
+    """A chosen alternative or a quantity is not valid (the endpoint answers 422)."""
+
+    def __init__(self, mensaje: str, ingrediente_id: int | None = None) -> None:
+        super().__init__(mensaje)
+        self.ingrediente_id = ingrediente_id
 
 
 @dataclass(frozen=True)
@@ -51,6 +61,10 @@ class InsumoDisponible:
     precio_referencia: Decimal | None
     contenido_cantidad: Decimal | None
     contenido_unidad: str | None
+    presentacion: str | None = None
+    precio_fuente: str | None = None
+    precio_fecha: datetime | None = None
+    contenido_fuente: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +84,8 @@ class LineaCosto:
     faltantes: list[str]
     costo: Decimal | None
     insumos_disponibles: list[InsumoDisponible] = field(default_factory=list)
+    orden: int | None = None
+    insumo: InsumoDisponible | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +102,8 @@ class ResumenCosto:
 @dataclass(frozen=True)
 class CalculoCostos:
     producto_id: int
+    producto_nombre: str
+    version_id: int | None
     tiene_formulacion: bool
     rendimiento: int | None
     lineas: list[LineaCosto]
@@ -127,6 +145,8 @@ class CostosService:
                 raise CostosValidationError("El producto no tiene ingredientes en la formulación vigente")
             return CalculoCostos(
                 producto_id=producto_id,
+                producto_nombre=producto.nombre,
+                version_id=version_id,
                 tiene_formulacion=False,
                 rendimiento=rendimiento,
                 lineas=[],
@@ -155,6 +175,7 @@ class CostosService:
             self._linea(
                 linea.ingrediente_id,
                 linea.ingrediente_nombre,
+                linea.orden,
                 cantidades.get(linea.ingrediente_id),
                 insumos,
                 disponibles[linea.ingrediente_id],
@@ -165,12 +186,82 @@ class CostosService:
         ]
         return CalculoCostos(
             producto_id=producto_id,
+            producto_nombre=producto.nombre,
+            version_id=version_id,
             tiene_formulacion=True,
             rendimiento=rendimiento,
             lineas=lineas,
             otros_costos=otros,
             resumen=self._resumen(lineas, total_otros, rendimiento),
         )
+
+    def guardar(
+        self,
+        productor_id: int,
+        producto_id: int,
+        payload: "CostosProductoUpdate",
+        alternativas: dict[int, int] | None = None,
+    ) -> CalculoCostos:
+        """Save what the productor typed in the calculator and return the recalculated result.
+
+        One transaction with the product row locked, like the formulation does. It touches only the
+        quantities, the other costs and the rendimiento of the product: it never creates a version and
+        never touches elaboraciones, uses or supplies. What the payload leaves out is not touched.
+        """
+        repo = self.repository
+        try:
+            producto = repo.bloquear_producto(producto_id, productor_id)
+            if producto is None:
+                raise ProductoNotFoundError("Producto no encontrado")
+            campos = payload.model_fields_set
+            if "cantidades" in campos and payload.cantidades:
+                self._guardar_cantidades(producto_id, payload.cantidades)
+            if "rendimiento" in campos:
+                producto.rendimiento = payload.rendimiento
+            if "otros_costos" in campos and payload.otros_costos is not None:
+                repo.reemplazar_otros_costos(producto_id, [(o.nombre, o.monto) for o in payload.otros_costos])
+            repo.flush()
+            calculo = self.calcular(productor_id, producto_id, alternativas)
+            repo.commit()
+            return calculo
+        except BaseException:
+            repo.rollback()
+            raise
+
+    def _guardar_cantidades(self, producto_id: int, cantidades: "list[CantidadIngredienteInput]") -> None:
+        repo = self.repository
+        version_id = repo.get_version_vigente_id(producto_id)
+        vigentes = {l.ingrediente_id for l in repo.lineas_formulacion(version_id)} if version_id is not None else set()
+        vistos: set[int] = set()
+        for item in cantidades:
+            if item.ingrediente_id in vistos:
+                raise CostosValidationError(
+                    f"El ingrediente {item.ingrediente_id} aparece más de una vez", item.ingrediente_id
+                )
+            vistos.add(item.ingrediente_id)
+            if item.ingrediente_id not in vigentes:
+                raise CostosValidationError(
+                    f"El ingrediente {item.ingrediente_id} no está en la formulación vigente del producto",
+                    item.ingrediente_id,
+                )
+        filas = repo.filas_de_cantidades(producto_id)
+        for item in cantidades:
+            fila = filas.get(item.ingrediente_id)
+            if item.cantidad is None:
+                if fila is not None:
+                    repo.borrar_cantidad(fila)
+            elif fila is not None:
+                fila.cantidad = item.cantidad
+                fila.unidad = item.unidad
+            else:
+                repo.agregar_cantidad(
+                    CantidadIngredienteProducto(
+                        producto_id=producto_id,
+                        ingrediente_id=item.ingrediente_id,
+                        cantidad=item.cantidad,
+                        unidad=item.unidad,
+                    )
+                )
 
     def costo_calculado_por_unidad(self, productor_id: int, producto_id: int) -> Decimal | None:
         """Cost per unit for the product detail (D6): the preselection with no alternatives.
@@ -188,16 +279,17 @@ class CostosService:
         for ingrediente_id, insumo_id in alternativas.items():
             if ingrediente_id not in ingrediente_ids:
                 raise CostosValidationError(
-                    f"El ingrediente {ingrediente_id} no está en la formulación vigente del producto"
+                    f"El ingrediente {ingrediente_id} no está en la formulación vigente del producto",
+                    ingrediente_id,
                 )
             insumo = insumos.get(insumo_id)
             # A supply of another productor is not even loaded: it looks exactly like one that does not exist.
             if insumo is None:
-                raise CostosValidationError(f"El insumo {insumo_id} no existe")
+                raise CostosValidationError(f"El insumo {insumo_id} no existe", ingrediente_id)
             if insumo.ingrediente_id != ingrediente_id:
-                raise CostosValidationError(f"El insumo {insumo_id} no es del ingrediente {ingrediente_id}")
+                raise CostosValidationError(f"El insumo {insumo_id} no es del ingrediente {ingrediente_id}", ingrediente_id)
             if not insumo.activo:
-                raise CostosValidationError(f"El insumo {insumo_id} está inactivo")
+                raise CostosValidationError(f"El insumo {insumo_id} está inactivo", ingrediente_id)
 
     @staticmethod
     def _preseleccion(
@@ -227,6 +319,7 @@ class CostosService:
         self,
         ingrediente_id: int,
         ingrediente_nombre: str,
+        orden: int | None,
         guardada: CantidadGuardada | None,
         insumos: dict[int, InsumoDeCosto],
         disponibles: list[InsumoDeCosto],
@@ -279,17 +372,26 @@ class CostosService:
             faltantes=faltantes,
             costo=costo,
             insumos_disponibles=[
-                InsumoDisponible(
-                    id=i.id,
-                    nombre=i.nombre,
-                    marca_origen=i.marca_origen,
-                    habitual=i.habitual,
-                    precio_referencia=i.precio_referencia,
-                    contenido_cantidad=i.contenido_cantidad,
-                    contenido_unidad=i.contenido_unidad,
-                )
-                for i in sorted(disponibles, key=lambda i: (i.nombre.lower(), i.id))
+                self._disponible(i) for i in sorted(disponibles, key=lambda i: (i.nombre.lower(), i.id))
             ],
+            orden=orden,
+            insumo=self._disponible(insumo) if insumo else None,
+        )
+
+    @staticmethod
+    def _disponible(i: InsumoDeCosto) -> InsumoDisponible:
+        return InsumoDisponible(
+            id=i.id,
+            nombre=i.nombre,
+            marca_origen=i.marca_origen,
+            habitual=i.habitual,
+            precio_referencia=i.precio_referencia,
+            contenido_cantidad=i.contenido_cantidad,
+            contenido_unidad=i.contenido_unidad,
+            presentacion=i.presentacion,
+            precio_fuente=i.precio_fuente,
+            precio_fecha=i.precio_fecha,
+            contenido_fuente=i.contenido_fuente,
         )
 
     @staticmethod

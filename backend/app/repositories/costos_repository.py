@@ -1,10 +1,11 @@
-"""Read-only queries of the cost calculator (HU14 / T14-04). This repository never writes."""
+"""Queries of the cost calculator (HU14). The reading ones are T14-04; the writing ones (T14-05) only touch
+the calculator's own tables and never commit: the service does."""
 
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -53,6 +54,8 @@ class InsumoDeCosto:
     precio_fecha: datetime | None
     contenido_cantidad: Decimal | None
     contenido_unidad: str | None
+    presentacion: str | None = None
+    contenido_fuente: str | None = None
 
 
 class CostosRepository:
@@ -135,6 +138,48 @@ class CostosRepository:
                 InsumoComercial.precio_fecha,
                 InsumoComercial.contenido_cantidad,
                 InsumoComercial.contenido_unidad,
+                InsumoComercial.presentacion,
+                InsumoComercial.contenido_fuente,
             ).where(InsumoComercial.productor_id == productor_id, or_(*condiciones))
         )
         return [InsumoDeCosto(*fila) for fila in filas]
+
+    # --- writing (T14-05): flush only, the service commits or rolls back the whole save ---
+
+    def bloquear_producto(self, producto_id: int, productor_id: int) -> Producto | None:
+        """The active product of the productor, with its row locked like the formulation does."""
+        return self.db.scalar(
+            select(Producto)
+            .where(
+                Producto.id == producto_id,
+                Producto.productor_id == productor_id,
+                Producto.activo.is_(True),
+            )
+            .with_for_update()
+        )
+
+    def filas_de_cantidades(self, producto_id: int) -> dict[int, CantidadIngredienteProducto]:
+        filas = self.db.scalars(
+            select(CantidadIngredienteProducto).where(CantidadIngredienteProducto.producto_id == producto_id)
+        )
+        return {fila.ingrediente_id: fila for fila in filas}
+
+    def agregar_cantidad(self, fila: CantidadIngredienteProducto) -> None:
+        self.db.add(fila)
+
+    def borrar_cantidad(self, fila: CantidadIngredienteProducto) -> None:
+        self.db.delete(fila)
+
+    def reemplazar_otros_costos(self, producto_id: int, otros: list[tuple[str, Decimal]]) -> None:
+        self.db.execute(delete(OtroCostoProducto).where(OtroCostoProducto.producto_id == producto_id))
+        for orden, (nombre, monto) in enumerate(otros, start=1):
+            self.db.add(OtroCostoProducto(producto_id=producto_id, nombre=nombre, monto=monto, orden=orden))
+
+    def flush(self) -> None:
+        self.db.flush()
+
+    def commit(self) -> None:
+        self.db.commit()
+
+    def rollback(self) -> None:
+        self.db.rollback()

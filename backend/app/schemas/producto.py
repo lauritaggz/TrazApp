@@ -243,6 +243,10 @@ class ProductoGestionRead(BaseModel):
     publicado: bool = False
     id_publico: str | None = None
     publicado_en: datetime | None = None
+    # HU14: cost per unit calculated by the calculator (T14-04). Only the detail (GET /{id}) and the answer
+    # of PATCH fill it; it is null in the list and the POST, and whenever the calculation is not complete
+    # or the product has no rendimiento. It never replaces `costo_produccion`, which stays as typed.
+    costo_calculado: Decimal | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

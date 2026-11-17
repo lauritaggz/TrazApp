@@ -209,3 +209,49 @@ Las marcadas como **propuesta** se confirman en la Fase 1 de T14-02, que define 
 - **Productos a granel (T14-03):** se detectan con tres señales, basta una: la búsqueda los marca con `measurementUnit` "kg" (llega como presentación "Granel"), el nombre dice "granel", o el gtin de la ficha es un número de circulación restringida de GS1 (un PLU de tienda o un producto pesado; es la misma detección de HU07). Una ficha consultada solo por su slug (por ejemplo, "Actualizar precio desde Jumbo") no pasa por la búsqueda y solo dispone de las dos últimas señales. Para un granel, Jumbo da el precio por kilo y un contenido que es una porción: ambos se descartan. Efecto colateral aceptado: otros productos pesados con prefijo restringido también quedan sin precio automático y se completan a mano. Un granel sin "granel" en el nombre, sin gtin o con un gtin normal y consultado sin la búsqueda no se detectaría.
 - **Contenido (T14-03):** solo se normaliza lo inequívoco. "1.000 g" (punto y tres dígitos), presentaciones distintas de `N x Q` y unidades desconocidas quedan sin contenido, para edición manual.
 - **Fuente del contenido:** si Jumbo trae el precio pero no el contenido, el contenido puede venir de Open Food Facts (otra fuente, otra fecha de origen). El insumo guarda la fuente de cada uno por separado.
+
+---
+
+## 10. Contrato de los endpoints de costos (T14-05)
+
+Lo que necesita el frontend (T14-06 y T14-07). Los esquemas están en `backend/app/schemas/costos.py`.
+
+### Cómo viajan los números en el JSON
+
+Todo `Decimal` viaja como **texto** con una cantidad fija de decimales, nunca como número JSON. El frontend lo convierte con `Decimal`/aritmética de texto o `Number()` solo para mostrar, y el redondeo a pesos enteros (`ROUND_HALF_UP`) se hace solo al mostrar:
+
+| Valor | Decimales | Ejemplo |
+|---|---|---|
+| Costos y totales (`costo` de la línea, `total_ingredientes`, `total_otros_costos`, `costo_tanda`, `costo_unidad`, `costo_calculado` del detalle) | 4 | `"250.0000"` |
+| Precios (`precio_referencia`) y `monto` de los otros costos | 2 | `"1000.00"` |
+| Cantidades y contenidos (`cantidad`, `contenido_cantidad`) | 3 | `"250.000"` |
+
+`rendimiento`, `orden` e ids son enteros. Las fechas (`precio_fecha`, `precio_mas_antiguo`) son ISO 8601. En el cuerpo del PUT se aceptan los mismos textos (y también números JSON).
+
+### GET `/gestion/productos/{id}/costos?insumo=<ingrediente_id>:<insumo_id>`
+
+- `insumo` es repetible (uno por ingrediente) y **no se guarda**: sirve para recalcular con otro insumo. El GET siguiente sin el parámetro vuelve a la preselección.
+- Respuesta `CostosProductoRead`: `producto_id`, `producto_nombre`, `tiene_formulacion`, `version_id`, `rendimiento`, `lineas[]`, `otros_costos[]` y `resumen`.
+- Línea: `ingrediente_id`, `ingrediente_nombre`, `orden`, `cantidad`, `unidad`, `insumo` (el usado), `origen_insumo` (`ultima_elaboracion`, `habitual`, `elegido` o `null`), `aviso_insumo` (`"ultimo_inactivo"`: el insumo de la última elaboración está inactivo o ahora es de otro ingrediente, y la línea cayó al habitual o a ninguno; la interfaz muestra "El insumo de la última elaboración ya no está activo"), `insumos_disponibles[]` (activos del ingrediente), `costo` y `faltantes[]` (`{codigo, mensaje}`; códigos `sin_cantidad`, `sin_insumo`, `insumo_sin_precio`, `insumo_sin_contenido`, `unidades_incompatibles`; una línea puede tener varios).
+- `resumen`: `completo`, `lineas_incompletas`, `total_ingredientes` y `costo_tanda` (`null` con cualquier faltante), `total_otros_costos` (siempre), `costo_unidad` (`null` con faltantes o sin rendimiento) y `precio_mas_antiguo` (solo de los insumos de las líneas con costo).
+- Errores: **404** con `detail` de texto (producto inexistente, dado de baja o de otro productor); **422** con `detail: {mensaje[, ingrediente_id]}` si el parámetro está mal formado, repite un ingrediente, o la alternativa es inactiva, de otro ingrediente, de otro productor, inexistente o de un ingrediente fuera de la formulación vigente; **401** sin token.
+
+### PUT `/gestion/productos/{id}/costos`
+
+- Cuerpo `CostosProductoUpdate` (`extra="forbid"`): un campo omitido **no se toca**.
+  - `rendimiento`: entero de 1 a 1.000.000; `null` lo borra.
+  - `cantidades`: hasta 200 `{ingrediente_id, cantidad, unidad}`; hace upsert por ingrediente, los ausentes no se tocan, `cantidad` y `unidad` van juntas y `null` en ambas borra la fila. `cantidad` > 0 con hasta 3 decimales.
+  - `otros_costos`: hasta 50 `{nombre, monto}` (nombre con strip, de 1 a 100 caracteres; monto ≥ 0 con hasta 2 decimales). **Reemplazo completo**: `[]` los borra todos. El `orden` lo asigna el servidor (1, 2, 3...).
+- Acepta los mismos `?insumo=` y responde con el mismo `CostosProductoRead`, ya recalculado.
+- Una sola transacción, con la fila del producto bloqueada. Si algo falla no queda nada guardado. **No crea versiones** de la formulación y no toca elaboraciones, usos ni insumos.
+- 422 con `{mensaje, ingrediente_id}` si un ingrediente no está en la formulación vigente o se repite en el cuerpo. Una cantidad guardada de un ingrediente que ya salió de la formulación se conserva, pero no se usa ni se puede volver a escribir.
+
+### Costo calculado del detalle (D6)
+
+- `ProductoGestionRead.costo_calculado` (texto con 4 decimales o `null`) es el **costo por unidad** con la preselección y sin alternativas. Solo lo traen el `GET /gestion/productos/{id}` y la respuesta del `PATCH`; en el listado y en el `POST` siempre es `null`.
+- Es `null` si falta un dato, no hay rendimiento o no hay formulación vigente. `costo_produccion` (HU01) nunca se modifica: la interfaz muestra el calculado con la etiqueta "calculado" cuando existe y el manual cuando es `null`.
+- El detalle usa la preselección, así que puede diferir del cálculo que el productor ve en la calculadora tras elegir otro insumo con el selector.
+
+### Consultas
+
+El número de consultas no depende del número de líneas. GET de costos: 8 (autenticación incluida; 9 si el producto tiene una elaboración finalizada). PUT: 9 al guardar solo el rendimiento (10 con elaboración finalizada); si guarda cantidades suma las consultas de la formulación vigente y las filas se escriben en lote. Detalle: 5 sin costo calculado y 12 con él (13 con elaboración finalizada), es decir, 7 consultas extra solo cuando hay rendimiento y formulación vigente.

@@ -104,7 +104,21 @@ class ProductoService:
         producto_id: int,
     ) -> ProductoGestionRead:
         producto = self._get_owned_or_raise(productor.id, producto_id)
-        return leer_productos(self.repository, [producto])[0]
+        return self._con_costo_calculado(productor, producto)
+
+    def _con_costo_calculado(self, productor: Productor, producto: Producto) -> ProductoGestionRead:
+        """The detail of a product with its calculated cost per unit (HU14, D6).
+
+        Without a rendimiento or without a current formulation there is nothing to calculate and no
+        extra query is made: both are already known here.
+        """
+        lectura = leer_productos(self.repository, [producto])[0]
+        if producto.rendimiento is None or not lectura.tiene_formulacion:
+            return lectura
+        from app.services.costos_service import CostosService  # imported here: it imports this module
+
+        costo = CostosService(self.repository.db).costo_calculado_por_unidad(productor.id, producto.id)
+        return lectura.model_copy(update={"costo_calculado": costo})
 
     def update_mine(
         self,
@@ -122,7 +136,7 @@ class ProductoService:
         ):
             self.image_service.delete_stored_image(producto.imagen_url)
         updated = self.repository.update(producto, **updates)
-        return leer_productos(self.repository, [updated])[0]
+        return self._con_costo_calculado(productor, updated)
 
     def delete_mine(self, productor: Productor, producto_id: int) -> None:
         producto = self._get_owned_or_raise(productor.id, producto_id)
