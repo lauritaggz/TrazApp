@@ -12,6 +12,7 @@ from app.services.recuperacion.base import (
     MOTIVO_TIMEOUT,
     FuenteNoDisponibleError,
 )
+from app.core.contenido import parsear_contenido
 from app.services.recuperacion.modelos import ProductoFuente, url_de_imagen
 
 NOMBRE_FUENTE = "open_food_facts"
@@ -137,6 +138,8 @@ class OpenFoodFactsFuente:
         ficha["url"] = url
         # The picture address is for showing; it is not in the record that the supply keeps.
         imagen = url_de_imagen(producto.get(CAMPO_IMAGEN))
+        # HU14: Open Food Facts has no prices; its quantity is only parsed when it is unambiguous.
+        contenido = parsear_contenido(producto.get("quantity"))
         return ProductoFuente(
             codigo_barras=codigo_barras,
             nombre=_texto(producto.get("product_name_es")) or _texto(producto.get("product_name")),
@@ -150,4 +153,7 @@ class OpenFoodFactsFuente:
             ficha=ficha,
             imagen_url=imagen,
             imagen_fuente=NOMBRE_FUENTE if imagen else None,
+            contenido_cantidad=contenido[0] if contenido else None,
+            contenido_unidad=contenido[1] if contenido else None,
+            contenido_fuente=NOMBRE_FUENTE if contenido else None,
         )

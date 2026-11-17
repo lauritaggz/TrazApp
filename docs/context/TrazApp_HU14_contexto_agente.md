@@ -200,3 +200,12 @@ Las marcadas como **propuesta** se confirman en la Fase 1 de T14-02, que define 
 - Actualización automática o periódica de precios.
 - Otros supermercados.
 - Cambiar el modelo de la formulación más allá de ocultar cantidades en la interfaz.
+
+---
+
+## 9. Limitaciones conocidas (registradas durante la implementación)
+
+- **Precio de Jumbo (T14-03):** los datos estructurados de la ficha (`offers.price`) y la búsqueda (`items[].price`) traen **un solo precio**. No hay `listPrice`, `highPrice`, `lowPrice`, precio tachado ni vigencia en ninguna de las fichas y búsquedas grabadas. El precio de referencia es el que Jumbo muestra al consultar, así que **puede ser un precio de oferta** y no distinguirse del normal. Por eso el cálculo es una estimación y el productor puede corregir el precio (queda como "manual" con su fecha).
+- **Productos a granel (T14-03):** se detectan con tres señales, basta una: la búsqueda los marca con `measurementUnit` "kg" (llega como presentación "Granel"), el nombre dice "granel", o el gtin de la ficha es un número de circulación restringida de GS1 (un PLU de tienda o un producto pesado; es la misma detección de HU07). Una ficha consultada solo por su slug (por ejemplo, "Actualizar precio desde Jumbo") no pasa por la búsqueda y solo dispone de las dos últimas señales. Para un granel, Jumbo da el precio por kilo y un contenido que es una porción: ambos se descartan. Efecto colateral aceptado: otros productos pesados con prefijo restringido también quedan sin precio automático y se completan a mano. Un granel sin "granel" en el nombre, sin gtin o con un gtin normal y consultado sin la búsqueda no se detectaría.
+- **Contenido (T14-03):** solo se normaliza lo inequívoco. "1.000 g" (punto y tres dígitos), presentaciones distintas de `N x Q` y unidades desconocidas quedan sin contenido, para edición manual.
+- **Fuente del contenido:** si Jumbo trae el precio pero no el contenido, el contenido puede venir de Open Food Facts (otra fuente, otra fecha de origen). El insumo guarda la fuente de cada uno por separado.

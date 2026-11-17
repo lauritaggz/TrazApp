@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
@@ -23,6 +24,12 @@ FuenteDeUnAlergeno = Literal["jumbo", "open_food_facts", "ingredientes", "manual
 _ORDEN_FUENTES_ALERGENO = ("jumbo", "open_food_facts", "ingredientes", "manual")
 CodigoAlergeno = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]{1,50}$")]
 TipoDeclaracion = Literal["contiene", "trazas"]
+# HU14: unit of the net content (same vocabulary as the formulation and the product).
+UnidadContenido = Literal["g", "kg", "ml", "L", "unidad"]
+# HU14: the price and the content travel in `fuentes_campos` / `campos_editados` under these names.
+CAMPO_PRECIO = "precio_referencia"
+CAMPO_CONTENIDO = "contenido"
+CAMPOS_DE_COSTOS = (CAMPO_PRECIO, CAMPO_CONTENIDO)
 
 # These fields cannot be cleared with an explicit null in a PATCH.
 _NOT_NULLABLE_UPDATE_FIELDS = (
@@ -100,6 +107,10 @@ class InsumoCreate(BaseModel):
     fuente: FuenteInsumo = "manual"
     fecha_recuperacion: AwareDatetime | None = None
     habitual: bool = False
+    # HU14: the client sends only the values; their source and date are decided by the server.
+    precio_referencia: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    contenido_cantidad: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=3)
+    contenido_unidad: UnidadContenido | None = None
     alergenos: list[InsumoAlergenoCreate] | None = None
     # HU07 (optional, only for supplies that come from a source): the source of each field as the
     # lookup answered it (`fuentes_campos` of the proposal), the sources that named the confirmed
@@ -127,10 +138,18 @@ class InsumoCreate(BaseModel):
             return self
         if self.fuente == "manual":
             raise ValueError("Un insumo manual no lleva fuentes_campos")
-        desconocidos = set(self.fuentes_campos) - set(CAMPOS_DEL_PRODUCTO)
-        desconocidos |= set(self.campos_editados or ()) - set(CAMPOS_EDITABLES)
+        desconocidos = set(self.fuentes_campos) - set(CAMPOS_DEL_PRODUCTO) - set(CAMPOS_DE_COSTOS)
+        desconocidos |= set(self.campos_editados or ()) - set(CAMPOS_EDITABLES) - set(CAMPOS_DE_COSTOS)
         if desconocidos:
             raise ValueError(f"Campos sin fuente conocida: {', '.join(sorted(desconocidos))}")
+        if self.fuentes_campos.get(CAMPO_PRECIO, "jumbo") != "jumbo":
+            raise ValueError("Solo Jumbo informa precios")
+        return self
+
+    @model_validator(mode="after")
+    def validate_contenido_completo(self) -> Self:
+        if (self.contenido_cantidad is None) != (self.contenido_unidad is None):
+            raise ValueError("contenido_cantidad y contenido_unidad deben indicarse juntas")
         return self
 
     @field_validator("nombre")
@@ -175,6 +194,11 @@ class InsumoUpdate(BaseModel):
     fecha_recuperacion: AwareDatetime | None = None
     habitual: bool | None = None
     activo: bool | None = None
+    # HU14: editing a value makes its source «manual» with today's date (decided by the server); null
+    # clears it together with its source and date. Content is cleared or set as a pair.
+    precio_referencia: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    contenido_cantidad: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=3)
+    contenido_unidad: UnidadContenido | None = None
 
     @field_validator("nombre")
     @classmethod
@@ -285,6 +309,13 @@ class InsumoRead(BaseModel):
     ficha: dict[str, Any] | None
     fuente: str
     fecha_recuperacion: datetime | None
+    # HU14: reference price and net content, each with its own source; the price also has its date.
+    precio_referencia: Decimal | None
+    precio_fuente: str | None
+    precio_fecha: datetime | None
+    contenido_cantidad: Decimal | None
+    contenido_unidad: str | None
+    contenido_fuente: str | None
     habitual: bool
     activo: bool
     created_at: datetime
@@ -311,6 +342,12 @@ class InsumoRead(BaseModel):
             ficha=insumo.ficha,
             fuente=insumo.fuente,
             fecha_recuperacion=insumo.fecha_recuperacion,
+            precio_referencia=insumo.precio_referencia,
+            precio_fuente=insumo.precio_fuente,
+            precio_fecha=insumo.precio_fecha,
+            contenido_cantidad=insumo.contenido_cantidad,
+            contenido_unidad=insumo.contenido_unidad,
+            contenido_fuente=insumo.contenido_fuente,
             habitual=insumo.habitual,
             activo=insumo.activo,
             created_at=insumo.created_at,

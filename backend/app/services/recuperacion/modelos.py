@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any
 
 
@@ -29,6 +30,12 @@ class ProductoFuente:
     imagen_url: str | None = None
     # The source of `imagen_url` ("jumbo" or "open_food_facts"), shown next to it as attribution.
     imagen_fuente: str | None = None
+    # HU14, all optional: reference price (CLP, only Jumbo has it) and net content already parsed to
+    # (quantity, unit), with the source of the content. Not part of `ficha`; None = unknown, never guessed.
+    precio: Decimal | None = None
+    contenido_cantidad: Decimal | None = None
+    contenido_unidad: str | None = None
+    contenido_fuente: str | None = None
 
 
 @dataclass(frozen=True)

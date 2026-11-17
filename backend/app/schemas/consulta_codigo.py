@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, ClassVar
 
 from pydantic import BaseModel, GetJsonSchemaHandler, SerializerFunctionWrapHandler, model_serializer
@@ -63,8 +64,24 @@ class ProductoPropuestoRead(BaseModel):
     ingredientes_declarados: str | None
 
 
+class CostosPropuestosRead(BaseModel):
+    """HU14: reference price and net content the source offers for the supply form.
+
+    Only what the source gave and the parser understood; the productor confirms or edits it. The
+    sources go back as `fuentes_campos["precio_referencia"]` and `fuentes_campos["contenido"]` when
+    the supply is created, so the server can keep them (an edited value is "manual").
+    """
+
+    precio_referencia: Decimal | None = None
+    precio_fuente: str | None = None
+    contenido_cantidad: Decimal | None = None
+    contenido_unidad: str | None = None
+    contenido_fuente: str | None = None
+
+
 class ConsultaCodigoRead(_OmiteOpcionalesVacios):
     OPCIONALES: ClassVar[tuple[str, ...]] = (
+        "costos",
         "fuentes_campos",
         "fuentes_sin_respuesta",
         "imagen_url",
@@ -87,6 +104,8 @@ class ConsultaCodigoRead(_OmiteOpcionalesVacios):
     # HU07: thumbnail of the product and who it comes from (attribution). Only addresses, never saved.
     imagen_url: str | None = None
     imagen_fuente: str | None = None
+    # HU14, optional and left out of the answer when the source gave neither price nor content.
+    costos: CostosPropuestosRead | None = None
 
 
 

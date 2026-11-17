@@ -30,6 +30,7 @@ from app.services.insumo_service import (
 )
 from app.services.recuperacion.base import FuenteNoDisponibleError
 from app.services.recuperacion.service import (
+    ActualizacionPrecioError,
     BusquedaInvalidaError,
     CodigoInvalidoError,
     RecuperacionService,
@@ -217,6 +218,27 @@ def actualizar_insumo(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/{insumo_id}/actualizar-precio", response_model=InsumoRead)
+def actualizar_precio_desde_jumbo(
+    insumo_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: RecuperacionService = Depends(get_recuperacion_service),
+) -> InsumoRead:
+    """Refresh the price of a supply from its Jumbo sheet (HU14): one request to Jumbo per call.
+
+    409 with `{mensaje}` and no change when the supply has no Jumbo sheet or Jumbo cannot give a price.
+    """
+    try:
+        return service.actualizar_precio(current_productor, insumo_id)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ActualizacionPrecioError as exc:
+        detalle = {"mensaje": str(exc)}
+        if exc.motivo:
+            detalle["motivo"] = exc.motivo
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detalle) from exc
 
 
 @router.delete("/{insumo_id}", status_code=status.HTTP_204_NO_CONTENT)
