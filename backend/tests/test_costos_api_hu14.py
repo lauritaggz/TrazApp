@@ -5,7 +5,7 @@ and on PostgreSQL.
 """
 
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -677,6 +677,64 @@ def test_el_costo_calculado_cambia_con_el_precio_del_insumo_y_el_manual_no(api, 
     detalle = _detalle(api, ctx)
     assert detalle["costo_calculado"] == "750.5000"
     assert detalle["costo_produccion"] == "99.00"
+
+
+def _instante(texto: str) -> datetime:
+    """ISO 8601 text as a naive UTC instant, so SQLite and PostgreSQL serializations compare equal."""
+    valor = datetime.fromisoformat(texto.replace("Z", "+00:00"))
+    return valor.astimezone(UTC).replace(tzinfo=None) if valor.tzinfo else valor
+
+
+def test_pt14_07_editar_el_precio_de_un_insumo_usado_en_dos_productos_cambia_ambos_calculos(api, ctx) -> None:
+    """PT14-07: one supply, two products; the price lives in the supply, so both calculations follow it."""
+    # Product 1 (ctx): 250 g of harina + 200 ml of leche + $30,50 of other costs, yield 1 = $500,50.
+    _completar(api, ctx, rendimiento=1)
+    # Product 2: only harina, 500 g, yield 1 = $500 (harina 1 kg a $1.000, the same supply).
+    pan = crear_producto(api, ctx["headers"], "Pan de molde", "pan-001")
+    formular(api, ctx["headers"], pan["id"], ctx["harina"])
+    ctx_pan = {**ctx, "pid": pan["id"]}
+    guardado = _put(
+        api,
+        ctx_pan,
+        {"cantidades": [{"ingrediente_id": ctx["harina"]["id"], "cantidad": "500", "unidad": "g"}], "rendimiento": 1},
+    )
+    assert guardado.status_code == 200, guardado.text
+    # Both products really use the same supply.
+    assert _linea(_get(api, ctx).json(), ctx["harina"])["insumo"]["id"] == ctx["i_harina"]["id"]
+    assert _linea(_get(api, ctx_pan).json(), ctx["harina"])["insumo"]["id"] == ctx["i_harina"]["id"]
+    assert _get(api, ctx).json()["resumen"]["costo_unidad"] == "500.5000"
+    assert _get(api, ctx_pan).json()["resumen"]["costo_unidad"] == "500.0000"
+
+    # The price comes from Jumbo with an old date, so the change to «manual» is visible.
+    viejo = datetime(2026, 1, 1, tzinfo=UTC)
+    with ctx["fabrica"]() as sesion:
+        insumo = sesion.get(InsumoComercial, ctx["i_harina"]["id"])
+        insumo.precio_fuente = "jumbo"
+        insumo.precio_fecha = viejo
+        sesion.commit()
+
+    antes = datetime.now(UTC).replace(tzinfo=None)
+    editado = api.patch(
+        f"/gestion/insumos/{ctx['i_harina']['id']}", headers=ctx["headers"], json={"precio_referencia": "2000"}
+    )
+    assert editado.status_code == 200, editado.text
+
+    # Harina now costs $2.000 per kg: 250 g = $500 (+ $220 + $30,50) and 500 g = $1.000.
+    primero = _get(api, ctx).json()
+    segundo = _get(api, ctx_pan).json()
+    assert primero["resumen"]["costo_unidad"] == "750.5000"
+    assert segundo["resumen"]["costo_unidad"] == "1000.0000"
+    assert _detalle(api, ctx)["costo_calculado"] == "750.5000"
+    assert _detalle(api, ctx_pan)["costo_calculado"] == "1000.0000"
+
+    # The source is «manual», with the date of the change (not the old one).
+    leido = api.get(f"/gestion/insumos/{ctx['i_harina']['id']}", headers=ctx["headers"]).json()
+    assert leido["precio_referencia"] == "2000.00"
+    assert leido["precio_fuente"] == "manual"
+    assert _instante(leido["precio_fecha"]) >= antes - timedelta(seconds=5)
+    assert _instante(leido["precio_fecha"]) > viejo.replace(tzinfo=None)
+    # Product 2 only uses harina, so its oldest price is that very date.
+    assert _instante(segundo["resumen"]["precio_mas_antiguo"]) == _instante(leido["precio_fecha"])
 
 
 # --- PT14-14: lo conservado no cambia ------------------------------------------------------------

@@ -3,7 +3,7 @@ import ActualizarJumbo from "@/components/costos/ActualizarJumbo";
 import { ELEMENTO_DE_DATOS } from "@/components/costos/estilos";
 import { AlertIcon } from "@/components/costos/iconosCostos";
 import Select from "@/components/ui/Select";
-import { enlaceDeEdicionDesdeCalculadora, nombreDeOrigen } from "@/lib/costosInsumo";
+import { enlaceDeEdicionDesdeCalculadora, etiquetaUnidad, nombreDeOrigen } from "@/lib/costosInsumo";
 import {
   AVISO_ULTIMO_INACTIVO,
   ETIQUETA_ORIGEN,
@@ -125,7 +125,7 @@ export default function LineaCostoFila({
                     : `${formatearPrecio(insumo.precio_referencia)} / ${
                         insumo.contenido_cantidad === null || !insumo.contenido_unidad
                           ? "—"
-                          : `${formatearCantidad(insumo.contenido_cantidad)} ${insumo.contenido_unidad}`
+                          : `${formatearCantidad(insumo.contenido_cantidad)} ${etiquetaUnidad(insumo.contenido_unidad)}`
                       }`}
                 </span>
                 {insumo.precio_fuente && (
@@ -179,7 +179,7 @@ export default function LineaCostoFila({
               <option value="">—</option>
               {UNIDADES_CANTIDAD.map((u) => (
                 <option key={u} value={u}>
-                  {u}
+                  {etiquetaUnidad(u)}
                 </option>
               ))}
             </select>

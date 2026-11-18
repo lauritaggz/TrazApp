@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { fieldClassName } from "@/components/ui/fieldStyles";
-import { UNIDADES_CONTENIDO, etiquetaDeOrigen } from "@/lib/costosInsumo";
+import { UNIDADES_CONTENIDO, etiquetaDeOrigen, etiquetaUnidad } from "@/lib/costosInsumo";
 import { nombreFuente } from "@/lib/fuentesInsumo";
 import { INSUMO_FORM_FIELD_ORDER, type InsumoFormFieldErrors } from "@/lib/insumoFormValidation";
 import {
@@ -359,7 +359,7 @@ export default function RevisionInsumo({
                     <option value="">Sin unidad</option>
                     {UNIDADES_CONTENIDO.map((unidad) => (
                       <option key={unidad} value={unidad}>
-                        {unidad}
+                        {etiquetaUnidad(unidad)}
                       </option>
                     ))}
                   </Select>

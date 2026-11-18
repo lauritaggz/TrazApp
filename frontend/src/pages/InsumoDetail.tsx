@@ -16,7 +16,7 @@ import { InsumoIcon } from "@/components/detail/icons";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
-import { etiquetaDeOrigen, slugDeJumbo } from "@/lib/costosInsumo";
+import { etiquetaDeOrigen, etiquetaUnidad, slugDeJumbo } from "@/lib/costosInsumo";
 import { formatearCantidad, formatearPrecio } from "@/lib/dinero";
 import { nombreFuente } from "@/lib/fuentesInsumo";
 import {
@@ -256,7 +256,7 @@ export default function InsumoDetail() {
                       {insumo.contenido_cantidad != null && insumo.contenido_unidad ? (
                         <>
                           <span className="tabular-nums">
-                            {formatearCantidad(insumo.contenido_cantidad)} {insumo.contenido_unidad}
+                            {formatearCantidad(insumo.contenido_cantidad)} {etiquetaUnidad(insumo.contenido_unidad)}
                           </span>
                           <span className="mt-0.5 block text-xs font-normal text-text-secondary">
                             {etiquetaDeOrigen(insumo.contenido_fuente) ?? "Sin fuente"}

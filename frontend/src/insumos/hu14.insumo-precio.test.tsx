@@ -105,6 +105,15 @@ describe("HU14 — detalle del insumo: precio y contenido", () => {
     expect(within(seccion).getByText("Open Food Facts")).toBeInTheDocument();
   });
 
+  it("un contenido en «unidad» se muestra «un»", async () => {
+    conInsumo(insumo({ contenido_cantidad: "12.000", contenido_unidad: "unidad" }));
+    abrir("/insumos/10");
+
+    const seccion = await screen.findByRole("region", { name: "Precio y contenido" });
+    expect(within(seccion).getByText("12 un")).toBeInTheDocument();
+    expect(within(seccion).queryByText(/unidad/)).not.toBeInTheDocument();
+  });
+
   it("un precio manual dice «Manual · fecha»; los centavos solo si existen", async () => {
     conInsumo(insumo({ precio_referencia: "990.50", precio_fuente: "manual", precio_fecha: "2026-11-14T09:00:00Z" }));
     abrir("/insumos/10");
@@ -322,6 +331,33 @@ describe("HU14 — formulario de edición: precio y contenido", () => {
       expect(insumoService.updateInsumo).toHaveBeenCalledWith(10, {
         contenido_cantidad: "500",
         contenido_unidad: "g",
+      }),
+    );
+  });
+
+  it("la unidad «unidad» se ve «un» en la lista, pero se guarda como «unidad»", async () => {
+    const user = userEvent.setup();
+    conInsumo(insumo());
+    vi.mocked(insumoService.updateInsumo).mockResolvedValue(insumo());
+    abrir("/insumos/10/editar");
+
+    const unidad = await screen.findByLabelText("Unidad del contenido");
+    expect(within(unidad).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Sin unidad",
+      "g",
+      "kg",
+      "ml",
+      "L",
+      "un",
+    ]);
+    await user.selectOptions(unidad, "un");
+    expect(unidad).toHaveValue("unidad");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() =>
+      expect(insumoService.updateInsumo).toHaveBeenCalledWith(10, {
+        contenido_cantidad: "1",
+        contenido_unidad: "unidad",
       }),
     );
   });

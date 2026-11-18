@@ -9,6 +9,14 @@ import { nombreFuente } from "@/lib/fuentesInsumo";
 export const UNIDADES_CONTENIDO = ["g", "kg", "ml", "L", "unidad"] as const;
 export type UnidadContenido = (typeof UNIDADES_CONTENIDO)[number];
 
+/**
+ * Cómo se ve la unidad en pantalla: «unidad» se muestra «un» (cabe en el selector angosto de la calculadora)
+ * y las demás quedan igual. Solo es la etiqueta: el valor que se envía y se guarda sigue siendo «unidad».
+ */
+export function etiquetaUnidad(unidad: string): string {
+  return unidad === "unidad" ? "un" : unidad;
+}
+
 // Límites del esquema del backend (backend/app/schemas/insumo.py, InsumoUpdate):
 //   precio_referencia  → ge=0, max_digits=12, decimal_places=2  (hasta 10 enteros y 2 decimales)
 //   contenido_cantidad → gt=0, max_digits=12, decimal_places=3  (hasta 9 enteros y 3 decimales)

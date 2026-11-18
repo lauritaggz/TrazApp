@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
+import { UNIDADES_CANTIDAD } from "@/lib/costosCalculadora";
+import { etiquetaUnidad } from "@/lib/costosInsumo";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as costosService from "@/services/costosService";
@@ -297,6 +299,83 @@ describe("HU14 — calculadora: lectura", () => {
     expect(cantidadDe("Harina")).toHaveDisplayValue("1");
     expect(cantidadDe("Azúcar")).toHaveDisplayValue("0,125");
     expect(screen.getByLabelText("Unidad de Harina")).toHaveDisplayValue("kg");
+  });
+
+  describe("la unidad «unidad» se muestra «un»", () => {
+    const enUnidades = () =>
+      vi.mocked(costosService.obtenerCostos).mockResolvedValue(
+        costos({
+          lineas: [
+            linea(1, "Palta", {
+              cantidad: "7.000",
+              unidad: "unidad",
+              insumo: insumo(30, "Palta Hass", { precio_referencia: "4950.00", contenido_cantidad: "4.000", contenido_unidad: "unidad" }),
+              costo: "8662.5000",
+            }),
+          ],
+        }),
+      );
+
+    it("el selector, el contenido del insumo y la lista de unidades dicen «un»; el valor sigue siendo «unidad»", async () => {
+      enUnidades();
+      abrir();
+      await esperarCalculo();
+
+      const selector = screen.getByLabelText("Unidad de Palta");
+      expect(selector).toHaveValue("unidad");
+      expect(selector).toHaveDisplayValue("un");
+      expect(within(selector).getAllByRole("option").map((o) => o.textContent)).toEqual(["—", "g", "kg", "ml", "L", "un"]);
+      expect(within(selector).getByRole("option", { name: "un" })).toHaveValue("unidad");
+
+      const fila = document.getElementById("linea-1") as HTMLElement;
+      expect(within(fila).getByText("$4.950 / 4 un")).toBeInTheDocument();
+      expect(within(fila).queryByText(/\bunidad\b/)).not.toBeInTheDocument();
+    });
+
+    it("guardar envía «unidad», no «un»", async () => {
+      const user = userEvent.setup();
+      enUnidades();
+      vi.mocked(costosService.guardarCostos).mockResolvedValue(costos());
+      abrir();
+      await esperarCalculo();
+
+      await user.clear(cantidadDe("Palta"));
+      await user.type(cantidadDe("Palta"), "8");
+      await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+      await waitFor(() => expect(costosService.guardarCostos).toHaveBeenCalledTimes(1));
+      expect(costosService.guardarCostos).toHaveBeenCalledWith(
+        1,
+        { cantidades: [{ ingrediente_id: 1, cantidad: "8", unidad: "unidad" }] },
+        {},
+      );
+    });
+
+    it("elegir «un» en el selector deja el valor «unidad»", async () => {
+      const user = userEvent.setup();
+      vi.mocked(costosService.guardarCostos).mockResolvedValue(costos());
+      abrir();
+      await esperarCalculo();
+
+      await user.selectOptions(screen.getByLabelText("Unidad de Harina"), "un");
+      expect(screen.getByLabelText("Unidad de Harina")).toHaveValue("unidad");
+      await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+      await waitFor(() => expect(costosService.guardarCostos).toHaveBeenCalledTimes(1));
+      expect(costosService.guardarCostos).toHaveBeenCalledWith(
+        1,
+        { cantidades: [{ ingrediente_id: 1, cantidad: "500", unidad: "unidad" }] },
+        {},
+      );
+    });
+
+    it("ninguna etiqueta de unidad pasa de dos caracteres, así que ninguna se corta en el selector de 76 px", () => {
+      for (const u of UNIDADES_CANTIDAD) {
+        expect(etiquetaUnidad(u).length).toBeLessThanOrEqual(2);
+      }
+      // Solo cambia «unidad»: las demás se ven igual que su valor.
+      expect(UNIDADES_CANTIDAD.map(etiquetaUnidad)).toEqual(["g", "kg", "ml", "L", "un"]);
+    });
   });
 
   it("el grupo cantidad + unidad: el campo ocupa el ancho disponible y la unidad tiene un ancho fijo angosto", () => {
