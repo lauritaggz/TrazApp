@@ -101,21 +101,45 @@ const FORMATO_FECHA = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat("es-CL", {
+  timeZone: ZONA_HORARIA,
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
 /**
- * Fecha "12-11-2026" de una marca de tiempo ISO 8601, en la zona America/Santiago (con su horario de verano):
- * "2026-11-13T01:30:00Z" es el 12-11-2026 a las 22:30 en Chile. Una marca sin zona se toma como UTC, que es
- * como las guarda el backend. Un texto que es solo una fecha ("2026-11-12") no tiene hora y se muestra tal cual.
- * Esta regla de `Date` aplica a fechas; el dinero nunca pasa por `number`.
+ * La marca de tiempo ISO 8601 como `Date`. Una marca sin zona se toma como UTC (así las guarda el backend).
+ * Un texto que es solo una fecha ("2026-11-12") no tiene hora: se ancla al mediodía UTC para que ninguna
+ * zona horaria lo corra de día. Null si no es una fecha.
  */
-export function formatearFechaCorta(iso: string | null | undefined): string | null {
+function aFecha(iso: string | null | undefined): Date | null {
   if (typeof iso !== "string") return null;
   const texto = iso.trim();
-  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
-  if (soloFecha) return `${soloFecha[3]}-${soloFecha[2]}-${soloFecha[1]}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+    const fecha = new Date(`${texto}T12:00:00Z`);
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
   if (!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(texto)) return null;
   const conZona = /(Z|[+-]\d{2}(:?\d{2})?)$/i.test(texto) ? texto : `${texto}Z`;
   const fecha = new Date(conZona.replace(" ", "T"));
-  if (Number.isNaN(fecha.getTime())) return null;
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
+/**
+ * Fecha "12-11-2026" de una marca de tiempo ISO 8601, en la zona America/Santiago (con su horario de verano):
+ * "2026-11-13T01:30:00Z" es el 12-11-2026 a las 22:30 en Chile. Un texto que es solo una fecha no se mueve.
+ * Esta regla de `Date` aplica a fechas; el dinero nunca pasa por `number`.
+ */
+export function formatearFechaCorta(iso: string | null | undefined): string | null {
+  const fecha = aFecha(iso);
+  if (!fecha) return null;
   const partes = Object.fromEntries(FORMATO_FECHA.formatToParts(fecha).map((p) => [p.type, p.value]));
   return `${partes.day}-${partes.month}-${partes.year}`;
+}
+
+/** Fecha como en la calculadora ("18 mar 2025"): día, mes abreviado y año en es-CL, zona America/Santiago. */
+export function formatearFechaLarga(iso: string | null | undefined): string | null {
+  const fecha = aFecha(iso);
+  return fecha ? FORMATO_FECHA_LARGA.format(fecha) : null;
 }

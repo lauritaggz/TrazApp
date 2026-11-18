@@ -3,7 +3,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NavItem from "@/components/layout/NavItem";
 
-export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "elaboraciones" | "publicaciones" | "perfil";
+export type AppSection = "inicio" | "productos" | "ingredientes" | "insumos" | "elaboraciones" | "publicaciones" | "calculadora" | "perfil";
 
 interface SidebarProps {
   open: boolean;
@@ -54,9 +54,9 @@ interface GrupoMenu {
 }
 
 /**
- * Los grupos del menú, como en el diseño. El grupo «Herramientas» tiene «Publicaciones» (HU09); la
- * «Calculadora de costos» (HU14) se agrega cuando exista su pantalla: sin enlaces a pantallas
- * inexistentes ni «Próximamente». «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración
+ * Los grupos del menú, como en el diseño. El grupo «Herramientas» tiene «Publicaciones» (HU09) y la
+ * «Calculadora de costos» (HU14): sin enlaces a pantallas inexistentes ni «Próximamente».
+ * «Elaboraciones» queda marcado también en el detalle y el registro de una elaboración
  * (NavLink sin `end`). Sin contadores.
  */
 const GRUPOS: GrupoMenu[] = [
@@ -72,9 +72,38 @@ const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: "Herramientas",
-    items: [{ icono: <QrIcon />, etiqueta: "Publicaciones", to: "/publicaciones" }],
+    items: [
+      { icono: <QrIcon />, etiqueta: "Publicaciones", to: "/publicaciones" },
+      { icono: <CalculatorIcon />, etiqueta: "Calculadora de costos", to: "/calculadora" },
+    ],
   },
 ];
+
+function CalculatorIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <line x1="8" y1="6" x2="16" y2="6" />
+      <line x1="8" y1="11" x2="8.01" y2="11" />
+      <line x1="12" y1="11" x2="12.01" y2="11" />
+      <line x1="16" y1="11" x2="16.01" y2="11" />
+      <line x1="8" y1="15" x2="8.01" y2="15" />
+      <line x1="12" y1="15" x2="12.01" y2="15" />
+      <line x1="16" y1="15" x2="16.01" y2="15" />
+      <line x1="8" y1="19" x2="12" y2="19" />
+    </svg>
+  );
+}
 
 function QrIcon() {
   return (

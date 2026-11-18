@@ -11,6 +11,7 @@ import {
 import {
   formatearCantidad,
   formatearFechaCorta,
+  formatearFechaLarga,
   formatearPesos,
   formatearPrecio,
   redondearPesos,
@@ -134,6 +135,16 @@ describe("HU14 — formato de pesos, precios y cantidades", () => {
 
   it("un texto que es solo una fecha no tiene hora y no se mueve", () => {
     expect(formatearFechaCorta("2026-11-12")).toBe("12-11-2026");
+  });
+
+  it("la fecha larga de la calculadora es «18 mar 2025» (es-CL) y también va en hora de Chile", () => {
+    expect(formatearFechaLarga("2025-03-18T12:00:00Z")).toBe("18 mar 2025");
+    expect(formatearFechaLarga("2025-03-18")).toBe("18 mar 2025");
+    expect(formatearFechaLarga("2026-11-13T01:30:00Z")).toBe("12 nov 2026");
+    expect(formatearFechaLarga("2026-07-13T04:00:00Z")).toBe("13 jul 2026");
+    expect(formatearFechaLarga("2026-01-01T00:00:00+00:00")).toBe("31 dic 2025");
+    expect(formatearFechaLarga("basura")).toBeNull();
+    expect(formatearFechaLarga(null)).toBeNull();
   });
 
   it("basura o ausencia no es una fecha", () => {

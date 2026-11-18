@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute } from "@/auth/ProtectedRoute";
+import CostCalculator from "@/pages/CostCalculator";
 import Dashboard from "@/pages/Dashboard";
 import ElaboracionDetail from "@/pages/ElaboracionDetail";
 import Elaboraciones from "@/pages/Elaboraciones";
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="/publicaciones" element={<Publicaciones />} />
         <Route path="/publicaciones/:productoId" element={<PublicacionDetalle />} />
         <Route path="/publicaciones/:productoId/vista-previa" element={<VistaPreviaFicha />} />
+        <Route path="/calculadora" element={<CostCalculator />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>
 

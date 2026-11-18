@@ -80,10 +80,15 @@ export function validarContenido(cantidad: string, unidad: string): ErroresConte
   return errores;
 }
 
+/** El nombre visible de la fuente de un precio o contenido ("Jumbo", "Manual"…). */
+export function nombreDeOrigen(fuente: string): string {
+  return fuente === "manual" ? "Manual" : nombreFuente(fuente);
+}
+
 /** Nombre de la fuente (lo da el mapa de fuentes) y, si hay, la fecha: "Jumbo · 12-11-2026", "Manual · 14-11-2026". Null si no hay fuente. */
 export function etiquetaDeOrigen(fuente: string | null | undefined, fechaIso?: string | null): string | null {
   if (!fuente) return null;
-  const nombre = fuente === "manual" ? "Manual" : nombreFuente(fuente);
+  const nombre = nombreDeOrigen(fuente);
   const fecha = formatearFechaCorta(fechaIso);
   return fecha ? `${nombre} · ${fecha}` : nombre;
 }

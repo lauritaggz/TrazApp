@@ -203,6 +203,14 @@ export default function ProductDetail() {
                   >
                     Editar producto
                   </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/calculadora?producto=${product.id}`)}
+                  >
+                    Calcular costos
+                  </Button>
                 </>
               }
             />

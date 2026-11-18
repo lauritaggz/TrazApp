@@ -60,6 +60,7 @@ Prioridad P1 · 8 SP · 8,5 h · Depende de HU03, HU04, HU05 y HU07 · Origen: *
 | CA10 | Con el cálculo completo y rendimiento, el detalle del producto muestra el costo de producción calculado con la etiqueta "calculado", sin borrar el valor manual de HU01. |
 | CA11 | Es una estimación con precios vigentes: no modifica elaboraciones ni versiones e indica la fecha del precio más antiguo. |
 | CA12 | Cada productor accede solo a sus propios productos. |
+| CA13 | *(Criterio agregado por la desarrolladora.)* En cada línea de la calculadora, junto a "Editar insumo", un botón "Actualizar desde Jumbo" que actualiza el precio de ese insumo (una consulta por clic, sin acciones masivas). Solo aparece si el insumo está activo y su ficha tiene slug de Jumbo. Si el precio actual es manual, pide confirmación antes de reemplazarlo. Al terminar, la calculadora recalcula conservando el insumo alternativo elegido y los cambios sin guardar; un 409 se muestra junto a la línea, sin cambios. |
 
 **Cambio asociado:** los campos de cantidad de la formulación se ocultan en la interfaz (formulación y detalle de la elaboración), sin eliminar datos.
 
