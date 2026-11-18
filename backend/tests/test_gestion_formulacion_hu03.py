@@ -284,3 +284,78 @@ def test_conflicto_de_numero_de_version(client, ctx, db_session, monkeypatch) ->
     assert response.status_code == 409
     assert "al mismo tiempo" in response.json()["detail"]
     assert _versiones(db_session, producto_id) == [(1, True)]
+
+
+# --- HU14 / T14-07: el editor oculta cantidad y unidad y las reenvía tal como vinieron ---------------
+
+
+def _reenviar(version: dict) -> list[dict]:
+    """El cuerpo que reenvía el editor: lo mismo que devolvió la API, con las cantidades como texto."""
+    lineas = []
+    for linea in version["lineas"]:
+        item: dict = {"ingrediente_id": linea["ingrediente_id"]}
+        if linea["cantidad"] is not None:
+            item["cantidad"] = linea["cantidad"]
+            item["unidad"] = linea["unidad"]
+        if linea["notas"]:
+            item["notas"] = linea["notas"]
+        lineas.append(item)
+    return lineas
+
+
+@pytest.mark.parametrize("usada", [False, True])
+def test_reenviar_las_mismas_cantidades_no_crea_version(client, ctx, db_session, usada) -> None:
+    producto_id = ctx["producto"]["id"]
+    v1 = _put(
+        client,
+        ctx["headers"],
+        producto_id,
+        [
+            {"ingrediente_id": ctx["harina"]["id"], "cantidad": "250", "unidad": "g", "notas": "Tamizada"},
+            {"ingrediente_id": ctx["agua"]["id"], "cantidad": "0.125", "unidad": "L"},
+        ],
+    ).json()
+    if usada:
+        _marcar_usada(db_session, v1["version"]["id"])
+
+    # La API devuelve «250.000» y «0.125»; el editor reenvía esos mismos textos.
+    reenvio = _reenviar(v1["version"])
+    assert reenvio[0]["cantidad"] == "250.000"
+    response = _put(client, ctx["headers"], producto_id, reenvio)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["resultado"] == "sin_cambios"
+    assert body["version"]["id"] == v1["version"]["id"]
+    assert _versiones(db_session, producto_id) == [(1, True)]
+    assert [(l["cantidad"], l["unidad"]) for l in body["version"]["lineas"]] == [("250.000", "g"), ("0.125", "L")]
+
+
+def test_agregar_un_ingrediente_reenviando_las_cantidades_las_conserva_intactas(client, ctx, db_session) -> None:
+    producto_id = ctx["producto"]["id"]
+    v1 = _put(
+        client,
+        ctx["headers"],
+        producto_id,
+        [{"ingrediente_id": ctx["harina"]["id"], "cantidad": "250", "unidad": "g"}],
+    ).json()
+    _marcar_usada(db_session, v1["version"]["id"])
+
+    # El editor oculta los campos: la línea existente viaja igual y la nueva, sin cantidad.
+    response = _put(
+        client,
+        ctx["headers"],
+        producto_id,
+        _reenviar(v1["version"]) + [{"ingrediente_id": ctx["agua"]["id"]}],
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["resultado"] == "nueva_version"
+    assert [(l["ingrediente_id"], l["cantidad"], l["unidad"]) for l in body["version"]["lineas"]] == [
+        (ctx["harina"]["id"], "250.000", "g"),
+        (ctx["agua"]["id"], None, None),
+    ]
+    assert _versiones(db_session, producto_id) == [(1, False), (2, True)]
+    anterior = client.get(_formulacion_url(producto_id, v1["version"]["id"]), headers=ctx["headers"]).json()
+    assert [(l["cantidad"], l["unidad"]) for l in anterior] == [("250.000", "g")]

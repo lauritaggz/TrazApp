@@ -759,10 +759,10 @@ describe("Registro: encabezado y líneas", () => {
     ]);
   });
 
-  it("muestra la cantidad de la formulación y marca las líneas pendientes", async () => {
+  it("no muestra la cantidad de la formulación (HU14) y marca las líneas pendientes", async () => {
     await openRegistro();
 
-    expect(within(linea("Harina")).getByText("500 g")).toBeInTheDocument();
+    expect(within(linea("Harina")).queryByText("500 g")).not.toBeInTheDocument();
     expect(within(linea("Harina")).getByText("Falta el insumo")).toBeInTheDocument();
     // La leche tiene insumo pero aún no lote.
     expect(within(linea("Leche")).getByText("Falta el lote")).toBeInTheDocument();
@@ -1868,7 +1868,8 @@ describe("Detalle de la elaboración (T05-07)", () => {
     await abrirDetalle();
 
     const harina = tarjeta("Harina");
-    expect(within(harina).getByText("500 g")).toBeInTheDocument();
+    // HU14: el detalle de la elaboración ya no muestra la cantidad ni la unidad.
+    expect(within(harina).queryByText("500 g")).not.toBeInTheDocument();
     expect(within(harina).getByText("Harina Selecta 1 kg")).toBeInTheDocument();
     expect(within(harina).getByText("Selecta")).toBeInTheDocument();
     expect(within(harina).getByText("Saco de 1 kg")).toBeInTheDocument();

@@ -3,10 +3,8 @@ import IngredientCreateDialog from "@/components/ingredients/IngredientCreateDia
 import ProductFormulationHistory from "@/components/products/ProductFormulationHistory";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import {
   buildReemplazoPayload,
-  formatFormulacionCantidad,
   hasDraftErrors,
   resultadoGuardadoMessage,
   toDraftLines,
@@ -18,7 +16,6 @@ import { listIngredients } from "@/services/ingredientService";
 import { ApiError } from "@/types/auth";
 import type { FormulacionDraftLine, FormulacionVigente } from "@/types/formulation";
 import type { Ingrediente } from "@/types/ingredient";
-import { PRODUCT_FORM_UNIT_OPTIONS, type UnidadMedida } from "@/types/product";
 
 const DESACTIVADOS_AVISO =
   "Hay ingredientes desactivados en la formulación. Quítalos antes de guardar.";
@@ -116,15 +113,6 @@ export default function ProductFormulationSection({
     });
   }
 
-  function updateLine(ingredienteId: number, changes: Partial<FormulacionDraftLine>) {
-    setDraft((lines) =>
-      lines.map((line) =>
-        line.ingrediente_id === ingredienteId ? { ...line, ...changes } : line,
-      ),
-    );
-    clearLineError(ingredienteId);
-  }
-
   function removeLine(ingredienteId: number) {
     setDraft((lines) => lines.filter((line) => line.ingrediente_id !== ingredienteId));
     clearLineError(ingredienteId);
@@ -210,11 +198,6 @@ export default function ProductFormulationSection({
   if (editing) {
     return (
       <div className="space-y-4">
-        <p className="text-xs text-text-secondary leading-relaxed">
-          Ingredientes genéricos del producto. La cantidad y la unidad son
-          opcionales, pero si indicas una debes indicar la otra.
-        </p>
-
         {draftHasDesactivados && <Alert type="error">{DESACTIVADOS_AVISO}</Alert>}
         {saveError && <Alert type="error">{saveError}</Alert>}
         {draftErrors.general && <Alert type="error">{draftErrors.general}</Alert>}
@@ -231,7 +214,6 @@ export default function ProductFormulationSection({
                 line={line}
                 error={draftErrors.lineas[line.ingrediente_id]}
                 disabled={saving}
-                onChange={(changes) => updateLine(line.ingrediente_id, changes)}
                 onRemove={() => removeLine(line.ingrediente_id)}
               />
             ))}
@@ -361,7 +343,6 @@ export default function ProductFormulationSection({
             aria-label="Ingredientes de la formulación"
           >
             {version.lineas.map((linea) => {
-              const cantidad = formatFormulacionCantidad(linea.cantidad, linea.unidad);
               return (
                 <li
                   key={linea.id}
@@ -378,9 +359,6 @@ export default function ProductFormulationSection({
                     </p>
                     {linea.ingrediente_desactivado && <DesactivadoBadge />}
                   </div>
-                  <p className="text-sm text-text-secondary sm:text-right shrink-0">
-                    {cantidad ?? "Sin cantidad"}
-                  </p>
                 </li>
               );
             })}
@@ -406,18 +384,14 @@ function DraftLineRow({
   line,
   error,
   disabled,
-  onChange,
   onRemove,
 }: {
   line: FormulacionDraftLine;
   error: string | undefined;
   disabled: boolean;
-  onChange: (changes: Partial<FormulacionDraftLine>) => void;
   onRemove: () => void;
 }) {
-  const cantidadId = `formulacion-cantidad-${line.ingrediente_id}`;
-  // Input renders the pair error under the quantity with this id.
-  const errorId = error ? `${cantidadId}-error` : undefined;
+  const errorId = error ? `formulacion-error-${line.ingrediente_id}` : undefined;
   return (
     <li className="border border-border rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -443,37 +417,12 @@ function DraftLineRow({
           Quitar
         </Button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Input
-          id={cantidadId}
-          label="Cantidad"
-          aria-label={`Cantidad de ${line.nombre}`}
-          inputMode="decimal"
-          placeholder="Opcional"
-          value={line.cantidad}
-          error={error}
-          disabled={disabled || line.desactivado}
-          onChange={(e) => onChange({ cantidad: e.target.value })}
-        />
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">Unidad</span>
-          <select
-            value={line.unidad}
-            onChange={(e) => onChange({ unidad: e.target.value as "" | UnidadMedida })}
-            disabled={disabled || line.desactivado}
-            aria-label={`Unidad de ${line.nombre}`}
-            aria-describedby={errorId}
-            className="w-full rounded-lg border border-border bg-card text-sm px-3 py-2.5"
-          >
-            <option value="">Sin unidad</option>
-            {PRODUCT_FORM_UNIT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {/* La cantidad y la unidad no se editan aquí (HU14): viajan en el borrador tal como las trajo la API. */}
+      {error && (
+        <p id={errorId} role="alert" className="text-[13px] text-error">
+          {error}
+        </p>
+      )}
     </li>
   );
 }

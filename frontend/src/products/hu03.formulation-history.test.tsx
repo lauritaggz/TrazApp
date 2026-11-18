@@ -186,9 +186,10 @@ describe("HU03 — historial de versiones", () => {
     const detalle = await screen.findByRole("region", { name: "Ingredientes de la versión 1" });
     expect(formulationService.getVersionFormulation).toHaveBeenCalledWith(PRODUCTO_ID, V1.id);
     expect(await within(detalle).findByText("Harina")).toBeInTheDocument();
-    expect(within(detalle).getByText("1 kg")).toBeInTheDocument();
+    // HU14: la cantidad y la unidad no se muestran, ni siquiera en versiones anteriores.
+    expect(within(detalle).queryByText("1 kg")).not.toBeInTheDocument();
     expect(within(detalle).getByText("Sal")).toBeInTheDocument();
-    expect(within(detalle).getByText("Sin cantidad")).toBeInTheDocument();
+    expect(within(detalle).queryByText("Sin cantidad")).not.toBeInTheDocument();
     expect(within(detalle).getByText("Versión 1 (solo lectura)")).toBeInTheDocument();
     expect(within(detalle).queryByRole("textbox")).not.toBeInTheDocument();
     expect(within(detalle).queryByRole("combobox")).not.toBeInTheDocument();

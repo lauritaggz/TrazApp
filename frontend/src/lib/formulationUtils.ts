@@ -44,7 +44,8 @@ export function toDraftLines(version: FormulacionVersion | null): FormulacionDra
     ingrediente_id: linea.ingrediente_id,
     nombre: linea.ingrediente_nombre,
     codigo_interno: linea.ingrediente_codigo_interno,
-    cantidad: linea.cantidad == null ? "" : String(Number(linea.cantidad)),
+    // Se conserva el texto que mandó la API ("250.000"): el editor no la muestra y la reenvía tal cual.
+    cantidad: linea.cantidad ?? "",
     unidad: linea.unidad ?? "",
     notas: linea.notas,
     desactivado: linea.ingrediente_desactivado,

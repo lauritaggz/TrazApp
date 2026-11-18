@@ -3,7 +3,6 @@ import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import {
   formatFechaVersion,
-  formatFormulacionCantidad,
   ingredientCountLabel,
 } from "@/lib/formulationUtils";
 import { getVersionFormulation, listProductVersions } from "@/services/formulationService";
@@ -234,9 +233,6 @@ function VersionDetalle({
                     {linea.ingrediente_codigo_interno}
                   </span>
                 )}
-              </span>
-              <span className="text-sm text-text-secondary">
-                {formatFormulacionCantidad(linea.cantidad, linea.unidad) ?? "Sin cantidad"}
               </span>
             </li>
           ))}

@@ -83,7 +83,7 @@ export default function CostCalculator() {
         {/* 1. Encabezado: título a la izquierda, selector de producto a la derecha (debajo en celular). */}
         <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div className="min-w-0">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">Herramientas</p>
+            <p className="mb-1 text-xs font-semibold tracking-wide text-accent">Herramientas</p>
             <h1 className="text-2xl font-semibold text-text-primary">Calculadora de costos</h1>
             <p className="mt-1 text-sm text-text-secondary">Estima el costo de producir una tanda y cada unidad.</p>
           </div>
@@ -247,7 +247,7 @@ export default function CostCalculator() {
 
                     <div
                       aria-hidden="true"
-                      className={`hidden gap-4 border-b border-border bg-surface px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted lg:grid ${COLUMNAS_LINEA}`}
+                      className={`hidden gap-4 border-b border-border bg-surface px-5 py-2.5 text-xs font-semibold tracking-wide text-text-muted lg:grid ${COLUMNAS_LINEA}`}
                     >
                       <span>Ingrediente</span>
                       <span>Insumo seleccionado</span>

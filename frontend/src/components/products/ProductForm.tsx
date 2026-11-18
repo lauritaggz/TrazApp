@@ -266,7 +266,7 @@ export default function ProductForm({
               <Input
                 id="costo_produccion"
                 name="costo_produccion"
-                label="Costo de producción"
+                label="Costo de producción por unidad"
                 type="text"
                 inputMode="decimal"
                 placeholder="Ej.: 800"

@@ -39,7 +39,7 @@ function nombreDeInsumo(insumo: InsumoCosto): string {
 /** Rótulo de columna que solo se ve cuando la fila va apilada (celular y tableta): en escritorio lo da el encabezado. */
 function Rotulo({ children }: { children: string }) {
   return (
-    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted lg:hidden">{children}</p>
+    <p className="mb-1 text-xs font-semibold tracking-wide text-text-muted lg:hidden">{children}</p>
   );
 }
 
