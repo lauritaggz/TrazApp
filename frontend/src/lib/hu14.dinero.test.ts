@@ -107,12 +107,40 @@ describe("HU14 — formato de pesos, precios y cantidades", () => {
     expect(formatearCantidad(entrada)).toBe(esperado);
   });
 
-  it("la fecha sale del texto ISO sin pasar por Date (sin desfase de zona horaria)", () => {
+  it("las marcas de tiempo se muestran en America/Santiago, no en UTC", () => {
+    // Verano (UTC-3, desde septiembre): 01:30Z son las 22:30 del día anterior en Chile.
+    expect(formatearFechaCorta("2026-11-13T01:30:00Z")).toBe("12-11-2026");
+    expect(formatearFechaCorta("2026-11-13T02:59:59Z")).toBe("12-11-2026");
+    expect(formatearFechaCorta("2026-11-13T03:00:00Z")).toBe("13-11-2026");
     expect(formatearFechaCorta("2026-11-12T23:59:59Z")).toBe("12-11-2026");
-    expect(formatearFechaCorta("2026-01-01T00:00:00+00:00")).toBe("01-01-2026");
+    expect(formatearFechaCorta("2026-01-01T00:00:00+00:00")).toBe("31-12-2025");
+    // Invierno (UTC-4): el corte pasa a las 04:00Z.
+    expect(formatearFechaCorta("2026-07-13T03:59:59Z")).toBe("12-07-2026");
+    expect(formatearFechaCorta("2026-07-13T04:00:00Z")).toBe("13-07-2026");
+  });
+
+  it("respeta el desfase explícito y trata una marca sin zona como UTC", () => {
+    expect(formatearFechaCorta("2026-11-12T22:30:00-03:00")).toBe("12-11-2026");
+    expect(formatearFechaCorta("2026-11-13T01:30:00+00:00")).toBe("12-11-2026");
+    expect(formatearFechaCorta("2026-11-13T01:30:00")).toBe("12-11-2026");
+    expect(formatearFechaCorta("2026-11-13T01:30:00.123456")).toBe("12-11-2026");
+  });
+
+  it("el cambio de horario no corre el día: último día de invierno y primero de verano", () => {
+    // 2026: en Chile el verano empieza el domingo 6 de septiembre (a las 04:00Z el reloj salta una hora).
+    expect(formatearFechaCorta("2026-09-06T03:30:00Z")).toBe("05-09-2026");
+    expect(formatearFechaCorta("2026-09-06T04:30:00Z")).toBe("06-09-2026");
+  });
+
+  it("un texto que es solo una fecha no tiene hora y no se mueve", () => {
     expect(formatearFechaCorta("2026-11-12")).toBe("12-11-2026");
+  });
+
+  it("basura o ausencia no es una fecha", () => {
     expect(formatearFechaCorta("basura")).toBeNull();
+    expect(formatearFechaCorta("2026-13-45T10:00:00Z")).toBeNull();
     expect(formatearFechaCorta(null)).toBeNull();
+    expect(formatearFechaCorta(undefined)).toBeNull();
   });
 });
 

@@ -91,9 +91,31 @@ export function formatearCantidad(texto: string | null | undefined): string {
   return limpio.decimales === "" ? `${signo}${entero}` : `${signo}${entero},${limpio.decimales}`;
 }
 
-/** Fecha "12-11-2026" tomada del texto ISO, sin pasar por `Date` (evita el desfase por zona horaria). */
+/** Zona en la que se muestran las marcas de tiempo del backend (llegan en UTC). */
+export const ZONA_HORARIA = "America/Santiago";
+
+const FORMATO_FECHA = new Intl.DateTimeFormat("en-CA", {
+  timeZone: ZONA_HORARIA,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * Fecha "12-11-2026" de una marca de tiempo ISO 8601, en la zona America/Santiago (con su horario de verano):
+ * "2026-11-13T01:30:00Z" es el 12-11-2026 a las 22:30 en Chile. Una marca sin zona se toma como UTC, que es
+ * como las guarda el backend. Un texto que es solo una fecha ("2026-11-12") no tiene hora y se muestra tal cual.
+ * Esta regla de `Date` aplica a fechas; el dinero nunca pasa por `number`.
+ */
 export function formatearFechaCorta(iso: string | null | undefined): string | null {
   if (typeof iso !== "string") return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+  const texto = iso.trim();
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
+  if (soloFecha) return `${soloFecha[3]}-${soloFecha[2]}-${soloFecha[1]}`;
+  if (!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(texto)) return null;
+  const conZona = /(Z|[+-]\d{2}(:?\d{2})?)$/i.test(texto) ? texto : `${texto}Z`;
+  const fecha = new Date(conZona.replace(" ", "T"));
+  if (Number.isNaN(fecha.getTime())) return null;
+  const partes = Object.fromEntries(FORMATO_FECHA.formatToParts(fecha).map((p) => [p.type, p.value]));
+  return `${partes.day}-${partes.month}-${partes.year}`;
 }

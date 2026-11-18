@@ -114,6 +114,15 @@ describe("HU14 — detalle del insumo: precio y contenido", () => {
     expect(within(seccion).getByText("Manual · 14-11-2026")).toBeInTheDocument();
   });
 
+  it("la fecha del precio es la de Chile: 01:30 UTC del 13-11 es el 12-11 a las 22:30", async () => {
+    conInsumo(insumo({ precio_fecha: "2026-11-13T01:30:00Z" }));
+    abrir("/insumos/10");
+
+    const seccion = await screen.findByRole("region", { name: "Precio y contenido" });
+    expect(within(seccion).getByText("Jumbo · 12-11-2026")).toBeInTheDocument();
+    expect(within(seccion).queryByText("Jumbo · 13-11-2026")).not.toBeInTheDocument();
+  });
+
   it("sin precio ni contenido lo dice con texto", async () => {
     conInsumo(
       insumo({
