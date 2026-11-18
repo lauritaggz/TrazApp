@@ -90,6 +90,15 @@ export async function deactivateInsumo(id: number): Promise<void> {
   return apiRequest<void>(`/gestion/insumos/${id}`, { method: "DELETE" }, true);
 }
 
+/**
+ * Actualiza el precio (y el contenido, si Jumbo lo informa) desde la ficha de Jumbo del insumo (HU14).
+ * Sobrescribe un precio manual: la pantalla pide confirmación antes. 409 con `{mensaje}` y sin cambios
+ * si el insumo no tiene ficha de Jumbo o Jumbo no entrega un precio.
+ */
+export async function actualizarPrecioDesdeJumbo(id: number): Promise<Insumo> {
+  return apiRequest<Insumo>(`/gestion/insumos/${id}/actualizar-precio`, { method: "POST" }, true);
+}
+
 export async function reactivateInsumo(id: number): Promise<Insumo> {
   return updateInsumo(id, { activo: true });
 }

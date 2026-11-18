@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
+import { validateDraftLines } from "@/lib/formulationUtils";
 import { setAccessToken } from "@/lib/tokenStorage";
 import * as authService from "@/services/authService";
 import * as formulationService from "@/services/formulationService";
@@ -183,7 +184,7 @@ describe("HU03 — vista de la formulación", () => {
     expect(screen.queryByText(/Versión vigente/)).not.toBeInTheDocument();
   });
 
-  it("lista las líneas con cantidad y unidad e indica la versión vigente", async () => {
+  it("lista las líneas sin cantidad ni unidad (HU14 las oculta) e indica la versión vigente", async () => {
     vi.mocked(formulationService.getProductFormulation).mockResolvedValue(conFormulacion(V2));
 
     renderSection();
@@ -195,9 +196,12 @@ describe("HU03 — vista de la formulación", () => {
     expect(items).toHaveLength(3);
     expect(items[0]).toHaveTextContent("Harina");
     expect(items[0]).toHaveTextContent("HAR-001");
-    expect(items[0]).toHaveTextContent("500 g");
-    expect(items[1]).toHaveTextContent("1,5 kg");
-    expect(items[2]).toHaveTextContent("Sin cantidad");
+    expect(items[1]).toHaveTextContent("Agua");
+    expect(items[2]).toHaveTextContent("Sal");
+    // HU14: la cantidad y la unidad no se muestran, aunque la versión las tenga guardadas.
+    for (const item of items) {
+      expect(item).not.toHaveTextContent(/\d+ (g|kg)|Sin cantidad/);
+    }
     expect(screen.queryByText("Ingrediente desactivado")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -300,8 +304,6 @@ describe("HU03 — edición de la formulación", () => {
     await user.click(screen.getByRole("button", { name: "+ Agregar ingrediente" }));
     await user.selectOptions(selector, String(SAL.id));
     await user.click(screen.getByRole("button", { name: "+ Agregar ingrediente" }));
-    await user.type(screen.getByLabelText("Cantidad de Harina"), "0,5");
-    await user.selectOptions(screen.getByLabelText("Unidad de Harina"), "kg");
     await user.click(screen.getByRole("button", { name: "Guardar formulación" }));
 
     expect(await screen.findByText("Formulación guardada (versión 1).")).toBeInTheDocument();
@@ -309,53 +311,37 @@ describe("HU03 — edición de la formulación", () => {
     expect(vi.mocked(formulationService.saveProductFormulation).mock.calls[0][0]).toBe(PRODUCTO_ID);
     expect(savedPayload()).toStrictEqual({
       lineas: [
-        { ingrediente_id: HARINA.id, cantidad: "0.5", unidad: "kg" },
+        // HU14: las líneas nuevas viajan sin cantidad ni unidad.
+        { ingrediente_id: HARINA.id },
         { ingrediente_id: SAL.id },
       ],
     });
     expect(screen.getByText("Versión vigente: 1")).toBeInTheDocument();
-    expect(screen.getByText("0,5 kg")).toBeInTheDocument();
   });
 
-  it("exige la unidad si se indica la cantidad, y la cantidad si se indica la unidad", async () => {
-    vi.mocked(formulationService.getProductFormulation).mockResolvedValue(
-      conFormulacion(version(1, [linea(1, HARINA), linea(2, AGUA)])),
-    );
-    renderSection();
+  // HU14: el editor ya no tiene campos de cantidad ni de unidad, así que estas dos reglas no se pueden provocar
+  // desde la pantalla; se comprueban sobre el borrador con los mismos mensajes.
+  it("exige la unidad si hay cantidad, y la cantidad si hay unidad (regla del borrador)", () => {
+    const errores = validateDraftLines([
+      { ingrediente_id: 1, nombre: "Harina", codigo_interno: null, cantidad: "500", unidad: "", notas: null, desactivado: false },
+      { ingrediente_id: 2, nombre: "Agua", codigo_interno: null, cantidad: "", unidad: "L", notas: null, desactivado: false },
+    ]);
 
-    const user = await openEditor("Editar formulación");
-    await user.type(screen.getByLabelText("Cantidad de Harina"), "500");
-    await user.selectOptions(screen.getByLabelText("Unidad de Agua"), "L");
-    await user.click(screen.getByRole("button", { name: "Guardar formulación" }));
-
-    expect(await screen.findByText("Indica la unidad para esta cantidad.")).toBeInTheDocument();
-    expect(screen.getByText("Indica la cantidad para esta unidad.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Cantidad de Harina")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText("Unidad de Agua")).toHaveAttribute(
-      "aria-describedby",
-      `formulacion-cantidad-${AGUA.id}-error`,
-    );
-    expect(formulationService.saveProductFormulation).not.toHaveBeenCalled();
+    expect(errores.lineas[1]).toBe("Indica la unidad para esta cantidad.");
+    expect(errores.lineas[2]).toBe("Indica la cantidad para esta unidad.");
   });
 
-  it("rechaza cantidades no válidas", async () => {
-    vi.mocked(formulationService.getProductFormulation).mockResolvedValue(
-      conFormulacion(version(1, [linea(1, HARINA)])),
-    );
-    renderSection();
-
-    const user = await openEditor("Editar formulación");
-    await user.type(screen.getByLabelText("Cantidad de Harina"), "0");
-    await user.selectOptions(screen.getByLabelText("Unidad de Harina"), "g");
-    await user.click(screen.getByRole("button", { name: "Guardar formulación" }));
-
-    expect(
-      await screen.findByText("Ingresa una cantidad mayor que 0, con hasta 3 decimales."),
-    ).toBeInTheDocument();
-    expect(formulationService.saveProductFormulation).not.toHaveBeenCalled();
+  it("rechaza cantidades no válidas (regla del borrador)", () => {
+    const mensaje = "Ingresa una cantidad mayor que 0, con hasta 3 decimales.";
+    for (const cantidad of ["0", "1,2345", "-1", "abc"]) {
+      const errores = validateDraftLines([
+        { ingrediente_id: 1, nombre: "Harina", codigo_interno: null, cantidad, unidad: "g", notas: null, desactivado: false },
+      ]);
+      expect(errores.lineas[1]).toBe(mensaje);
+    }
   });
 
-  it("quita líneas y conserva cantidad, unidad y notas de las demás", async () => {
+  it("quita líneas y reenvía tal como vinieron la cantidad, la unidad y las notas de las demás", async () => {
     vi.mocked(formulationService.getProductFormulation).mockResolvedValue(conFormulacion(V2));
     vi.mocked(formulationService.saveProductFormulation).mockResolvedValue({
       resultado: "modificada_en_lugar",
@@ -366,7 +352,7 @@ describe("HU03 — edición de la formulación", () => {
     const user = await openEditor("Editar formulación");
     expect(screen.getByText("No hay más ingredientes activos para agregar.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Quitar Sal" }));
-    expect(screen.queryByLabelText("Cantidad de Sal")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quitar Sal" })).not.toBeInTheDocument();
     expect(
       within(screen.getByRole("combobox", { name: "Ingrediente para agregar" })).getByRole("option", {
         name: "Sal (SAL-001)",
@@ -377,8 +363,9 @@ describe("HU03 — edición de la formulación", () => {
     await screen.findByText("Formulación actualizada.");
     expect(savedPayload()).toStrictEqual({
       lineas: [
-        { ingrediente_id: HARINA.id, cantidad: "500", unidad: "g" },
-        { ingrediente_id: AGUA.id, cantidad: "1.5", unidad: "kg", notas: "Tibia" },
+        // Los campos están ocultos: se reenvía el texto que mandó la API ("500.000"), no uno reformateado.
+        { ingrediente_id: HARINA.id, cantidad: "500.000", unidad: "g" },
+        { ingrediente_id: AGUA.id, cantidad: "1.500", unidad: "kg", notas: "Tibia" },
       ],
     });
   });
@@ -416,7 +403,6 @@ describe("HU03 — edición de la formulación", () => {
       screen.getByText("Hay ingredientes desactivados en la formulación. Quítalos antes de guardar."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Guardar formulación" })).toBeDisabled();
-    expect(screen.getByLabelText("Cantidad de Azúcar")).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Quitar Azúcar" }));
     const guardar = screen.getByRole("button", { name: "Guardar formulación" });

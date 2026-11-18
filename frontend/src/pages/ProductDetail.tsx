@@ -10,6 +10,7 @@ import Badge from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
+import ProductCostoCalculado from "@/components/products/ProductCostoCalculado";
 import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
@@ -203,10 +204,20 @@ export default function ProductDetail() {
                   >
                     Editar producto
                   </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => navigate(`/calculadora?producto=${product.id}`)}
+                  >
+                    Calcular costos
+                  </Button>
                 </>
               }
             />
             {deleteError && <Alert type="error">{deleteError}</Alert>}
+
+            <ProductCostoCalculado product={product} />
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
               <div className="min-w-0 space-y-6">
@@ -278,7 +289,11 @@ export default function ProductDetail() {
 
                 <ProductDetailSection id="product-detail-commercial" title="Información comercial">
                   <dl className="grid grid-cols-2 gap-3">
-                    <FactTile label="Costo de producción">
+                    <FactTile
+                      label={
+                        product.costo_calculado == null ? "Costo de producción" : "Costo de producción manual"
+                      }
+                    >
                       {formatProductPrice(product.costo_produccion)}
                     </FactTile>
                     <FactTile label="Precio de venta">

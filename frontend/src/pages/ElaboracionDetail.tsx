@@ -17,7 +17,6 @@ import {
   formatFechaDeMomento,
   textoInformacionConservada,
 } from "@/lib/elaboracionUtils";
-import { formatFormulacionCantidad } from "@/lib/formulationUtils";
 import { getElaboracion } from "@/services/elaboracionService";
 import { ApiError } from "@/types/auth";
 import type { Elaboracion, UsoInsumo } from "@/types/elaboracion";
@@ -321,7 +320,6 @@ function UsoDetalle({ uso, numero, inicialAbierto }: { uso: UsoInsumo; numero: n
   const botonId = `uso-${uso.ingrediente_id}-boton`;
   const panelId = `uso-${uso.ingrediente_id}-panel`;
   const insumo = uso.insumo;
-  const cantidad = formatFormulacionCantidad(uso.cantidad, uso.unidad);
   const alergenos = consolidarAlergenos(insumo?.alergenos ?? []);
 
   return (
@@ -343,7 +341,6 @@ function UsoDetalle({ uso, numero, inicialAbierto }: { uso: UsoInsumo; numero: n
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-text-primary">{uso.ingrediente_nombre}</span>
-            {cantidad && <span className="block text-xs text-text-secondary">{cantidad}</span>}
             {insumo && (
               <span className="block text-xs text-text-secondary">{`${insumo.nombre} · ${insumo.marca_origen}`}</span>
             )}

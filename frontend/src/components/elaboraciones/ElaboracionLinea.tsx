@@ -12,7 +12,6 @@ import {
   textoUsarLote,
   type EstadoLinea,
 } from "@/lib/elaboracionUtils";
-import { formatFormulacionCantidad } from "@/lib/formulationUtils";
 import type {
   LineaRegistro,
   LoteInsumo,
@@ -91,7 +90,6 @@ export default function ElaboracionLinea({
 }: ElaboracionLineaProps) {
   const id = linea.ingrediente_id;
   const titulo = `linea-${id}-titulo`;
-  const cantidad = formatFormulacionCantidad(linea.cantidad, linea.unidad);
 
   const activos = new Set(insumos.map((insumo) => insumo.id));
   const seleccionado = linea.insumoId ? Number(linea.insumoId) : null;
@@ -120,7 +118,6 @@ export default function ElaboracionLinea({
           <h3 id={titulo} className="text-base font-semibold text-text-primary">
             {linea.ingrediente_nombre}
           </h3>
-          {cantidad && <p className="text-sm text-text-secondary">{cantidad}</p>}
         </div>
         <Badge variant={estado === "lista" ? "success" : "warning"}>
           {ETIQUETA_ESTADO_LINEA[estado]}

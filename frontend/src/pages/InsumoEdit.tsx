@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EncabezadoNuevoInsumo from "@/components/insumos/EncabezadoNuevoInsumo";
 import InsumoUnavailable from "@/components/insumos/InsumoUnavailable";
 import RevisionInsumo from "@/components/insumos/RevisionInsumo";
@@ -10,6 +10,7 @@ import { useAppShell } from "@/hooks/useAppShell";
 import { useIngredientesActivos } from "@/hooks/useIngredientesActivos";
 import { insumoToFormValues, useInsumoForm } from "@/hooks/useInsumoForm";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { destinoDeRetorno, slugDeJumbo } from "@/lib/costosInsumo";
 import { revisionDeInsumo } from "@/lib/revisionInsumo";
 import { getInsumo } from "@/services/insumoService";
 import type { Insumo } from "@/types/insumo";
@@ -25,6 +26,9 @@ export default function InsumoEdit() {
   const navigate = useNavigate();
   const { id: rawId } = useParams();
   const insumoId = parseInsumoId(rawId);
+  const [searchParams] = useSearchParams();
+  // HU14: la calculadora manda aquí con ?volver=; solo se acepta un destino de la calculadora.
+  const volver = destinoDeRetorno(searchParams.get("volver"));
   const { handleLogout, producerName, businessName } = useAppShell();
 
   const [insumo, setInsumo] = useState<Insumo | null>(null);
@@ -70,7 +74,8 @@ export default function InsumoEdit() {
           <InsumoEditor
             key={insumo.id}
             insumo={insumo}
-            onBack={() => navigate(`/insumos/${insumo.id}`)}
+            volver={volver}
+            onBack={() => navigate(volver ?? `/insumos/${insumo.id}`)}
           />
         )}
       </div>
@@ -79,7 +84,15 @@ export default function InsumoEdit() {
 }
 
 /** Mounted after the supply is loaded, so the form starts from the saved values. */
-function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }) {
+function InsumoEditor({
+  insumo,
+  volver,
+  onBack,
+}: {
+  insumo: Insumo;
+  volver: string | null;
+  onBack: () => void;
+}) {
   const navigate = useNavigate();
   const ingredientes = useIngredientesActivos();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -88,7 +101,8 @@ function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }
     mode: "edit",
     insumoId: insumo.id,
     initialValues: insumoToFormValues(insumo),
-    onSaved: () => navigate(`/insumos/${insumo.id}`, { state: { insumoUpdated: true } }),
+    onSaved: () =>
+      volver ? navigate(volver) : navigate(`/insumos/${insumo.id}`, { state: { insumoUpdated: true } }),
     onNoChanges: onBack,
     onReactivated: (reactivated) =>
       navigate(`/insumos/${reactivated.id}`, { state: { insumoReactivated: true } }),
@@ -109,7 +123,11 @@ function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }
     <>
       <EncabezadoNuevoInsumo
         etiqueta="Editar insumo"
-        volver={{ to: `/insumos/${insumo.id}`, texto: "Volver al insumo" }}
+        volver={
+          volver
+            ? { to: volver, texto: "Volver a la calculadora" }
+            : { to: `/insumos/${insumo.id}`, texto: "Volver al insumo" }
+        }
         titulo={insumo.nombre}
         descripcion="Actualiza la información del insumo."
       />
@@ -136,6 +154,12 @@ function InsumoEditor({ insumo, onBack }: { insumo: Insumo; onBack: () => void }
         reactivating={form.reactivating}
         onReactivate={() => void form.handleReactivate()}
         revision={revisionDeInsumo(insumo)}
+        origenCostos={{
+          precioFuente: insumo.precio_fuente ?? null,
+          precioFecha: insumo.precio_fecha ?? null,
+          contenidoFuente: insumo.contenido_fuente ?? null,
+          tieneFichaDeJumbo: slugDeJumbo(insumo.ficha) !== null,
+        }}
       />
 
       <ConfirmDialog

@@ -68,14 +68,13 @@ describe("Menú de usuario del header", () => {
 });
 
 describe("Menú lateral", () => {
-  it("agrupa en «Gestión» y «Herramientas» (HU09) y no muestra lo que aún no existe: ni «Trazabilidad», «Calculadora de costos», «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
+  it("agrupa en «Gestión» y «Herramientas» (HU09) y no muestra lo que aún no existe: ni «Trazabilidad», «Elaboraciones relacionadas» ni «Pronto» (HT07, HU06)", () => {
     renderShell();
 
-    // «Herramientas» trae «Publicaciones» (HU09). La «Calculadora de costos» (HU14) y «Elaboraciones relacionadas» (HU08) llegan con sus pantallas.
+    // «Herramientas» trae «Publicaciones» (HU09) y la «Calculadora de costos» (HU14). «Elaboraciones relacionadas» (HU08) llega con su pantalla.
     expect(screen.getByText("Gestión")).toBeInTheDocument();
     expect(screen.getByText("Herramientas")).toBeInTheDocument();
     expect(screen.queryByText("Trazabilidad")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Calculadora/)).not.toBeInTheDocument();
     expect(screen.queryByText("Elaboraciones relacionadas")).not.toBeInTheDocument();
     expect(screen.queryByText("Pronto")).not.toBeInTheDocument();
     const enlaces = within(screen.getByRole("navigation", { name: "Secciones" })).getAllByRole("link");
@@ -86,9 +85,11 @@ describe("Menú lateral", () => {
       "Insumos",
       "Elaboraciones",
       "Publicaciones",
+      "Calculadora de costos",
     ]);
     expect(enlaces[4]).toHaveAttribute("href", "/elaboraciones");
     expect(enlaces[5]).toHaveAttribute("href", "/publicaciones");
+    expect(enlaces[6]).toHaveAttribute("href", "/calculadora");
     // Los términos del modelo anterior ya no aparecen en el menú.
     expect(screen.queryByText("Lotes")).not.toBeInTheDocument();
     expect(screen.queryByText("Consulta histórica")).not.toBeInTheDocument();
@@ -116,6 +117,7 @@ describe("Menú lateral: estilo del diseño (T06-06)", () => {
       "Insumos",
       "Elaboraciones",
       "Publicaciones",
+      "Calculadora de costos",
     ]);
     expect(nav.textContent).not.toMatch(/\d/);
   });

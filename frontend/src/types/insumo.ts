@@ -62,6 +62,16 @@ export interface Insumo {
   alergenos_revisados: boolean;
   alergenos_revisados_at: string | null;
   alergenos_declarados: AlergenoDeclarado[];
+  /**
+   * HU14: precio y contenido. Los Decimal llegan como texto ("1000.00"). Opcionales porque un insumo
+   * anterior a HU14 no los trae.
+   */
+  precio_referencia?: string | null;
+  precio_fuente?: string | null;
+  precio_fecha?: string | null;
+  contenido_cantidad?: string | null;
+  contenido_unidad?: string | null;
+  contenido_fuente?: string | null;
 }
 
 /** `fuente`, `ficha` and `fecha_recuperacion` are filled by HU13 when a supply is retrieved. */
@@ -96,6 +106,10 @@ export interface InsumoUpdatePayload {
   advertencias?: string | null;
   habitual?: boolean;
   activo?: boolean;
+  /** HU14: texto decimal; null borra el valor junto con su fuente. El contenido va como par. */
+  precio_referencia?: string | null;
+  contenido_cantidad?: string | null;
+  contenido_unidad?: string | null;
 }
 
 export type InsumoFormMode = "create" | "edit";
@@ -110,6 +124,11 @@ export interface InsumoFormValues {
   ingredientes_declarados: string;
   advertencias: string;
   habitual: boolean;
+  /** HU14, solo al editar: texto que escribe el productor (coma o punto). */
+  precio: string;
+  contenido_cantidad: string;
+  /** "" mientras no hay unidad. */
+  contenido_unidad: string;
 }
 
 export const EMPTY_INSUMO_FORM_VALUES: InsumoFormValues = {
@@ -121,6 +140,9 @@ export const EMPTY_INSUMO_FORM_VALUES: InsumoFormValues = {
   ingredientes_declarados: "",
   advertencias: "",
   habitual: false,
+  precio: "",
+  contenido_cantidad: "",
+  contenido_unidad: "",
 };
 
 export type InsumoEstadoFilter = "activos" | "inactivos";

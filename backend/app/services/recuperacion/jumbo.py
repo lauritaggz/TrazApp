@@ -10,6 +10,7 @@ Jumbo has no search by barcode, so this adapter implements only `FuenteBusquedaN
 
 import json
 import re
+from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from typing import Any
 
@@ -21,6 +22,7 @@ from app.core.codigo_barras import (
     validar_codigo_barras,
 )
 from app.core.config import Settings
+from app.core.contenido import parsear_contenido
 from app.services.recuperacion.alergenos import normalizar_texto
 from app.services.recuperacion.base import (
     MOTIVO_ERROR_SERVIDOR,
@@ -136,6 +138,57 @@ def _propiedades(producto: dict[str, Any], nombre: str) -> list[str]:
         _texto(p.get("value")) for p in propiedades if isinstance(p, dict) and p.get("name") == nombre
     )
     return [v for v in valores if v]
+
+
+_PRECIO_MAXIMO = Decimal("10000000000")
+_CENTAVOS = Decimal("0.01")
+
+
+def _precio(producto: dict[str, Any]) -> Decimal | None:
+    """The sheet's price in CLP (HU14), or None when it has none or it is not in pesos.
+
+    The structured data has a single price (`offers.price`): it carries no list price, high price or
+    struck-through price, so it cannot be told apart from a promotional one (limitation of HU14).
+    """
+    ofertas = producto.get("offers")
+    for oferta in ofertas if isinstance(ofertas, list) else [ofertas]:
+        if not isinstance(oferta, dict) or oferta.get("priceCurrency") != "CLP":
+            continue
+        valor = oferta.get("price")
+        if isinstance(valor, bool) or not isinstance(valor, (int, float, str)):
+            continue
+        try:
+            precio = Decimal(str(valor).strip())
+        except InvalidOperation:
+            continue
+        if precio.is_finite() and 0 < precio < _PRECIO_MAXIMO:
+            return precio.quantize(_CENTAVOS)
+    return None
+
+
+def _gtin_restringido(gtin: str | None) -> bool:
+    """The sheet's gtin is a valid number of GS1 restricted circulation (a store PLU, a weighed good)."""
+    normalizado = normalizar_codigo_barras(gtin) if gtin else None
+    if normalizado is None:
+        return False
+    try:
+        return es_circulacion_restringida(validar_codigo_barras(normalizado))
+    except ValueError:
+        return False
+
+
+def _es_granel(nombre: str, resultado: ResultadoBusqueda, gtin: str | None) -> bool:
+    """Bulk goods are priced per kilo while the sheet states a portion: neither is usable.
+
+    Three signals, any of which is enough: the search marks them (`measurementUnit` "kg", shown as
+    presentación «Granel»), the name says «granel», or the gtin is a restricted-circulation number (the
+    same detection as for the barcode). A sheet reached without the search has only the last two.
+    """
+    return (
+        resultado.presentacion == "Granel"
+        or "granel" in normalizar_texto(nombre).split()
+        or _gtin_restringido(gtin)
+    )
 
 
 def _ingredientes_del_faq(producto: dict[str, Any]) -> str | None:
@@ -260,6 +313,9 @@ class JumboFuente:
         gtin = _texto(producto.get("gtin"))
         codigo = _gtin_combinable(gtin, nombre)
         presentaciones = _propiedades(producto, "Contenido Neto")
+        granel = _es_granel(nombre, resultado, gtin)
+        precio = None if granel else _precio(producto)
+        contenido = None if granel or not presentaciones else parsear_contenido(presentaciones[0])
         ingredientes = _ingredientes_del_faq(producto) or lector.ingredientes
         puede_contener = lector.puede_contener or []
 
@@ -285,6 +341,10 @@ class JumboFuente:
             ficha=ficha,
             imagen_url=imagen,
             imagen_fuente=NOMBRE_FUENTE if imagen else None,
+            precio=precio,
+            contenido_cantidad=contenido[0] if contenido else None,
+            contenido_unidad=contenido[1] if contenido else None,
+            contenido_fuente=NOMBRE_FUENTE if contenido else None,
         )
 
     def _pedir(

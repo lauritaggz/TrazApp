@@ -131,6 +131,9 @@ class FuenteCombinada:
         ficha = dict(base.ficha)
         ficha[FUENTE_JUMBO] = jumbo.ficha
         trazas_texto = jumbo.trazas_texto
+        # HU14: the price only exists in Jumbo; the content comes from Jumbo and, if it has none, from OFF.
+        # Both come from the same sheet of Jumbo, so a price and its content are never mixed up.
+        de_contenido = jumbo if jumbo.contenido_cantidad is not None else base
         return ProductoFuente(
             codigo_barras=base.codigo_barras,
             nombre=nombre,
@@ -147,6 +150,10 @@ class FuenteCombinada:
             # The picture: Jumbo's first, else Open Food Facts'. Each one carries its own attribution.
             imagen_url=jumbo.imagen_url or base.imagen_url,
             imagen_fuente=(jumbo.imagen_fuente if jumbo.imagen_url else base.imagen_fuente),
+            precio=jumbo.precio,
+            contenido_cantidad=de_contenido.contenido_cantidad,
+            contenido_unidad=de_contenido.contenido_unidad,
+            contenido_fuente=de_contenido.contenido_fuente,
         )
 
 

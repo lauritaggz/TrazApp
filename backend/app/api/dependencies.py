@@ -21,6 +21,7 @@ from app.repositories.trazabilidad_repository import TrazabilidadRepository
 from app.services.auth_service import AuthService
 from app.services.categoria_service import CategoriaService
 from app.services.consulta_publica_service import ConsultaPublicaService
+from app.services.costos_service import CostosService
 from app.services.elaboracion_service import ElaboracionService
 from app.services.ingrediente_service import IngredienteService
 from app.services.insumo_service import InsumoService
@@ -59,6 +60,10 @@ def get_producto_service(db: Session = Depends(get_db)) -> ProductoService:
         Path(settings.get_uploads_products_dir()),
     )
     return ProductoService(repository, image_service=image_service)
+
+
+def get_costos_service(db: Session = Depends(get_db)) -> CostosService:
+    return CostosService(db)
 
 
 def get_categoria_service(db: Session = Depends(get_db)) -> CategoriaService:

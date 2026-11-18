@@ -16,7 +16,16 @@ import { InsumoIcon } from "@/components/detail/icons";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
-import { deactivateInsumo, getInsumo, reactivateInsumo } from "@/services/insumoService";
+import { etiquetaDeOrigen, etiquetaUnidad, slugDeJumbo } from "@/lib/costosInsumo";
+import { formatearCantidad, formatearPrecio } from "@/lib/dinero";
+import { nombreFuente } from "@/lib/fuentesInsumo";
+import {
+  actualizarPrecioDesdeJumbo,
+  deactivateInsumo,
+  getInsumo,
+  reactivateInsumo,
+} from "@/services/insumoService";
+import { ApiError } from "@/types/auth";
 import type { Insumo } from "@/types/insumo";
 
 function parseInsumoId(raw: string | undefined): number | null {
@@ -40,6 +49,9 @@ export default function InsumoDetail() {
   const [actionError, setActionError] = useState("");
   const [working, setWorking] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showPriceConfirm, setShowPriceConfirm] = useState(false);
+  const [updatingPrice, setUpdatingPrice] = useState(false);
+  const [priceError, setPriceError] = useState("");
 
   const loadInsumo = useCallback(async (id: number) => {
     setLoading(true);
@@ -87,6 +99,36 @@ export default function InsumoDetail() {
     } finally {
       setWorking(false);
       setShowDeactivateConfirm(false);
+    }
+  }
+
+  /** HU14: one request to Jumbo per click. A manual price is only replaced after the productor confirms. */
+  function handleUpdatePriceClick() {
+    if (!insumo) return;
+    if (insumo.precio_fuente === "manual" && insumo.precio_referencia != null) {
+      setShowPriceConfirm(true);
+      return;
+    }
+    void runUpdatePrice();
+  }
+
+  async function runUpdatePrice() {
+    if (!insumo) return;
+    setPriceError("");
+    setUpdatingPrice(true);
+    try {
+      setInsumo(await actualizarPrecioDesdeJumbo(insumo.id));
+      notify(`Precio actualizado desde ${nombreFuente("jumbo")}.`);
+    } catch (err) {
+      // 409 carries its own message («no viene de Jumbo», «Jumbo no informa un precio»…); the data is untouched.
+      setPriceError(
+        err instanceof ApiError && (err.status === 409 || err.status === 404) && err.message
+          ? err.message
+          : `No pudimos actualizar el precio desde ${nombreFuente("jumbo")}. Revisa tu conexión e inténtalo de nuevo.`,
+      );
+    } finally {
+      setUpdatingPrice(false);
+      setShowPriceConfirm(false);
     }
   }
 
@@ -192,6 +234,63 @@ export default function InsumoDetail() {
                   </dl>
                 </ProductDetailSection>
 
+                <ProductDetailSection
+                  id="insumo-detail-precio"
+                  title="Precio y contenido"
+                  description="Con esto la calculadora de costos estima el costo de cada ingrediente."
+                >
+                  <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <FactTile label="Precio de compra">
+                      {insumo.precio_referencia != null ? (
+                        <>
+                          <span className="tabular-nums">{formatearPrecio(insumo.precio_referencia)}</span>
+                          <span className="mt-0.5 block text-xs font-normal text-text-secondary">
+                            {etiquetaDeOrigen(insumo.precio_fuente, insumo.precio_fecha) ?? "Sin fuente"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-text-secondary">Sin precio</span>
+                      )}
+                    </FactTile>
+                    <FactTile label="Contenido">
+                      {insumo.contenido_cantidad != null && insumo.contenido_unidad ? (
+                        <>
+                          <span className="tabular-nums">
+                            {formatearCantidad(insumo.contenido_cantidad)} {etiquetaUnidad(insumo.contenido_unidad)}
+                          </span>
+                          <span className="mt-0.5 block text-xs font-normal text-text-secondary">
+                            {etiquetaDeOrigen(insumo.contenido_fuente) ?? "Sin fuente"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-text-secondary">Sin contenido</span>
+                      )}
+                    </FactTile>
+                  </dl>
+                  {insumo.activo && slugDeJumbo(insumo.ficha) && (
+                    <div className="mt-4 space-y-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full sm:w-auto"
+                        onClick={handleUpdatePriceClick}
+                        loading={updatingPrice}
+                      >
+                        Actualizar precio desde {nombreFuente("jumbo")}
+                      </Button>
+                      <p className="text-xs text-text-secondary">
+                        Consulta la ficha una vez. El precio de {nombreFuente("jumbo")} puede corresponder a una
+                        oferta: si no es el que pagas, corrígelo en «Editar insumo».
+                      </p>
+                    </div>
+                  )}
+                  {priceError && (
+                    <div className="mt-3">
+                      <Alert type="error">{priceError}</Alert>
+                    </div>
+                  )}
+                </ProductDetailSection>
+
                 <ProductDetailSection id="insumo-detail-alergenos" title="Alérgenos declarados">
                   <InsumoAllergensSection insumoId={insumo.id} revisado={insumo.alergenos_revisados} />
                 </ProductDetailSection>
@@ -247,6 +346,21 @@ export default function InsumoDetail() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showPriceConfirm}
+        title="Reemplazar el precio manual"
+        description={`El precio actual es manual (${
+          etiquetaDeOrigen(insumo?.precio_fuente, insumo?.precio_fecha) ?? "sin fecha"
+        }). Se reemplazará por el de ${nombreFuente("jumbo")}.`}
+        confirmLabel="Reemplazar precio"
+        cancelLabel="Conservar mi precio"
+        loading={updatingPrice}
+        onConfirm={() => void runUpdatePrice()}
+        onCancel={() => {
+          if (!updatingPrice) setShowPriceConfirm(false);
+        }}
+      />
 
       <ConfirmDialog
         open={showDeactivateConfirm}

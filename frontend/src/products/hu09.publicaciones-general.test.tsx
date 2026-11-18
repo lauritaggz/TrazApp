@@ -111,7 +111,7 @@ describe("HU09 — menú: grupo «Herramientas»", () => {
     localStorage.clear();
   });
 
-  it("«Publicaciones» está en el grupo «Herramientas» y lleva a /publicaciones; no hay Calculadora de costos", async () => {
+  it("«Publicaciones» está en el grupo «Herramientas» y lleva a /publicaciones; junto a ella está la Calculadora de costos (HU14)", async () => {
     const user = userEvent.setup();
     setAccessToken("valid-token");
     vi.mocked(authService.getCurrentProductor).mockResolvedValue(mockProductor);
@@ -121,7 +121,7 @@ describe("HU09 — menú: grupo «Herramientas»", () => {
 
     const nav = await screen.findByRole("navigation", { name: "Secciones" });
     expect(within(nav).getByText("Herramientas")).toBeInTheDocument();
-    expect(within(nav).queryByText(/Calculadora/)).not.toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Calculadora de costos" })).toHaveAttribute("href", "/calculadora");
     await user.click(within(nav).getByRole("link", { name: "Publicaciones" }));
 
     expect(await screen.findByRole("heading", { name: "Publicaciones", level: 1 })).toBeInTheDocument();

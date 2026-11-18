@@ -15,6 +15,11 @@ export interface Product {
   unidad_medida: UnidadMedida | null;
   presentacion: string | null;
   costo_produccion: string | null;
+  /**
+   * HU14: costo por unidad calculado con los precios de los insumos (texto con 4 decimales), o null si falta un
+   * dato, no hay rendimiento o no hay formulación. Solo lo trae el detalle; `costo_produccion` (manual) no se toca.
+   */
+  costo_calculado?: string | null;
   precio_venta: string | null;
   imagen_url: string | null;
   categorias: Categoria[];

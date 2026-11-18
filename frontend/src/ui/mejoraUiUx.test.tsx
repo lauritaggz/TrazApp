@@ -148,8 +148,8 @@ describe("AppShell accesible", () => {
 
     await user.click(screen.getByRole("button", { name: "Abrir menú" }));
     const first = screen.getByRole("button", { name: "Cambiar a modo oscuro" });
-    // HU09: el último enlace del menú es «Publicaciones» (grupo «Herramientas»); antes era «Elaboraciones».
-    const last = screen.getByRole("link", { name: "Publicaciones" });
+    // HU14: el último enlace del menú es «Calculadora de costos» (grupo «Herramientas»); antes era «Publicaciones».
+    const last = screen.getByRole("link", { name: "Calculadora de costos" });
     last.focus();
 
     await user.tab();

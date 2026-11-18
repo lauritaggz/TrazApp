@@ -5,20 +5,9 @@ import type {
   FormulacionVersion,
   ResultadoGuardadoFormulacion,
 } from "@/types/formulation";
-import type { UnidadMedida } from "@/types/product";
 
 // Mirrors the backend column Numeric(12, 3).
 const CANTIDAD_PATTERN = /^\d{1,9}([.,]\d{1,3})?$/;
-
-export function formatFormulacionCantidad(
-  cantidad: string | null,
-  unidad: UnidadMedida | null,
-): string | null {
-  if (!cantidad || !unidad) return null;
-  const value = Number(cantidad);
-  if (Number.isNaN(value)) return `${cantidad} ${unidad}`;
-  return `${value.toLocaleString("es-CL", { maximumFractionDigits: 3 })} ${unidad}`;
-}
 
 export function formatFechaVersion(iso: string): string {
   const date = new Date(iso);
@@ -44,7 +33,8 @@ export function toDraftLines(version: FormulacionVersion | null): FormulacionDra
     ingrediente_id: linea.ingrediente_id,
     nombre: linea.ingrediente_nombre,
     codigo_interno: linea.ingrediente_codigo_interno,
-    cantidad: linea.cantidad == null ? "" : String(Number(linea.cantidad)),
+    // Se conserva el texto que mandó la API ("250.000"): el editor no la muestra y la reenvía tal cual.
+    cantidad: linea.cantidad ?? "",
     unidad: linea.unidad ?? "",
     notas: linea.notas,
     desactivado: linea.ingrediente_desactivado,

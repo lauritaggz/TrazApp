@@ -7,6 +7,8 @@ from app.models import Ingrediente, InsumoAlergeno, InsumoComercial, Productor
 from app.models.insumo import FUENTE_MANUAL
 from app.repositories.insumo_repository import InsumoRepository
 from app.schemas.insumo import (
+    CAMPO_CONTENIDO,
+    CAMPO_PRECIO,
     AlergenoDeclaradoRead,
     InsumoAlergenoCreate,
     InsumoAlergenosReplace,
@@ -154,6 +156,7 @@ class InsumoService:
                     codigo: detalle.model_dump() for codigo, detalle in payload.fuentes_por_alergeno.items()
                 }
         self._ensure_codigo_disponible(productor_id, data["codigo_barras"])
+        data.update(self._origen_de_los_costos(payload))
 
         insumo = InsumoComercial(productor_id=productor_id, **data)
         if alergenos is not None:
@@ -201,6 +204,7 @@ class InsumoService:
             return InsumoRead.from_insumo(insumo)
         if "ficha" in updates:
             validar_url_de_la_ficha(updates["ficha"])
+        self._aplicar_cambios_de_costos(insumo, updates)
         # Same rule as the creation, on the final result. It is checked when the request touches the
         # source or the date, so a record from before this rule can still be edited in other fields.
         if "fuente" in updates or "fecha_recuperacion" in updates:
@@ -377,6 +381,56 @@ class InsumoService:
         if declarado is None:
             raise InsumoAlergenoNotFoundError("Asociación de alérgeno no encontrada.")
         return declarado
+
+    @staticmethod
+    def _origen_de_los_costos(payload: InsumoCreate) -> dict:
+        """Source and date of the price and the content of a new supply (HU14). Decided here, not by the client.
+
+        A value that came from a source and was not edited keeps that source (and the retrieval date for
+        the price); anything else is «manual» with today's date.
+        """
+        ahora = datetime.now(timezone.utc)
+        origen = payload.fuentes_campos or {}
+        editados = set(payload.campos_editados or ())
+        datos: dict = {}
+        if payload.precio_referencia is not None:
+            externo = origen.get(CAMPO_PRECIO) == "jumbo" and CAMPO_PRECIO not in editados
+            datos["precio_fuente"] = "jumbo" if externo else FUENTE_MANUAL
+            datos["precio_fecha"] = payload.fecha_recuperacion if externo else ahora
+        if payload.contenido_cantidad is not None:
+            fuente = origen.get(CAMPO_CONTENIDO)
+            externo = fuente is not None and CAMPO_CONTENIDO not in editados
+            datos["contenido_fuente"] = fuente if externo else FUENTE_MANUAL
+        return datos
+
+    @staticmethod
+    def _aplicar_cambios_de_costos(insumo: InsumoComercial, updates: dict) -> None:
+        """Turn the edited price and content into what is stored, with their source and date (HU14).
+
+        A value that changes becomes «manual» with the date of the change; one that does not change keeps
+        its source; null clears the value together with its source and date. The content is a pair.
+        """
+        ahora = datetime.now(timezone.utc)
+        if "precio_referencia" in updates:
+            nuevo = updates["precio_referencia"]
+            if nuevo is None:
+                updates.update(precio_fuente=None, precio_fecha=None)
+            elif nuevo != insumo.precio_referencia:
+                updates.update(precio_fuente=FUENTE_MANUAL, precio_fecha=ahora)
+            else:
+                updates.pop("precio_referencia")
+        if "contenido_cantidad" in updates or "contenido_unidad" in updates:
+            cantidad = updates.get("contenido_cantidad", insumo.contenido_cantidad)
+            unidad = updates.get("contenido_unidad", insumo.contenido_unidad)
+            if (cantidad is None) != (unidad is None):
+                raise InvalidInsumoError("Indica la cantidad y la unidad del contenido, o ninguna de las dos.")
+            if cantidad is None:
+                updates.update(contenido_cantidad=None, contenido_unidad=None, contenido_fuente=None)
+            elif (cantidad, unidad) != (insumo.contenido_cantidad, insumo.contenido_unidad):
+                updates.update(contenido_cantidad=cantidad, contenido_unidad=unidad, contenido_fuente=FUENTE_MANUAL)
+            else:
+                updates.pop("contenido_cantidad", None)
+                updates.pop("contenido_unidad", None)
 
     def _get_owned_or_raise(self, productor_id: int, insumo_id: int) -> InsumoComercial:
         insumo = self.repository.get_by_id_and_productor(insumo_id, productor_id)

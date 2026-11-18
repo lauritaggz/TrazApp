@@ -9,10 +9,12 @@ from app.schemas.consulta_codigo import (
     AlergenoSugeridoRead,
     AlergenosSugeridosRead,
     ConsultaCodigoRead,
+    CostosPropuestosRead,
     ProductoPropuestoRead,
     ResultadoBusquedaRead,
 )
-from app.services.insumo_service import DuplicateCodigoBarrasError
+from app.schemas.insumo import InsumoRead
+from app.services.insumo_service import DuplicateCodigoBarrasError, InsumoNotFoundError
 from app.services.recuperacion.alergenos import AlergenoDetectado, Deteccion, detectar_alergenos
 from app.services.recuperacion.base import FuenteBusquedaNombre, FuenteNoDisponibleError, FuenteProducto
 from app.services.recuperacion.combinacion import combinar_alergenos
@@ -29,6 +31,19 @@ CAMPOS_DEL_PRODUCTO = frozenset(
 )
 
 
+def _costos_propuestos(producto: ProductoFuente) -> CostosPropuestosRead | None:
+    """Price and content the source gave (HU14), or None when it gave neither."""
+    if producto.precio is None and producto.contenido_cantidad is None:
+        return None
+    return CostosPropuestosRead(
+        precio_referencia=producto.precio,
+        precio_fuente=FUENTE_JUMBO if producto.precio is not None else None,
+        contenido_cantidad=producto.contenido_cantidad,
+        contenido_unidad=producto.contenido_unidad,
+        contenido_fuente=producto.contenido_fuente if producto.contenido_cantidad is not None else None,
+    )
+
+
 class CodigoInvalidoError(ValueError):
     """The barcode is not a valid EAN-8, UPC-A or EAN-13 (422)."""
 
@@ -39,6 +54,26 @@ class BusquedaInvalidaError(ValueError):
 
 class ResultadoNoDisponibleError(LookupError):
     """The result no longer exists in the source (404): the productor can enter it by hand."""
+
+
+class ActualizacionPrecioError(Exception):
+    """The price of a supply could not be refreshed from Jumbo (409): nothing was changed."""
+
+    def __init__(self, mensaje: str, motivo: str | None = None) -> None:
+        self.motivo = motivo
+        super().__init__(mensaje)
+
+
+def _slug_de_jumbo(ficha: object) -> str | None:
+    """The Jumbo slug a supply kept in its `ficha`: inside `jumbo` for a combined sheet, or at the top."""
+    if not isinstance(ficha, dict):
+        return None
+    de_jumbo = ficha.get("jumbo")
+    for origen in (de_jumbo, ficha):
+        slug = origen.get("slug") if isinstance(origen, dict) else None
+        if isinstance(slug, str) and slug:
+            return slug
+    return None
 
 
 TEXTO_MIN = 2
@@ -114,6 +149,7 @@ class RecuperacionService:
             fuentes_sin_respuesta=list(producto.fuentes_sin_respuesta) or None,
             imagen_url=producto.imagen_url,
             imagen_fuente=producto.imagen_fuente if producto.imagen_url else None,
+            costos=_costos_propuestos(producto),
         )
 
     def buscar_por_nombre(self, texto: str) -> list[ResultadoBusquedaRead]:
@@ -173,6 +209,51 @@ class RecuperacionService:
             campos["trazas_texto"] = FUENTE_JUMBO
         producto = replace(producto, fuente=FUENTE_JUMBO, fuentes_campos=campos)
         return self._propuesta(codigo, producto, datetime.now(timezone.utc))
+
+    def actualizar_precio(self, productor: Productor, insumo_id: int) -> InsumoRead:
+        """Refresh the price (and the content, if Jumbo gives it) of a supply from its Jumbo sheet (HU14).
+
+        One request to Jumbo per call. Everything is checked before writing: any failure leaves the
+        supply as it was. It overwrites a manual price; the interface asks for confirmation first.
+        """
+        productor_id = productor.id
+        insumo = self.repository.get_by_id_and_productor(insumo_id, productor_id)
+        if insumo is None:
+            raise InsumoNotFoundError("Insumo no encontrado")
+        slug = _slug_de_jumbo(insumo.ficha)
+        if slug is None:
+            raise ActualizacionPrecioError(
+                "Este insumo no viene de una ficha de Jumbo, así que su precio no se puede actualizar "
+                "desde allí. Puedes ingresarlo manualmente."
+            )
+        try:
+            producto = self._fuente_nombre().obtener(
+                ResultadoBusqueda(id=slug, nombre="", marca=None, presentacion=None)
+            )
+        except ValueError as exc:
+            raise ActualizacionPrecioError("La ficha de Jumbo guardada en este insumo no es válida.") from exc
+        except FuenteNoDisponibleError as exc:
+            raise ActualizacionPrecioError(str(exc), exc.motivo) from exc
+        if producto is None:
+            raise ActualizacionPrecioError(
+                "Este producto ya no está disponible en Jumbo. Puedes ingresar el precio manualmente."
+            )
+        if producto.precio is None:
+            raise ActualizacionPrecioError(
+                "Jumbo no informa un precio utilizable para este producto (por ejemplo, si se vende a "
+                "granel). Puedes ingresarlo manualmente."
+            )
+
+        ahora = datetime.now(timezone.utc)
+        insumo.precio_referencia = producto.precio
+        insumo.precio_fuente = FUENTE_JUMBO
+        insumo.precio_fecha = ahora
+        if producto.contenido_cantidad is not None:
+            insumo.contenido_cantidad = producto.contenido_cantidad
+            insumo.contenido_unidad = producto.contenido_unidad
+            insumo.contenido_fuente = FUENTE_JUMBO
+        self.repository.commit()
+        return InsumoRead.from_insumo(self.repository.reload(insumo_id, productor_id))
 
     def _fuente_nombre(self) -> FuenteBusquedaNombre:
         if self.busqueda_nombre is None:

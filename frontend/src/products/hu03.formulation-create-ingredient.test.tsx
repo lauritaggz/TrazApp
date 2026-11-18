@@ -94,18 +94,12 @@ async function fillIngredient(
   await user.type(within(dialog).getByRole("textbox", { name: /^Nombre/ }), nombre);
 }
 
-/** Unsaved edits: Harina changes quantity and unit, Agua is removed. */
+/** Unsaved edit: Agua is removed (HU14: the quantity and unit fields are no longer in the editor). */
 async function makeUnsavedChanges(user: ReturnType<typeof userEvent.setup>) {
-  const cantidad = screen.getByRole("textbox", { name: "Cantidad de Harina" });
-  await user.clear(cantidad);
-  await user.type(cantidad, "2,5");
-  await user.selectOptions(screen.getByRole("combobox", { name: "Unidad de Harina" }), "g");
   await user.click(screen.getByRole("button", { name: "Quitar Agua" }));
 }
 
 function expectUnsavedChangesKept() {
-  expect(screen.getByRole("textbox", { name: "Cantidad de Harina" })).toHaveValue("2,5");
-  expect(screen.getByRole("combobox", { name: "Unidad de Harina" })).toHaveValue("g");
   expect(screen.queryByRole("button", { name: "Quitar Agua" })).not.toBeInTheDocument();
 }
 
