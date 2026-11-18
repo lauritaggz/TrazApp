@@ -15,6 +15,7 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useAppShell } from "@/hooks/useAppShell";
 import { useCalculadoraCostos } from "@/hooks/useCalculadoraCostos";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { ingredientCountLabel } from "@/lib/formulationUtils";
 import { listProducts } from "@/services/productService";
 import type { Product } from "@/types/product";
 
@@ -225,7 +226,7 @@ export default function CostCalculator() {
                           <h2 id="costos-lineas" className="text-sm font-semibold text-text-primary">
                             Ingredientes de la formulación vigente
                           </h2>
-                          <p className="mt-0.5 text-xs text-text-secondary">Formulación vigente</p>
+                          <p className="mt-0.5 text-xs text-text-secondary">{ingredientCountLabel(datos.lineas.length)}</p>
                         </div>
                       </div>
                       <p

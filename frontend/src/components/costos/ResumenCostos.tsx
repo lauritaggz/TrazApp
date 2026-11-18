@@ -72,7 +72,7 @@ export default function ResumenCostos({ datos, sucio, rendimiento, errorRendimie
             </div>
             <div className="mt-4 border-t border-white/20 pt-4">
               {resumen.costo_unidad !== null ? (
-                <div className="flex items-end justify-between gap-3">
+                <div className="flex items-baseline justify-between gap-3">
                   <p className="text-xs text-brand-100">Costo por unidad</p>
                   <p className="text-xl font-semibold tabular-nums">{formatearPesos(resumen.costo_unidad)}</p>
                 </div>

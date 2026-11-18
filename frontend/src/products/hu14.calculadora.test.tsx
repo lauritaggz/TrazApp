@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router-dom";
@@ -227,7 +228,9 @@ describe("HU14 — calculadora: lectura", () => {
     await esperarCalculo();
 
     const tarjeta = screen.getByRole("region", { name: "Ingredientes de la formulación vigente" });
-    expect(within(tarjeta).getByText("Formulación vigente")).toBeInTheDocument();
+    // El subtítulo cuenta los ingredientes; ya no repite el título.
+    expect(within(tarjeta).getByText("2 ingredientes")).toBeInTheDocument();
+    expect(within(tarjeta).queryByText("Formulación vigente")).not.toBeInTheDocument();
     expect(within(tarjeta).getByRole("status")).toHaveTextContent("Guardado");
 
     await user.type(cantidadDe("Harina"), "1");
@@ -276,6 +279,96 @@ describe("HU14 — calculadora: lectura", () => {
     expect(within(fila).getByText("$1.000 / 1 kg")).toBeInTheDocument();
     expect(within(fila).getByText("Jumbo")).toBeInTheDocument();
     expect(within(fila).getByText("12 nov 2026")).toBeInTheDocument();
+  });
+
+  it("el valor de la cantidad se ve en el campo: «1.000» se muestra «1» y «0.125», «0,125»", async () => {
+    vi.mocked(costosService.obtenerCostos).mockResolvedValue(
+      costos({
+        lineas: [
+          linea(1, "Harina", { cantidad: "1.000", unidad: "kg" }),
+          linea(2, "Azúcar", { cantidad: "0.125", unidad: "kg" }),
+        ],
+      }),
+    );
+    abrir();
+    await esperarCalculo();
+
+    expect(cantidadDe("Harina")).toHaveValue("1");
+    expect(cantidadDe("Harina")).toHaveDisplayValue("1");
+    expect(cantidadDe("Azúcar")).toHaveDisplayValue("0,125");
+    expect(screen.getByLabelText("Unidad de Harina")).toHaveDisplayValue("kg");
+  });
+
+  it("el grupo cantidad + unidad: el campo ocupa el ancho disponible y la unidad tiene un ancho fijo angosto", () => {
+    const codigo = readFileSync("src/components/costos/LineaCostoFila.tsx", "utf8");
+    const campo = /className=\{`\$\{CAMPO\}([^`]*)`\}\s*>?/g;
+    const clases = Array.from(codigo.matchAll(campo)).map((m) => m[1]);
+    const cantidad = clases.find((c) => c.includes("border-r-0")) ?? "";
+    const unidad = clases.find((c) => c.includes("rounded-l-none")) ?? "";
+
+    // La cantidad crece (flex-1) y nunca baja de ~6 caracteres; la unidad tiene un ancho fijo y no se encoge.
+    const clasesDe = (texto: string) => texto.split(/\s+/).filter(Boolean);
+    expect(clasesDe(cantidad)).toContain("flex-1");
+    expect(clasesDe(cantidad).some((c) => /^w-/.test(c))).toBe(false);
+    expect(clasesDe(unidad)).toContain("shrink-0");
+    expect(clasesDe(unidad).some((c) => c === "w-full" || c === "flex-1")).toBe(false);
+
+    // Los dos juntos caben en la columna de 150 px del escritorio, y el campo conserva al menos ~6 caracteres.
+    const rem = (clases: string[], prefijo: string) => {
+      const clase = clases.find((c) => c.startsWith(prefijo));
+      return clase ? Number(/\[([\d.]+)rem\]/.exec(clase)?.[1]) : NaN;
+    };
+    const minimoCampo = rem(clasesDe(cantidad), "min-w-[") * 16;
+    const anchoUnidad = rem(clasesDe(unidad), "w-[") * 16;
+    expect(anchoUnidad).toBeGreaterThanOrEqual(64);
+    expect(anchoUnidad).toBeLessThanOrEqual(80);
+    expect(minimoCampo).toBeGreaterThanOrEqual(64);
+    expect(minimoCampo + anchoUnidad).toBeLessThanOrEqual(150);
+    // CAMPO no fuerza un ancho que pelee con flex-1.
+    const base = /const CAMPO =\s*"([^"]*)"/.exec(codigo)?.[1] ?? "";
+    expect(clasesDe(base)).not.toContain("w-full");
+  });
+
+  it("el subtítulo de la tarjeta de ingredientes usa el singular con un solo ingrediente", async () => {
+    vi.mocked(costosService.obtenerCostos).mockResolvedValue(costos({ lineas: [linea(1, "Harina")] }));
+    abrir();
+    await esperarCalculo();
+
+    const tarjeta = screen.getByRole("region", { name: "Ingredientes de la formulación vigente" });
+    expect(within(tarjeta).getByText("1 ingrediente")).toBeInTheDocument();
+    expect(within(tarjeta).queryByText("1 ingredientes")).not.toBeInTheDocument();
+  });
+
+  it("el separador «·» queda centrado en un hueco simétrico y la etiqueta y el monto de la tarjeta verde comparten línea base", () => {
+    const estilos = readFileSync("src/components/costos/estilos.ts", "utf8");
+    const resumen = readFileSync("src/components/costos/ResumenCostos.tsx", "utf8");
+
+    // Hueco de 20 px a la izquierda del elemento, con el «·» ocupando ese mismo ancho y centrado.
+    expect(estilos).toContain("pl-5");
+    expect(estilos).toContain("before:w-5");
+    expect(estilos).toContain("before:text-center");
+    expect(estilos).toContain("before:left-0");
+    expect(estilos).not.toContain("before:left-0.5");
+    // «Costo por unidad» y su monto alineados por la línea base (no por el borde inferior de cada caja).
+    const bloque = resumen.slice(resumen.indexOf("Costo por unidad") - 200, resumen.indexOf("Costo por unidad"));
+    expect(bloque).toContain("items-baseline");
+    expect(bloque).not.toContain("items-end");
+  });
+
+  it("los separadores «·» de la línea de datos dependen del elemento que sigue: ninguno queda colgando al final", () => {
+    const fila = readFileSync("src/components/costos/LineaCostoFila.tsx", "utf8");
+    const estilos = readFileSync("src/components/costos/estilos.ts", "utf8");
+    const jumbo = readFileSync("src/components/costos/ActualizarJumbo.tsx", "utf8");
+
+    // El separador se dibuja a la izquierda de cada elemento (before:) y el primero de cada renglón se esconde.
+    expect(estilos).toContain("before:content-['·']");
+    expect(fila).toContain("overflow-hidden");
+    expect(fila).toContain("-ml-5");
+    expect(fila).toContain("ELEMENTO_DE_DATOS");
+    expect(jumbo).toContain("ELEMENTO_DE_DATOS");
+    // Ya no hay separadores sueltos como texto entre los elementos.
+    expect(fila).not.toMatch(/>\s*·\s*</);
+    expect(jumbo).not.toMatch(/>\s*·\s*</);
   });
 
   it("sin cálculo completo no muestra ningún total (CA9)", async () => {

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import ActualizarJumbo from "@/components/costos/ActualizarJumbo";
+import { ELEMENTO_DE_DATOS } from "@/components/costos/estilos";
 import { AlertIcon } from "@/components/costos/iconosCostos";
 import Select from "@/components/ui/Select";
 import { enlaceDeEdicionDesdeCalculadora, nombreDeOrigen } from "@/lib/costosInsumo";
@@ -43,16 +44,8 @@ function Rotulo({ children }: { children: string }) {
   );
 }
 
-function Separador() {
-  return (
-    <span aria-hidden="true" className="text-text-muted">
-      ·
-    </span>
-  );
-}
-
 const CAMPO =
-  "min-h-11 w-full rounded-lg border bg-card px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent";
+  "min-h-11 rounded-lg border bg-card text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent";
 
 /** Una fila de la tabla de ingredientes: ingrediente, insumo con su precio, cantidad con su unidad y costo. */
 export default function LineaCostoFila({
@@ -124,41 +117,34 @@ export default function LineaCostoFila({
           )}
 
           {insumo && (
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-text-secondary">
-              <span className="tabular-nums">
-                {insumo.precio_referencia === null
-                  ? "Sin precio"
-                  : `${formatearPrecio(insumo.precio_referencia)} / ${
-                      insumo.contenido_cantidad === null || !insumo.contenido_unidad
-                        ? "—"
-                        : `${formatearCantidad(insumo.contenido_cantidad)} ${insumo.contenido_unidad}`
-                    }`}
-              </span>
-              {insumo.precio_fuente && (
-                <>
-                  <Separador />
-                  <span>{nombreDeOrigen(insumo.precio_fuente)}</span>
-                </>
-              )}
-              {fecha && (
-                <>
-                  <Separador />
-                  <span className="tabular-nums">{fecha}</span>
-                </>
-              )}
-              <Separador />
-              <Link
-                to={enlaceDeEdicionDesdeCalculadora(insumo.id, productoId)}
-                className="inline-flex min-h-11 items-center font-medium text-accent-strong underline-offset-2 hover:underline"
-              >
-                Editar insumo
-                <span className="sr-only"> de {linea.ingrediente_nombre}</span>
-              </Link>
-              <ActualizarJumbo
-                insumo={insumo}
-                ingredienteNombre={linea.ingrediente_nombre}
-                onActualizado={onPrecioActualizado}
-              />
+            <div className="mt-1 overflow-hidden text-xs text-text-secondary">
+              <div className="-ml-5 flex flex-wrap items-center">
+                <span className={`${ELEMENTO_DE_DATOS} min-h-6 tabular-nums`}>
+                  {insumo.precio_referencia === null
+                    ? "Sin precio"
+                    : `${formatearPrecio(insumo.precio_referencia)} / ${
+                        insumo.contenido_cantidad === null || !insumo.contenido_unidad
+                          ? "—"
+                          : `${formatearCantidad(insumo.contenido_cantidad)} ${insumo.contenido_unidad}`
+                      }`}
+                </span>
+                {insumo.precio_fuente && (
+                  <span className={`${ELEMENTO_DE_DATOS} min-h-6`}>{nombreDeOrigen(insumo.precio_fuente)}</span>
+                )}
+                {fecha && <span className={`${ELEMENTO_DE_DATOS} min-h-6 tabular-nums`}>{fecha}</span>}
+                <Link
+                  to={enlaceDeEdicionDesdeCalculadora(insumo.id, productoId)}
+                  className={`${ELEMENTO_DE_DATOS} min-h-11 font-medium text-accent-strong underline-offset-2 hover:underline`}
+                >
+                  Editar insumo
+                  <span className="sr-only"> de {linea.ingrediente_nombre}</span>
+                </Link>
+                <ActualizarJumbo
+                  insumo={insumo}
+                  ingredienteNombre={linea.ingrediente_nombre}
+                  onActualizado={onPrecioActualizado}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -176,7 +162,7 @@ export default function LineaCostoFila({
               aria-describedby={errorCantidad ? `${idBase}-error` : undefined}
               value={borrador.cantidad}
               onChange={(e) => onCambiar({ cantidad: e.target.value })}
-              className={`${CAMPO} min-w-0 rounded-r-none border-r-0 tabular-nums ${
+              className={`${CAMPO} min-w-[4.25rem] flex-1 rounded-r-none border-r-0 px-2.5 tabular-nums ${
                 errores?.cantidad ? "border-error bg-error-bg" : "border-border-strong"
               }`}
             />
@@ -186,7 +172,7 @@ export default function LineaCostoFila({
               aria-invalid={errores?.unidad ? true : undefined}
               value={borrador.unidad}
               onChange={(e) => onCambiar({ unidad: e.target.value })}
-              className={`${CAMPO} w-20 shrink-0 rounded-l-none bg-surface px-2 ${
+              className={`${CAMPO} w-[4.75rem] shrink-0 rounded-l-none bg-surface px-2 ${
                 errores?.unidad ? "border-error" : "border-border-strong"
               }`}
             >

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ELEMENTO_DE_DATOS } from "@/components/costos/estilos";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/toastContext";
 import { etiquetaDeOrigen, slugDeJumbo } from "@/lib/costosInsumo";
@@ -65,20 +66,17 @@ export default function ActualizarJumbo({ insumo, ingredienteNombre, onActualiza
 
   return (
     <>
-      <span aria-hidden="true" className="text-text-muted">
-        ·
-      </span>
       <button
         type="button"
         disabled={actualizando}
         onClick={() => (insumo.precio_fuente === "manual" ? setConfirmando(true) : void actualizar())}
-        className="inline-flex min-h-11 items-center rounded font-medium text-accent-strong underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${ELEMENTO_DE_DATOS} min-h-11 rounded font-medium text-accent-strong underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {actualizando ? "Actualizando…" : "Actualizar desde Jumbo"}
         <span className="sr-only"> el insumo de {ingredienteNombre}</span>
       </button>
       {error && (
-        <p role="alert" className="basis-full text-[13px] font-medium text-error">
+        <p role="alert" className="basis-full pl-5 text-[13px] font-medium text-error">
           {error}
         </p>
       )}
