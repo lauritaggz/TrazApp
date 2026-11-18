@@ -1,4 +1,5 @@
 import { normalizarCodigoBarras, validarCodigoBarras } from "@/lib/codigoBarras";
+import { aTextoEditable, canonico, esVacio, validarContenido, validarPrecio } from "@/lib/costosInsumo";
 import type {
   Insumo,
   InsumoCreatePayload,
@@ -19,6 +20,9 @@ export const INSUMO_FORM_FIELD_ORDER: (keyof InsumoFormValues)[] = [
   "ingrediente_id",
   "presentacion",
   "codigo_barras",
+  "precio",
+  "contenido_cantidad",
+  "contenido_unidad",
   "ingredientes_declarados",
   "advertencias",
   "habitual",
@@ -34,6 +38,9 @@ export function insumoToFormValues(insumo: Insumo): InsumoFormValues {
     ingredientes_declarados: insumo.ingredientes_declarados ?? "",
     advertencias: insumo.advertencias ?? "",
     habitual: insumo.habitual,
+    precio: aTextoEditable(insumo.precio_referencia),
+    contenido_cantidad: aTextoEditable(insumo.contenido_cantidad),
+    contenido_unidad: insumo.contenido_unidad ?? "",
   };
 }
 
@@ -58,6 +65,10 @@ export function validateInsumoForm(values: InsumoFormValues): InsumoFormFieldErr
 
   const codigoError = validarCodigoBarras(values.codigo_barras);
   if (codigoError) errors.codigo_barras = codigoError;
+
+  const precioError = validarPrecio(values.precio);
+  if (precioError) errors.precio = precioError;
+  Object.assign(errors, validarContenido(values.contenido_cantidad, values.contenido_unidad));
 
   return errors;
 }
@@ -117,6 +128,19 @@ export function buildUpdatePayload(
   }
   if (values.habitual !== baseline.habitual) payload.habitual = values.habitual;
 
+  // HU14: solo lo que cambió. Vaciar el precio manda null; el contenido viaja siempre como par.
+  if (canonico(values.precio) !== canonico(baseline.precio)) {
+    payload.precio_referencia = esVacio(values.precio) ? null : canonico(values.precio);
+  }
+  if (
+    canonico(values.contenido_cantidad) !== canonico(baseline.contenido_cantidad) ||
+    values.contenido_unidad !== baseline.contenido_unidad
+  ) {
+    const hayContenido = !esVacio(values.contenido_cantidad);
+    payload.contenido_cantidad = hayContenido ? canonico(values.contenido_cantidad) : null;
+    payload.contenido_unidad = hayContenido ? values.contenido_unidad : null;
+  }
+
   return payload;
 }
 
@@ -129,6 +153,9 @@ export function isInsumoFormDirty(values: InsumoFormValues): boolean {
     values.codigo_barras.trim() !== "" ||
     values.ingredientes_declarados.trim() !== "" ||
     values.advertencias.trim() !== "" ||
+    values.precio.trim() !== "" ||
+    values.contenido_cantidad.trim() !== "" ||
+    values.contenido_unidad !== "" ||
     values.habitual
   );
 }

@@ -7,7 +7,9 @@ import MiniaturaProducto from "@/components/insumos/MiniaturaProducto";
 import { IconoAlerta, IconoCopiar } from "@/components/insumos/piezasBusqueda";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import { fieldClassName } from "@/components/ui/fieldStyles";
+import { UNIDADES_CONTENIDO, etiquetaDeOrigen } from "@/lib/costosInsumo";
 import { nombreFuente } from "@/lib/fuentesInsumo";
 import { INSUMO_FORM_FIELD_ORDER, type InsumoFormFieldErrors } from "@/lib/insumoFormValidation";
 import {
@@ -30,6 +32,15 @@ import type {
 
 export const AVISO_COMBINACION = `Fichas combinadas. El código de barras de ${nombreFuente("jumbo")} coincide con el de ${nombreFuente("open_food_facts")}.`;
 const FUENTES_DE_LA_REVISION = ["jumbo", "open_food_facts"];
+
+/** The source and date of the saved price and the source of the saved content (HU14). */
+export interface OrigenCostos {
+  precioFuente: string | null;
+  precioFecha: string | null;
+  contenidoFuente: string | null;
+  /** The supply has a Jumbo sheet, so its price can be refreshed from there. */
+  tieneFichaDeJumbo: boolean;
+}
 
 interface RevisionInsumoProps {
   /** Create (a new supply, retrieved or manual) or edit. */
@@ -58,6 +69,8 @@ interface RevisionInsumoProps {
   alergenos?: AlergenosValue;
   onAlergenosChange?: (value: AlergenosValue) => void;
   mostrarErrorAlergenos?: boolean;
+  /** Edit mode (HU14): where the saved price and content came from, to show it under the fields. */
+  origenCostos?: OrigenCostos;
   /** Where the data came from; without it (manual entry, edit of a manual supply) no sources are shown. */
   revision?: DatosRevision;
 }
@@ -97,6 +110,7 @@ export default function RevisionInsumo({
   onAlergenosChange,
   mostrarErrorAlergenos = false,
   revision,
+  origenCostos,
 }: RevisionInsumoProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const tituloIngredientesId = useId();
@@ -289,6 +303,78 @@ export default function RevisionInsumo({
                 </div>
               )}
             </Tarjeta>
+
+            {!crear && origenCostos && (
+              <Tarjeta
+                titulo="Precio y contenido"
+                descripcion="Con esto la calculadora de costos estima lo que cuesta cada ingrediente."
+              >
+                <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Input
+                      id="insumo-precio"
+                      label="Precio de compra"
+                      name="precio"
+                      inputMode="decimal"
+                      leftIcon={<span className="text-sm">$</span>}
+                      placeholder="1250"
+                      value={values.precio}
+                      onChange={(e) => actualizar("precio", e.target.value)}
+                      error={errors.precio}
+                      hint="Es lo que pagas por todo el contenido indicado abajo, en pesos."
+                      disabled={loading}
+                      autoComplete="off"
+                    />
+                    <LineaDeFuente
+                      etiqueta="Fuente del precio"
+                      texto={etiquetaDeOrigen(origenCostos.precioFuente, origenCostos.precioFecha) ?? "Sin precio registrado"}
+                    />
+                    {!origenCostos.tieneFichaDeJumbo && (
+                      <p className="text-xs text-text-secondary">
+                        Este insumo no viene de una ficha de {nombreFuente("jumbo")}; puedes ingresar el precio a mano.
+                      </p>
+                    )}
+                  </div>
+                  <Input
+                    id="insumo-contenido-cantidad"
+                    label="Cantidad del contenido"
+                    name="contenido_cantidad"
+                    inputMode="decimal"
+                    placeholder="1"
+                    value={values.contenido_cantidad}
+                    onChange={(e) => actualizar("contenido_cantidad", e.target.value)}
+                    error={errors.contenido_cantidad}
+                    disabled={loading}
+                    autoComplete="off"
+                  />
+                  <Select
+                    id="insumo-contenido-unidad"
+                    label="Unidad del contenido"
+                    name="contenido_unidad"
+                    value={values.contenido_unidad}
+                    onChange={(e) => actualizar("contenido_unidad", e.target.value)}
+                    error={errors.contenido_unidad}
+                    disabled={loading}
+                  >
+                    <option value="">Sin unidad</option>
+                    {UNIDADES_CONTENIDO.map((unidad) => (
+                      <option key={unidad} value={unidad}>
+                        {unidad}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="sm:col-span-2">
+                    <LineaDeFuente
+                      etiqueta="Fuente del contenido"
+                      texto={etiquetaDeOrigen(origenCostos.contenidoFuente) ?? "Sin contenido registrado"}
+                    />
+                  </div>
+                </div>
+                <p className="mx-5 mb-5 rounded-lg border border-brand-200 bg-brand-50 px-3.5 py-3 text-xs leading-relaxed text-brand-700">
+                  Si cambias el precio o el contenido, la fuente pasa a Manual con la fecha de hoy.
+                </p>
+              </Tarjeta>
+            )}
 
             <Tarjeta
               titulo="Ingredientes declarados"
@@ -532,10 +618,10 @@ function Campo({
   );
 }
 
-function LineaDeFuente({ texto }: { texto: string }) {
+function LineaDeFuente({ texto, etiqueta = "Fuente" }: { texto: string; etiqueta?: string }) {
   return (
-    <p className="flex items-center gap-1 text-xs text-text-secondary">
-      Fuente: <strong className="font-medium text-text-primary">{texto}</strong>
+    <p className="flex flex-wrap items-center gap-1 text-xs text-text-secondary">
+      {etiqueta}: <strong className="font-medium text-text-primary">{texto}</strong>
     </p>
   );
 }
