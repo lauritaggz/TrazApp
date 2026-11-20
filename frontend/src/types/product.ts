@@ -38,6 +38,21 @@ export interface Product {
   /** HU09: finalized elaboraciones, and of those the ones not hidden from the public (borradores never count). */
   elaboraciones_finalizadas?: number;
   elaboraciones_visibles?: number;
+  /** HU11: anonymous usefulness answers of the product. Optional only so older mocks keep compiling. */
+  evaluacion_utilidad?: ResumenEvaluacion;
+}
+
+/** HU11: answers of a product (or of one of its elaboraciones). `porcentaje` is an integer, or null without answers. */
+export interface ResumenEvaluacion {
+  total: number;
+  positivas: number;
+  porcentaje: number | null;
+}
+
+/** GET /gestion/productos/{id}/evaluaciones (HU11, T11-03): only elaboraciones with answers, default order. */
+export interface ResultadosEvaluacion extends ResumenEvaluacion {
+  producto_id: number;
+  por_elaboracion: Array<ResumenEvaluacion & { codigo: string; fecha: string }>;
 }
 
 /** Answer of POST / DELETE /gestion/productos/{id}/publicacion (HU09). */

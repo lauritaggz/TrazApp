@@ -24,6 +24,7 @@ from app.services.categoria_service import CategoriaService
 from app.services.consulta_publica_service import ConsultaPublicaService
 from app.services.costos_service import CostosService
 from app.services.elaboracion_service import ElaboracionService
+from app.services.evaluacion_resultados_service import EvaluacionResultadosService
 from app.services.evaluacion_service import EvaluacionService
 from app.services.ingrediente_service import IngredienteService
 from app.services.insumo_service import InsumoService
@@ -128,6 +129,10 @@ def get_consulta_publica_service(db: Session = Depends(get_db)) -> ConsultaPubli
 
 def get_evaluacion_service(db: Session = Depends(get_db)) -> EvaluacionService:
     return EvaluacionService(ConsultaPublicaRepository(db), EvaluacionRepository(db))
+
+
+def get_evaluacion_resultados_service(db: Session = Depends(get_db)) -> EvaluacionResultadosService:
+    return EvaluacionResultadosService(EvaluacionRepository(db))
 
 
 def get_elaboracion_service(db: Session = Depends(get_db)) -> ElaboracionService:

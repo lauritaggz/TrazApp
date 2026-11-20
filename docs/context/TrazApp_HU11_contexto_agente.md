@@ -34,7 +34,7 @@ Además, para HU11:
 
 ## 2. Estado y entorno
 
-- **Rama:** `feature/hu11-evaluacion-utilidad`, creada desde `main` actualizado **después del merge de HU14**.
+- **Rama:** `feature/hu11-evaluacion_utilidad`, creada desde `main` actualizado **después del merge de HU14**.
 - **Entorno local:** Docker Compose. API en **8010**, PostgreSQL en **5442**. Pruebas en el contenedor (`unset TEST_DATABASE_URL` para SQLite; nunca dos suites a la vez sobre `trazapp_test`).
 - **Migración vigente:** `019_costos_producto_hu14`. HU11 usa la **020**. Revisa las pruebas que fijan la cabeza de Alembic o comparan el estado tras `upgrade head` (las de la 019 ya quedaron preparadas para eso; verifica igual).
 - **Convención de errores:** `404` con `detail` de texto; `409` y `422` con `{mensaje, …}` cuando llevan datos.

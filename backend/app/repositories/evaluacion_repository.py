@@ -2,11 +2,11 @@
 
 from datetime import date
 
-from sqlalchemy import exists, select
+from sqlalchemy import case, exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import EvaluacionUtilidad
+from app.models import Elaboracion, EvaluacionUtilidad, Producto
 
 
 class NonceYaUsadoError(Exception):
@@ -19,6 +19,37 @@ class EvaluacionRepository:
 
     def existe_nonce(self, nonce_hash: str) -> bool:
         return bool(self.db.scalar(select(exists().where(EvaluacionUtilidad.nonce_hash == nonce_hash))))
+
+    def producto_es_del_productor(self, producto_id: int, productor_id: int) -> bool:
+        """Active product of THIS productor. One query, no relationships loaded."""
+        return bool(
+            self.db.scalar(
+                select(
+                    exists().where(
+                        Producto.id == producto_id,
+                        Producto.productor_id == productor_id,
+                        Producto.activo.is_(True),
+                    )
+                )
+            )
+        )
+
+    def resultados_por_elaboracion(self, producto_id: int) -> list[tuple[str, date, int, int]]:
+        """(code, date, answers, positive answers) of every elaboración of the product WITH answers,
+        hidden ones included, in the default order (date desc, id desc). One grouped query."""
+        stmt = (
+            select(
+                Elaboracion.codigo,
+                Elaboracion.fecha_elaboracion,
+                func.count(EvaluacionUtilidad.id),
+                func.sum(case((EvaluacionUtilidad.util.is_(True), 1), else_=0)),
+            )
+            .join(Elaboracion, Elaboracion.id == EvaluacionUtilidad.elaboracion_id)
+            .where(EvaluacionUtilidad.producto_id == producto_id)
+            .group_by(Elaboracion.id, Elaboracion.codigo, Elaboracion.fecha_elaboracion)
+            .order_by(Elaboracion.fecha_elaboracion.desc(), Elaboracion.id.desc())
+        )
+        return [(f[0], f[1], int(f[2]), int(f[3] or 0)) for f in self.db.execute(stmt)]
 
     def registrar(
         self, producto_id: int, elaboracion_id: int, util: bool, nonce_hash: str, fecha: date
