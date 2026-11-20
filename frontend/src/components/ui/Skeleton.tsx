@@ -2,7 +2,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded-md bg-border/70 ${className}`}
+      className={`animate-pulse rounded-md bg-wheat/70 ${className}`}
     />
   );
 }
@@ -10,7 +10,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 /** Fila con miniatura y dos líneas de texto: imita las filas reales de los listados. */
 export function ListRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
       <Skeleton className="h-10 w-10 shrink-0" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3.5 w-1/3" />

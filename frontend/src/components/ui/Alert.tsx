@@ -14,7 +14,7 @@ export default function Alert({ type, children }: AlertProps) {
   return (
     <div
       role="alert"
-      className={`flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm font-medium ${styles[type]}`}
+      className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm font-medium ${styles[type]}`}
     >
       {type === "error" ? <AlertErrorIcon /> : <AlertSuccessIcon />}
       <div className="flex-1 min-w-0">{children}</div>

@@ -41,7 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              min-h-11 w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
+              min-h-11 w-full rounded-xl border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 transition-all duration-150
               focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed
@@ -99,7 +99,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             id={inputId}
             type={visible ? "text" : "password"}
             className={`
-              min-h-11 w-full rounded-lg border bg-card text-sm text-text-primary placeholder:text-text-muted
+              min-h-11 w-full rounded-xl border bg-card text-sm text-text-primary placeholder:text-text-muted
               px-3 py-2.5 pr-12 transition-all duration-150
               focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
               disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed

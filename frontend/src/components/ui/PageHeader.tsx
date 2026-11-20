@@ -70,13 +70,13 @@ export default function PageHeader({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-text-primary">
+            <h1 className="text-[1.75rem] leading-tight font-bold text-text-primary sm:text-3xl">
               {title}
             </h1>
             {titleSuffix}
           </div>
           {description && (
-            <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
+            <p className="mt-1.5 max-w-[65ch] text-sm leading-relaxed text-text-secondary sm:text-[15px]">
               {description}
             </p>
           )}

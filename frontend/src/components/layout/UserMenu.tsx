@@ -54,7 +54,7 @@ export default function UserMenu({
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={`Menú de usuario${producerName ? `: ${producerName}` : ""}`}
-        className="flex min-h-11 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-surface"
+        className="flex min-h-11 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-wheat/60"
       >
         <span className="hidden flex-col items-end sm:flex">
           {producerName ? (
@@ -70,7 +70,7 @@ export default function UserMenu({
         </span>
         <span
           aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 font-display text-sm font-bold text-on-brand"
         >
           {initial ?? <UserIcon />}
         </span>
@@ -80,7 +80,7 @@ export default function UserMenu({
       {open && (
         <div
           id={panelId}
-          className="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-border bg-card p-2 shadow-lg"
+          className="absolute right-0 z-40 mt-2 w-64 rounded-2xl border border-border bg-card p-2 shadow-lift"
         >
           <div className="border-b border-border px-3 pb-2 pt-1">
             <p className="truncate text-sm font-medium text-text-primary">
@@ -96,7 +96,7 @@ export default function UserMenu({
             <Link
               to="/perfil"
               onClick={() => setOpen(false)}
-              className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm text-text-primary transition-colors hover:bg-surface"
+              className="flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-text-primary transition-colors hover:bg-panel"
             >
               Mi perfil
             </Link>
@@ -106,7 +106,7 @@ export default function UserMenu({
                 setOpen(false);
                 setConfirmLogout(true);
               }}
-              className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-text-secondary transition-colors hover:bg-error-bg hover:text-error"
+              className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-text-secondary transition-colors hover:bg-error-bg hover:text-error"
             >
               Cerrar sesión
             </button>
