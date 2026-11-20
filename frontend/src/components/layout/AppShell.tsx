@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import Logo from "@/components/Logo";
+import TabBar from "@/components/layout/TabBar";
 import UserMenu from "@/components/layout/UserMenu";
 import Sidebar, { type AppSection } from "@/components/layout/Sidebar";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -80,10 +83,10 @@ export default function AppShell({
   }, [drawerOpen]);
 
   return (
-    <div className="min-h-screen bg-surface flex">
+    <div className="flex min-h-[100dvh] bg-surface">
       <a
         href="#contenido-principal"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-xl focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-on-brand"
       >
         Saltar al contenido
       </a>
@@ -93,7 +96,7 @@ export default function AppShell({
           type="button"
           tabIndex={-1}
           aria-label="Cerrar menú"
-          className="fixed inset-0 z-20 cursor-default bg-black/30 lg:hidden"
+          className="fixed inset-0 z-20 cursor-default bg-black/35 backdrop-blur-[2px] lg:hidden"
           onClick={() => {
             setSidebarOpen(false);
             menuButtonRef.current?.focus();
@@ -111,24 +114,18 @@ export default function AppShell({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-border bg-card">
-          <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-5 lg:px-8">
-            <div className="flex items-center gap-3">
-              <button
-                ref={menuButtonRef}
-                type="button"
-                onClick={() => setSidebarOpen(true)}
-                className="flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface lg:hidden"
-                aria-label="Abrir menú"
-                aria-controls={SIDEBAR_ID}
-                aria-expanded={drawerOpen}
+        <header className="sticky top-0 z-[15] shrink-0 border-b border-border bg-surface/85 backdrop-blur-md">
+          <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-5 lg:px-8">
+            {isDesktop ? (
+              <span className="text-sm text-text-secondary">Panel de gestión</span>
+            ) : (
+              <Link
+                to="/dashboard"
+                className="-ml-1 flex min-h-11 items-center rounded-xl px-1"
               >
-                <MenuIcon />
-              </button>
-              <span className="hidden text-sm text-text-secondary sm:block">
-                Panel de gestión
-              </span>
-            </div>
+                <Logo size="sm" />
+              </Link>
+            )}
 
             <UserMenu
               producerName={producerName}
@@ -143,30 +140,21 @@ export default function AppShell({
           tabIndex={-1}
           // Sin `overflow` propio: la que scrollea es la ventana. Con `overflow-y-auto` el `sticky` de
           // FormActions se ataba a este contenedor, que nunca scrollea, y la barra no se quedaba fija.
-          className="flex-1 p-5 outline-none lg:p-8"
+          // En el celular el borde inferior deja espacio a la barra de pestañas (--tabbar-h).
+          className="flex-1 px-4 pt-5 pb-[calc(var(--tabbar-h)+1.5rem)] outline-none sm:px-5 lg:p-8"
         >
-          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+          <div className="app-page mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
       </div>
-    </div>
-  );
-}
 
-function MenuIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
+      {!isDesktop && (
+        <TabBar
+          ref={menuButtonRef}
+          menuId={SIDEBAR_ID}
+          menuOpen={drawerOpen}
+          onOpenMenu={() => setSidebarOpen(true)}
+        />
+      )}
+    </div>
   );
 }

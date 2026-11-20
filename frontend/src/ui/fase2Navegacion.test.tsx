@@ -122,15 +122,18 @@ describe("Menú lateral: estilo del diseño (T06-06)", () => {
     expect(nav.textContent).not.toMatch(/\d/);
   });
 
-  it("el ítem activo se marca solo con fondo y color: sin punto", () => {
+  it("el ítem activo se marca solo con relleno verde y texto claro: sin punto (HT08)", () => {
     renderShell();
 
-    const activo = within(screen.getByRole("navigation", { name: "Secciones" })).getByRole("link", { name: "Inicio" });
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    const activo = within(nav).getByRole("link", { name: "Inicio" });
     expect(activo).toHaveAttribute("aria-current", "page");
-    expect(activo).toHaveClass("bg-brand-50", "text-accent");
+    expect(activo).toHaveClass("text-on-brand");
+    expect(activo.querySelector(".bg-brand-600")).not.toBeNull();
     expect(activo.querySelector(".rounded-full")).toBeNull();
-    const otro = within(screen.getByRole("navigation", { name: "Secciones" })).getByRole("link", { name: "Productos" });
-    expect(otro).not.toHaveClass("bg-brand-50");
+    const otro = within(nav).getByRole("link", { name: "Productos" });
+    expect(otro).not.toHaveClass("text-on-brand");
+    expect(otro.querySelector(".bg-brand-600")).toBeNull();
   });
 });
 
@@ -227,7 +230,7 @@ describe("useUnsavedChangesGuard", () => {
 });
 
 describe("FormActions y Toast", () => {
-  it("la barra de acciones queda fija al borde inferior", () => {
+  it("la barra de acciones queda fija al borde inferior, sobre la barra de pestañas (HT08)", () => {
     render(
       <FormActions>
         <button type="submit">Guardar</button>
@@ -236,7 +239,7 @@ describe("FormActions y Toast", () => {
 
     expect(screen.getByRole("button", { name: "Guardar" }).parentElement).toHaveClass(
       "sticky",
-      "bottom-0",
+      "bottom-[var(--tabbar-h)]",
     );
   });
 

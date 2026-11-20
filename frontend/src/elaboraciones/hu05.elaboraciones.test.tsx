@@ -2508,7 +2508,8 @@ describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", (
     expect(finalizar.querySelector(".hidden")).toHaveTextContent("Finalizar elaboración");
     expect(within(barra).queryByRole("button", { name: "Eliminar borrador" })).not.toBeInTheDocument();
     expect(within(barra).queryByRole("link", { name: "Volver al producto" })).not.toBeInTheDocument();
-    expect(barra).toHaveClass("sticky", "bottom-0", "grid", "grid-cols-2", "sm:flex");
+    // HT08: se fija sobre la barra de pestañas del celular (--tabbar-h vale 0 sin ella).
+    expect(barra).toHaveClass("sticky", "bottom-[var(--tabbar-h)]", "grid", "grid-cols-2", "sm:flex");
   });
 
   it("«Eliminar borrador» va al final, en una sección aparte con color de error, y sigue confirmando", async () => {

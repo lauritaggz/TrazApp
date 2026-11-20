@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         // pb-24: la barra de acciones de los formularios queda fija al borde inferior (70 a 86 px); el aviso va encima.
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-4 pt-4 pb-24 sm:items-end"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-4 pt-4 pb-[calc(var(--tabbar-h)+1.5rem)] sm:items-end lg:pb-6"
         role="region"
         aria-label="Notificaciones"
       >
@@ -83,7 +83,7 @@ function ToastMessage({
   return (
     <div
       role={toast.type === "error" ? "alert" : "status"}
-      className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-md ${STYLES[toast.type]}`}
+      className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lift ${STYLES[toast.type]}`}
     >
       <div className="flex-1 space-y-1">
         <p>{toast.message}</p>

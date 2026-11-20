@@ -121,6 +121,89 @@ body {
   }
 }
 
+/* Alto de la barra de pestañas del celular: el contenido, los avisos y la barra de
+   acciones de formularios se apoyan sobre ella. Vale 0 cuando no está en pantalla. */
+:root {
+  --tabbar-h: 0px;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (max-width: 1023.98px) {
+  :root:has(.app-tabbar) {
+    --tabbar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Transición entre secciones (View Transitions API, ver layout/transicionPagina.ts).
+   Solo se anima el contenido (`page`) y los indicadores del menú; el resto queda quieto. */
+.app-page {
+  view-transition-name: page;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(page) {
+  animation: page-out-fwd 180ms ease-in both;
+}
+
+::view-transition-new(page) {
+  animation: page-in-fwd 380ms var(--ease-out-soft) both;
+}
+
+:root[data-nav-dir="back"]::view-transition-old(page) {
+  animation-name: page-out-back;
+}
+
+:root[data-nav-dir="back"]::view-transition-new(page) {
+  animation-name: page-in-back;
+}
+
+::view-transition-group(nav-ind),
+::view-transition-group(tab-ind) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-spring);
+}
+
+@keyframes page-out-fwd {
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes page-in-fwd {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes page-out-back {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes page-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 @keyframes reveal-up {
   from {
     opacity: 0;

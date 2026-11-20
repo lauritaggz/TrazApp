@@ -72,7 +72,7 @@ El selector (luna / sol) está junto al logo, en el menú lateral y en las panta
 
 Todos viven en `frontend/src/components/ui`.
 
-- **Button** (`Button`): relleno verde para la acción principal, borde para la secundaria, texto verde para la discreta. Hundimiento de 1 px al presionar (`active:translate-y-px`). Sin brillos ni sombras de color. Estado `loading` con indicador interno.
+- **Button** (`Button`): esquinas de 12 px. Relleno verde para la acción principal (con un brillo interior de 1 px y una sombra corta del mismo verde), borde para la secundaria, texto verde para la discreta. Al presionar se hunde 1 px y se reduce a 98,5 %. Estado `loading` con indicador interno.
 - **Campos** (`Input`, `Select`, `Textarea`, `fieldStyles`): etiqueta arriba, ayuda opcional, error debajo y enlazado con `aria-describedby`. Borde firme (3:1), foco con anillo verde. Sin etiquetas flotantes. Los campos de dinero llevan el prefijo `$`.
 - **Tarjetas:** solo cuando la elevación comunica jerarquía (formulario principal, vista previa, tarjetas de producto). El resto usa divisores y espacio.
 - **Badge** (`Badge`): variantes `neutral`, `brand`, `success`, `warning`, `info`, `error`. "Rotulación obligatoria" usa `warning`.
@@ -91,13 +91,14 @@ Todos viven en `frontend/src/components/ui`.
 - **Contenedor:** ancho máximo de 1440 px centrado; formularios hasta 64 rem (`max-w-5xl`).
 - **Formularios de creación y edición:** dos columnas desde 1024 px. Izquierda: campos, con lo obligatorio primero y las secciones opcionales marcadas con la etiqueta "Opcional". Derecha, fija al desplazar: imagen y vista previa en vivo del producto con el avance de datos obligatorios, o los próximos pasos del ingrediente. Bajo 1024 px todo colapsa a una columna.
 - **Listados:** barra de búsqueda y filtros, chips activos y luego tabla (escritorio) o tarjetas (móvil). Productos admite además una cuadrícula con imagen.
-- **Navegación:** menú lateral de 240 px con enlaces reales y la sección Trazabilidad ya reservada ("Pronto"). Menú de usuario en el encabezado.
+- **Navegación:** en escritorio (desde 1024 px), menú lateral de 248 px sobre el panel `panel`, fijo al alto de la ventana; el ítem activo lleva un relleno verde que se desliza al cambiar de sección. En el celular, barra de pestañas inferior (Inicio, Productos, Ingredientes, Insumos y «Más», que abre el menú completo) y encabezado con el logo. La barra reserva su alto en `--tabbar-h`: el contenido, los avisos y la barra de acciones de formularios se apoyan sobre ella. Menú de usuario en el encabezado.
 - **Responsive:** móvil primero. Sin desplazamiento horizontal. Botones y elementos del menú de al menos 44 px de alto.
 - **Prohibido:** elementos superpuestos o con posicionamiento absoluto apilado, `calc()` con porcentajes, `h-screen` (usar `min-h-[100dvh]`).
 
 ## 6. Motion & Interaction
 
 - **Duraciones:** 150 ms en controles, 200 ms en paneles, 320 ms en la aparición de tarjetas.
+- **Cambio de sección:** View Transitions (`layout/transicionPagina.ts`). El contenido sale 24 px y entra 32 px en la dirección del menú (avanzar desliza a la izquierda, retroceder a la derecha), en 180 / 380 ms; los indicadores del menú (`nav-ind`, `tab-ind`) se deslizan con un resorte de 420 ms. Sin la API o con movimiento reducido, la navegación es instantánea.
 - **Aparición escalonada** (`.reveal` con `--i`): solo `opacity` y `transform`, con retardo de 45 ms por elemento y máximo 12.
 - **Rendimiento:** no se animan `width`, `height`, `top` ni `left`. La barra de avance usa `width` solo por tratarse de un indicador pequeño y aislado.
 - **Accesibilidad:** `prefers-reduced-motion` reduce todas las animaciones y transiciones a casi cero.
