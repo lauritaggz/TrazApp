@@ -29,6 +29,9 @@
   --color-wheat: #ede4d0;
   --color-wheat-deep: #dcd0b5;
   --color-deep: #1f3f2a;
+  /* Texto y trazos sobre rellenos de marca; igual en claro y oscuro. */
+  --color-on-brand: #faf7f2;
+  --color-on-brand-accent: #a8d8b4;
   --color-border: #e7e0d3;
   --color-border-soft: #f0eadf;
   --color-border-strong: #8c8474;
