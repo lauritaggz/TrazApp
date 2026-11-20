@@ -37,39 +37,42 @@ export default function DashboardElaboracionesEnCurso({
   return (
     <section
       aria-labelledby="dashboard-en-curso-title"
-      className="rounded-xl border border-border bg-card p-5"
+      className="rounded-2xl border border-border bg-card p-5 sm:p-6"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 id="dashboard-en-curso-title" className="text-base font-semibold text-text-primary">
+          <h2 id="dashboard-en-curso-title" className="text-lg font-bold text-text-primary">
             Elaboraciones en curso
           </h2>
-          <p className="mt-0.5 text-xs text-text-secondary">
+          <p className="mt-0.5 text-[13px] text-text-secondary">
             Borradores que puedes retomar donde los dejaste.
           </p>
         </div>
         <Badge variant="warning">{Math.max(total, borradores.length)}</Badge>
       </div>
 
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-border-soft">
         {visibles.map((borrador) => (
           <li key={borrador.id}>
             {/* La fila completa es el enlace: más de 44 px de alto en cualquier pantalla. */}
             <Link
               to={`/elaboraciones/${borrador.id}/registro`}
               aria-label={`Continuar elaboración ${borrador.codigo} de ${borrador.producto.nombre}`}
-              className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="group -mx-3 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-text-primary">
                   {borrador.producto.nombre}
                 </span>
-                <span className="mt-0.5 block text-[13px] text-text-secondary">
+                <span className="mt-0.5 block text-[13px] tabular-nums text-text-secondary">
                   {borrador.codigo} · {formatFecha(borrador.fecha)}
                 </span>
               </span>
-              <span aria-hidden="true" className="shrink-0 text-sm font-medium text-accent-strong">
+              <span aria-hidden="true" className="flex shrink-0 items-center gap-1 text-sm font-semibold text-accent-strong">
                 Continuar
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:translate-x-0.5">
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
               </span>
             </Link>
           </li>
@@ -77,7 +80,7 @@ export default function DashboardElaboracionesEnCurso({
       </ul>
 
       {(ocultos > 0 || verTodasTo) && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 border-t border-border pt-3 text-xs text-text-secondary">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 border-t border-border-soft pt-3 text-xs text-text-secondary">
           {ocultos > 0 && (
             <p>
               Mostrando las {visibles.length} más recientes de {visibles.length + ocultos}.

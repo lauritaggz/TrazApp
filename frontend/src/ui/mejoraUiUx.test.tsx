@@ -74,6 +74,8 @@ describe("Contraste de tokens (UI-A1/A2/A3)", () => {
     ["text-muted", "panel"],
     ["text-muted", "wheat"],
     ["text-primary", "wheat-deep"],
+    ["text-secondary", "wheat"],
+    ["accent-strong", "wheat"],
     ["accent", "surface"],
     ["panel-muted", "brand-600"],
     ["panel-soft", "brand-600"],

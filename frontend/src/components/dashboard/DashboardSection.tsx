@@ -17,11 +17,11 @@ export default function DashboardSection({
 }: DashboardSectionProps) {
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+          <h2 className="text-xl font-bold text-text-primary">{title}</h2>
           {description ? (
-            <p className="mt-0.5 text-xs text-text-secondary">{description}</p>
+            <p className="mt-0.5 text-[13px] text-text-secondary">{description}</p>
           ) : null}
         </div>
         {actionLabel && onAction ? (

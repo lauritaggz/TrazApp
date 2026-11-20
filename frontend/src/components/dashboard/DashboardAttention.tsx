@@ -18,31 +18,31 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
   return (
     <section
       aria-labelledby="dashboard-attention-title"
-      className="rounded-xl border border-border bg-card p-5"
+      className="rounded-2xl border border-border bg-card p-5 sm:p-6"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2
             id="dashboard-attention-title"
-            className="text-base font-semibold text-text-primary"
+            className="text-lg font-bold text-text-primary"
           >
             Por completar
           </h2>
-          <p className="mt-0.5 text-xs text-text-secondary">
+          <p className="mt-0.5 text-[13px] text-text-secondary">
             Productos con información comercial pendiente.
           </p>
         </div>
         <Badge variant="warning">{items.length}</Badge>
       </div>
 
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-border-soft">
         {visible.map(({ product, gaps }) => (
           <li key={product.id}>
             {/* La fila completa es el enlace: más de 44 px de alto en cualquier pantalla. */}
             <Link
               to={`/productos/${product.id}/editar`}
               aria-label={`Completar producto ${product.nombre}`}
-              className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="group -mx-3 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-text-primary">
@@ -56,8 +56,11 @@ export default function DashboardAttention({ items }: DashboardAttentionProps) {
                   ))}
                 </span>
               </span>
-              <span aria-hidden="true" className="shrink-0 text-sm font-medium text-accent-strong">
+              <span aria-hidden="true" className="flex shrink-0 items-center gap-1 text-sm font-semibold text-accent-strong">
                 Completar
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:translate-x-0.5">
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
               </span>
             </Link>
           </li>

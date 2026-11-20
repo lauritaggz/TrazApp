@@ -255,9 +255,10 @@ describe("Dashboard HT02", () => {
     const insumoLink = screen.getByRole("link", { name: "Nuevo insumo" });
     const producto = screen.getByRole("link", { name: "Nuevo producto" });
 
-    expect(principal).toHaveClass("bg-white");
-    expect(insumoLink).not.toHaveClass("bg-white");
-    expect(producto).not.toHaveClass("bg-white");
+    // HT08: el saludo ya no va sobre un bloque verde; la acción principal es la del relleno de marca.
+    expect(principal).toHaveClass("bg-brand-600");
+    expect(insumoLink).not.toHaveClass("bg-brand-600");
+    expect(producto).not.toHaveClass("bg-brand-600");
     expect(principal.compareDocumentPosition(insumoLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(insumoLink.compareDocumentPosition(producto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -385,7 +386,7 @@ describe("Dashboard HT02", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     const ingredientsPanel = await screen.findByText("Ingredientes recientes");
-    const section = ingredientsPanel.closest("div.rounded-xl");
+    const section = ingredientsPanel.closest("section");
     expect(section).not.toBeNull();
 
     expect(

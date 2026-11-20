@@ -175,6 +175,8 @@ describe("Contraste del modo oscuro", () => {
     ["text-muted", "brand-50"],
     ["text-muted", "panel"],
     ["text-muted", "wheat"],
+    ["text-secondary", "wheat"],
+    ["accent-strong", "wheat"],
     ["accent-strong", "card"],
     ["accent-strong", "brand-50"],
     ["error", "error-bg"],

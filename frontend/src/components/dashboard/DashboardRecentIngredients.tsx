@@ -19,15 +19,18 @@ export default function DashboardRecentIngredients({
   const recent = ingredients.slice(0, 4);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-text-primary">
+    <section
+      aria-labelledby="dashboard-ingredientes-recientes"
+      className="rounded-2xl border border-border bg-card p-5 sm:p-6"
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 id="dashboard-ingredientes-recientes" className="text-lg font-bold text-text-primary">
           Ingredientes recientes
         </h2>
         <button
           type="button"
           onClick={onViewAll}
-          className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-accent-strong underline-offset-2 hover:underline"
           aria-label="Ver todos los ingredientes"
         >
           Ver todos
@@ -54,17 +57,17 @@ export default function DashboardRecentIngredients({
           Aún no tienes ingredientes.
         </p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="divide-y divide-border-soft">
           {recent.map((ingredient) => (
-            <li key={ingredient.id} className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-accent">
-                <LeafIcon size={12} />
+            <li key={ingredient.id} className="flex items-center gap-3 py-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-accent">
+                <LeafIcon size={15} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-text-primary">
                   {ingredient.nombre}
                 </p>
-                <p className="text-xs text-text-secondary">
+                <p className="truncate text-[13px] text-text-secondary">
                   {ingredient.descripcion?.trim() ||
                     ingredient.codigo_interno ||
                     "Sin descripción"}
@@ -74,6 +77,6 @@ export default function DashboardRecentIngredients({
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
