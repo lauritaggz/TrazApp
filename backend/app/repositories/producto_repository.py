@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
@@ -27,6 +28,11 @@ class InvalidCategoriaIdsError(Exception):
 
 class IdPublicoDuplicadoError(Exception):
     """Raised when the generated id_publico collides with another product's (unique index)."""
+
+
+def _orden_de_la_lista() -> tuple:
+    """Order of the product list (most recent first). Shared with the detail navigation (HT08)."""
+    return (Producto.created_at.desc().nullslast(), Producto.id.desc())
 
 
 class ProductoRepository:
@@ -82,9 +88,24 @@ class ProductoRepository:
                 Producto.productor_id == productor_id,
                 Producto.activo.is_(True),
             )
-            .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
+            .order_by(*_orden_de_la_lista())
         )
         return list(self.db.scalars(stmt).all())
+
+    def ids_y_nombres_en_orden(self, productor_id: int) -> list[Any]:
+        """(id, nombre) of the productor's active products, in the order of the list (HT08).
+
+        One light, read-only query: the detail navigation finds the neighbours of a product here.
+        """
+        stmt = (
+            select(Producto.id, Producto.nombre)
+            .where(
+                Producto.productor_id == productor_id,
+                Producto.activo.is_(True),
+            )
+            .order_by(*_orden_de_la_lista())
+        )
+        return list(self.db.execute(stmt).all())
 
     def conteos_elaboraciones(self, producto_ids: list[int]) -> dict[int, tuple[int, int]]:
         """Per product: (finalized elaboraciones, of those the ones not hidden from the public).

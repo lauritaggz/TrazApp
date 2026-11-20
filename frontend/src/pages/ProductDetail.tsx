@@ -12,6 +12,7 @@ import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductCostoCalculado from "@/components/products/ProductCostoCalculado";
 import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
+import ProductNeighborsNav from "@/components/products/ProductNeighborsNav";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -161,6 +162,20 @@ export default function ProductDetail() {
       businessName={businessName}
     >
       <div className="max-w-6xl space-y-6">
+        {/* Outside the loading block: moving to a neighbour keeps the pressed link (and its focus). */}
+        {productId != null && !unavailable && (
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {!loading && product ? (
+              <Breadcrumbs
+                items={[{ label: "Productos", to: "/productos" }, { label: product.nombre }]}
+              />
+            ) : (
+              <span />
+            )}
+            <ProductNeighborsNav productoId={productId} />
+          </div>
+        )}
+
         {loading && <ProductDetailLoading />}
 
         {!loading && unavailable && (
@@ -169,9 +184,6 @@ export default function ProductDetail() {
 
         {!loading && product && (
           <>
-            <Breadcrumbs
-              items={[{ label: "Productos", to: "/productos" }, { label: product.nombre }]}
-            />
             <DetailHero
               kind="Producto"
               icon={<ProductoIcon size={30} />}

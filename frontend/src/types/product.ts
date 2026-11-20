@@ -165,3 +165,14 @@ export const PRODUCT_SORT_OPTIONS: { value: ProductSortOption; label: string }[]
     { value: "code", label: "Código A–Z" },
     { value: "name", label: "Nombre A–Z" },
   ];
+
+// HT08: previous and next product of the detail, in the default order of the list («Más recientes»).
+export interface ProductoVecino {
+  id: number;
+  nombre: string;
+}
+
+export interface ProductoVecinos {
+  anterior: ProductoVecino | null;
+  siguiente: ProductoVecino | null;
+}

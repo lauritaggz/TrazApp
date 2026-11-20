@@ -12,6 +12,7 @@ from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
     ProductoGestionUpdate,
+    ProductoVecinosRead,
     PublicacionRead,
 )
 from app.services.product_image_service import InvalidProductImageError, ProductImageService
@@ -56,6 +57,22 @@ def listar_productos(
     service: ProductoService = Depends(get_producto_service),
 ) -> list[ProductoGestionRead]:
     return service.list_mine(current_productor)
+
+
+@router.get("/{producto_id}/vecinos", response_model=ProductoVecinosRead)
+def obtener_vecinos_producto(
+    producto_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ProductoService = Depends(get_producto_service),
+) -> ProductoVecinosRead:
+    """HT08: previous and next product in the default order of the list (read-only)."""
+    try:
+        return service.vecinos_mine(current_productor, producto_id)
+    except ProductoNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/{producto_id}", response_model=ProductoGestionRead)

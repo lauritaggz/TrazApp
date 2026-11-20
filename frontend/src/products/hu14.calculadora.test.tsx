@@ -28,6 +28,8 @@ vi.mock("@/services/productService", () => ({
   listProducts: vi.fn(),
   listCategories: vi.fn(),
   getProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/costosService", () => ({
