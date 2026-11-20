@@ -136,7 +136,8 @@ body {
 }
 
 /* Transición entre secciones (View Transitions API, ver layout/transicionPagina.ts).
-   Solo se anima el contenido (`page`) y los indicadores del menú; el resto queda quieto. */
+   Solo se anima el contenido (`page`) y su título; el resto queda quieto. Los indicadores
+   del menú se deslizan con transiciones CSS propias, por debajo del texto. */
 .app-page {
   view-transition-name: page;
 }
@@ -208,12 +209,6 @@ body {
 
 :root[data-nav-dir="back"]::view-transition-new(page) {
   animation-name: page-in-back;
-}
-
-::view-transition-group(nav-ind),
-::view-transition-group(tab-ind) {
-  animation-duration: 420ms;
-  animation-timing-function: var(--ease-spring);
 }
 
 @keyframes page-out-fwd {

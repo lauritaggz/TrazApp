@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { GRUPOS } from "@/components/layout/secciones";
 import { useNavegacionAnimada } from "@/components/layout/transicionPagina";
 
@@ -17,7 +17,7 @@ interface TabBarProps {
 
 /**
  * Barra de pestañas inferior para el celular (HT08). La pestaña activa lleva una
- * píldora (`tab-ind`) que se desliza entre pestañas al cambiar de sección.
+ * píldora que se desliza entre pestañas al cambiar de sección.
  * «Más» abre el menú lateral completo.
  */
 const TabBar = forwardRef<HTMLButtonElement, TabBarProps>(function TabBar(
@@ -25,13 +25,28 @@ const TabBar = forwardRef<HTMLButtonElement, TabBarProps>(function TabBar(
   moreRef,
 ) {
   const animar = useNavegacionAnimada();
+  const { pathname } = useLocation();
+  const activa = TABS.findIndex(
+    (tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`),
+  );
 
   return (
     <nav
       aria-label="Accesos rápidos"
       className="app-tabbar fixed inset-x-0 bottom-0 z-[15] border-t border-border bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
     >
-      <ul className="mx-auto grid h-16 max-w-[520px] grid-cols-5 px-1">
+      <ul className="relative mx-auto grid h-16 max-w-[520px] grid-cols-5 px-1">
+        {/* Una sola píldora que se desliza entre pestañas con una transición CSS, por debajo
+            del ícono. (Como capa de View Transition se dibujaba encima y lo tapaba.) */}
+        <li
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 left-1 flex w-[calc((100%-0.5rem)/5)] justify-center transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none ${
+            activa < 0 ? "opacity-0" : "opacity-100"
+          }`}
+          style={{ transform: `translateX(${Math.max(activa, 0) * 100}%)` }}
+        >
+          <span className="mt-2 h-8 w-14 rounded-full bg-brand-100" />
+        </li>
         {TABS.map((tab) => (
           <li key={tab.to}>
             <NavLink
@@ -45,12 +60,6 @@ const TabBar = forwardRef<HTMLButtonElement, TabBarProps>(function TabBar(
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute top-2 h-8 w-14 rounded-full bg-brand-100 [view-transition-name:tab-ind]"
-                    />
-                  )}
                   <span
                     aria-hidden="true"
                     className={`relative flex h-8 items-center transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] [&_svg]:h-[21px] [&_svg]:w-[21px] ${

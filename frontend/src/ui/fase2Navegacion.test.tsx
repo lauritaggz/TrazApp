@@ -129,11 +129,14 @@ describe("Menú lateral: estilo del diseño (T06-06)", () => {
     const activo = within(nav).getByRole("link", { name: "Inicio" });
     expect(activo).toHaveAttribute("aria-current", "page");
     expect(activo).toHaveClass("text-on-brand");
-    expect(activo.querySelector(".bg-brand-600")).not.toBeNull();
     expect(activo.querySelector(".rounded-full")).toBeNull();
+    // El relleno es un único indicador del menú que se desliza por debajo de los enlaces.
+    const indicadores = nav.querySelectorAll("[data-nav-indicador]");
+    expect(indicadores).toHaveLength(1);
+    expect(indicadores[0]).toHaveClass("bg-brand-600");
+    expect(indicadores[0]).toHaveAttribute("aria-hidden", "true");
     const otro = within(nav).getByRole("link", { name: "Productos" });
     expect(otro).not.toHaveClass("text-on-brand");
-    expect(otro.querySelector(".bg-brand-600")).toBeNull();
   });
 });
 

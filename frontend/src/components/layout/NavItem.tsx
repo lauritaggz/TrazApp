@@ -11,8 +11,8 @@ interface NavItemProps {
 }
 
 /**
- * Enlace del menú lateral. El activo se marca con un relleno verde (`nav-ind`) que,
- * al cambiar de sección, se desliza de un ítem al otro con la View Transitions API.
+ * Enlace del menú lateral. El relleno verde del activo lo dibuja el menú (Sidebar):
+ * es un solo elemento que se desliza de un ítem al otro, por debajo del texto.
  */
 export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
   const animar = useNavegacionAnimada();
@@ -25,7 +25,7 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
         animar(to)(event);
       }}
       className={({ isActive }) => `
-        relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors duration-200
+        relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors duration-300
         ${
           isActive
             ? "font-semibold text-on-brand"
@@ -35,12 +35,6 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
     >
       {({ isActive }) => (
         <>
-          {isActive && (
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 rounded-xl bg-brand-600 [view-transition-name:nav-ind]"
-            />
-          )}
           <span
             aria-hidden="true"
             className={`relative ${isActive ? "text-on-brand" : "text-text-muted"}`}
