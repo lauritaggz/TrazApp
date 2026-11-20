@@ -12,9 +12,9 @@ from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
     ProductoGestionUpdate,
-    ProductoVecinosRead,
     PublicacionRead,
 )
+from app.schemas.vecinos import VecinosRead
 from app.services.product_image_service import InvalidProductImageError, ProductImageService
 from app.services.producto_service import (
     IdPublicoAgotadoError,
@@ -59,12 +59,12 @@ def listar_productos(
     return service.list_mine(current_productor)
 
 
-@router.get("/{producto_id}/vecinos", response_model=ProductoVecinosRead)
+@router.get("/{producto_id}/vecinos", response_model=VecinosRead)
 def obtener_vecinos_producto(
     producto_id: int,
     current_productor: Productor = Depends(get_current_productor),
     service: ProductoService = Depends(get_producto_service),
-) -> ProductoVecinosRead:
+) -> VecinosRead:
     """HT08: previous and next product in the default order of the list (read-only)."""
     try:
         return service.vecinos_mine(current_productor, producto_id)

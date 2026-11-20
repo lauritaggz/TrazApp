@@ -259,22 +259,6 @@ class ProductoGestionRead(BaseModel):
         return url_publica_o_none(self.id_publico)
 
 
-class ProductoVecinoRead(BaseModel):
-    """A neighbouring product in the detail navigation (HT08): only what the link needs."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    nombre: str
-
-
-class ProductoVecinosRead(BaseModel):
-    """Previous and next product in the order of the list (HT08, CA8–CA10). None at the ends."""
-
-    anterior: ProductoVecinoRead | None
-    siguiente: ProductoVecinoRead | None
-
-
 class PublicacionRead(BaseModel):
     """Publication state of a product (HU09): the answer of enabling / disabling it."""
 

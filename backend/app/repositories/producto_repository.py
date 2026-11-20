@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
 
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +15,7 @@ from app.models import (
     VersionProducto,
 )
 from app.models.elaboracion import ESTADO_FINALIZADA
+from app.repositories.vecinos import Vecinos, buscar_vecinos
 
 
 class DuplicateCodigoInternoError(Exception):
@@ -92,12 +92,12 @@ class ProductoRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def ids_y_nombres_en_orden(self, productor_id: int) -> list[Any]:
-        """(id, nombre) of the productor's active products, in the order of the list (HT08).
+    def vecinos(self, productor_id: int, producto_id: int) -> Vecinos | None:
+        """Previous and next active product of the productor, in the order of the list (HT08).
 
-        One light, read-only query: the detail navigation finds the neighbours of a product here.
+        None when the product is not among them (another productor's, archived or missing).
         """
-        stmt = (
+        consulta = (
             select(Producto.id, Producto.nombre)
             .where(
                 Producto.productor_id == productor_id,
@@ -105,7 +105,7 @@ class ProductoRepository:
             )
             .order_by(*_orden_de_la_lista())
         )
-        return list(self.db.execute(stmt).all())
+        return buscar_vecinos(self.db, consulta, producto_id)
 
     def conteos_elaboraciones(self, producto_ids: list[int]) -> dict[int, tuple[int, int]]:
         """Per product: (finalized elaboraciones, of those the ones not hidden from the public).

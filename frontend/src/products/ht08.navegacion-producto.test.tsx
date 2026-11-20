@@ -20,7 +20,8 @@ import {
   paginaElaboraciones,
   renderWithProviders,
 } from "@/test/testUtils";
-import type { Product, ProductoVecinos } from "@/types/product";
+import type { Product } from "@/types/product";
+import type { Vecinos as ProductoVecinos } from "@/types/vecinos";
 
 vi.mock("@/services/authService", () => ({
   login: vi.fn(),

@@ -7,9 +7,10 @@ archived products, a single product, 401, read-only and a constant number of que
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import event
+from sqlalchemy import event, select
 
 from app.models import Producto
+from app.repositories.vecinos import buscar_vecinos
 from tests.escenario_hu05 import PRODUCTOR_B, crear_producto, registrar
 
 NO_ENCONTRADO = {"detail": "Producto no encontrado"}
@@ -164,3 +165,43 @@ def test_solo_lee_y_hace_las_mismas_consultas_con_pocos_o_muchos_productos(clien
 
     assert len(pocas) == len(muchas)
     assert not [s for s in muchas if s.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE"))]
+
+
+# --- buscar_vecinos: the reusable helper (products now; elaboraciones and supplies in T-HT08-04B) ----
+
+
+def _consulta_por_nombre(productor_id: int):
+    """Any filtered and ordered query works: here by name, not the product list's order."""
+    return (
+        select(Producto.id, Producto.nombre)
+        .where(Producto.productor_id == productor_id)
+        .order_by(Producto.nombre.asc())
+    )
+
+
+def test_buscar_vecinos_respeta_el_orden_de_la_consulta_que_recibe(client, db_session) -> None:
+    headers = registrar(client)
+    ids = {n: crear_producto(client, headers, n, f"v-{n}")["id"] for n in ("Cecina", "Alfajor", "Berlín")}
+    productor_id = db_session.get(Producto, ids["Alfajor"]).productor_id
+    consulta = _consulta_por_nombre(productor_id)
+
+    primero = buscar_vecinos(db_session, consulta, ids["Alfajor"])
+    medio = buscar_vecinos(db_session, consulta, ids["Berlín"])
+    ultimo = buscar_vecinos(db_session, consulta, ids["Cecina"])
+
+    assert primero.anterior is None and primero.siguiente.nombre == "Berlín"
+    assert (medio.anterior.nombre, medio.siguiente.nombre) == ("Alfajor", "Cecina")
+    assert ultimo.anterior.nombre == "Berlín" and ultimo.siguiente is None
+
+
+def test_buscar_vecinos_da_none_si_el_registro_no_esta_en_la_consulta(client, db_session) -> None:
+    headers = registrar(client)
+    otro = registrar(client, PRODUCTOR_B)
+    propio = crear_producto(client, headers, "Propio", "pro-001")
+    ajeno = crear_producto(client, otro, "Ajeno", "aje-001")
+    productor_id = db_session.get(Producto, propio["id"]).productor_id
+
+    assert buscar_vecinos(db_session, _consulta_por_nombre(productor_id), ajeno["id"]) is None
+    assert buscar_vecinos(db_session, _consulta_por_nombre(productor_id), 999_999) is None
+    solo = buscar_vecinos(db_session, _consulta_por_nombre(productor_id), propio["id"])
+    assert (solo.anterior, solo.siguiente) == (None, None)

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
 import DetailHero from "@/components/detail/DetailHero";
+import DetailNeighborsNav from "@/components/detail/DetailNeighborsNav";
 import FactTile from "@/components/detail/FactTile";
 import { ProductoIcon } from "@/components/detail/icons";
 import Badge from "@/components/ui/Badge";
@@ -12,17 +13,17 @@ import ProductDetailSection from "@/components/products/ProductDetailSection";
 import ProductCostoCalculado from "@/components/products/ProductCostoCalculado";
 import ProductElaboracionesSection from "@/components/products/ProductElaboracionesSection";
 import ProductFormulationSection from "@/components/products/ProductFormulationSection";
-import ProductNeighborsNav from "@/components/products/ProductNeighborsNav";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
 import ProductUnavailable from "@/components/products/ProductUnavailable";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useDetailNeighbors } from "@/hooks/useDetailNeighbors";
 import { formatProductContent, formatProductPrice } from "@/lib/productListUtils";
 import { resolveProductImageUrl } from "@/lib/productImageUpload";
 import { getProductFormulation } from "@/services/formulationService";
-import { getProduct, deleteProduct } from "@/services/productService";
+import { getProduct, deleteProduct, getProductNeighbors } from "@/services/productService";
 import { ApiError } from "@/types/auth";
 import type { Product, Categoria } from "@/types/product";
 
@@ -59,6 +60,7 @@ export default function ProductDetail() {
   const [formulationVersion, setFormulationVersion] = useState(0);
   // «Nueva elaboración» needs a formulation: true / false / null (not known yet).
   const [tieneFormulacion, setTieneFormulacion] = useState<boolean | null>(null);
+  const { vecinos, cargando: cargandoVecinos } = useDetailNeighbors(productId, getProductNeighbors);
   const [elaboracionDialogOpen, setElaboracionDialogOpen] = useState(false);
 
   const loadProduct = useCallback(async (id: number) => {
@@ -172,7 +174,12 @@ export default function ProductDetail() {
             ) : (
               <span />
             )}
-            <ProductNeighborsNav productoId={productId} />
+            <DetailNeighborsNav
+              vecinos={vecinos}
+              cargando={cargandoVecinos}
+              rutaBase="/productos"
+              etiqueta="Navegación entre productos"
+            />
           </div>
         )}
 

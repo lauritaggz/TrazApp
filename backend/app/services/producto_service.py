@@ -10,12 +10,11 @@ from app.models import Producto, Productor
 from app.services.qr_service import TIPOS_MEDIA, FormatoQr, generar_qr, nombre_archivo_qr
 from app.repositories.producto_repository import IdPublicoDuplicadoError, ProductoRepository
 from app.schemas.evaluacion import EvaluacionUtilidadResumen
+from app.schemas.vecinos import VecinosRead
 from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
     ProductoGestionUpdate,
-    ProductoVecinoRead,
-    ProductoVecinosRead,
     PublicacionRead,
 )
 
@@ -108,22 +107,16 @@ class ProductoService:
         productos = self.repository.list_by_productor(productor.id)
         return leer_productos(self.repository, productos)
 
-    def vecinos_mine(self, productor: Productor, producto_id: int) -> ProductoVecinosRead:
+    def vecinos_mine(self, productor: Productor, producto_id: int) -> VecinosRead:
         """Previous and next product of the productor in the default order of the list (HT08).
 
         Always the default order («Más recientes»), without search or filters, and only active products.
         A product that is not among them (another productor's, archived or missing) is not found.
         """
-        filas = self.repository.ids_y_nombres_en_orden(productor.id)
-        posicion = next((i for i, fila in enumerate(filas) if fila.id == producto_id), None)
-        if posicion is None:
+        vecinos = self.repository.vecinos(productor.id, producto_id)
+        if vecinos is None:
             raise ProductoNotFoundError("Producto no encontrado")
-        anterior = filas[posicion - 1] if posicion > 0 else None
-        siguiente = filas[posicion + 1] if posicion + 1 < len(filas) else None
-        return ProductoVecinosRead(
-            anterior=ProductoVecinoRead.model_validate(anterior) if anterior else None,
-            siguiente=ProductoVecinoRead.model_validate(siguiente) if siguiente else None,
-        )
+        return VecinosRead.desde(vecinos)
 
     def get_mine(
         self,

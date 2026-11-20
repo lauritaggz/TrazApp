@@ -61,15 +61,17 @@ Prioridad P3 · Depende de HU02, HU03, HU04 (y HU14 por las cantidades).
 
 **Ajuste al CA1 (decidido por Laura, 20-11-2026):** la versión original pedía cantidad y unidad. HU14 retiró las cantidades de la formulación y las llevó a la calculadora de costos, así que "Uso en formulaciones" muestra producto y versión, **sin cantidad**. No leas cantidades de las tablas de costos (019) para esta sección.
 
-### 3.2 Navegación entre productos
+### 3.2 Navegación anterior/siguiente (productos, elaboraciones e insumos)
 
 | ID | Criterio |
 |---|---|
-| CA8 | El detalle del producto tiene botones "Anterior" y "Siguiente" para pasar al producto previo o siguiente del productor, en el mismo orden de la lista de productos. |
-| CA9 | En el primer producto no hay "Anterior" activo, y en el último no hay "Siguiente" activo (deshabilitados u ocultos, con criterio accesible). |
-| CA10 | La navegación solo recorre productos del productor autenticado. |
+| CA8 | Los detalles del producto, de la elaboración y del insumo tienen botones "Anterior" y "Siguiente" para pasar al registro previo o siguiente del productor, en el mismo orden por defecto de su lista. |
+| CA9 | En el primer registro no hay "Anterior" activo, y en el último no hay "Siguiente" activo (deshabilitados con `aria-disabled`). |
+| CA10 | La navegación solo recorre registros del productor autenticado. |
 
-No va en la calculadora de costos. Propón en la Fase 1 de esa tarea si el orden sale de un endpoint (ids vecinos) o del frontend, y qué pasa con productos archivados o filtros activos en la lista.
+No va en la calculadora de costos. Decisiones tomadas en T-HT08-04 (productos) que se reutilizan en elaboraciones e insumos: endpoint `GET …/{id}/vecinos` con `{anterior: {id, nombre} | null, siguiente: {id, nombre} | null}`, mismo `ORDER BY` que la lista, orden por defecto sin filtros (limitación documentada), extremo deshabilitado y `nav` fuera del bloque de carga. El componente del frontend es uno solo y reutilizable.
+
+La ampliación a elaboraciones e insumos se agregó el 20-11-2026 (T-HT08-04B). El orden por defecto, los registros excluidos (por ejemplo, insumos inactivos o elaboraciones en borrador) y el texto del `aria-label` de cada recurso se deciden en la Fase 1 de esa tarea.
 
 ### 3.3 Rediseño de interfaces (a cargo de Laura)
 
@@ -104,7 +106,7 @@ Esta parte **no es tarea del agente**. Se incluye para que conozca el alcance co
 |---|---|
 | Identificador | SC-06 (o el siguiente libre) |
 | Origen | Revisión visual de HU08 y de las pantallas del MVP por la desarrolladora |
-| Descripción | Se agrega HT08 para resolver las secciones "Próximamente" (implementar dos en el detalle del ingrediente y retirar dos del detalle del producto), agregar navegación anterior/siguiente en el detalle del producto y rediseñar cuatro interfaces (lista de ingredientes, login, inicio y vista de insumos) |
+| Descripción | Se agrega HT08 para resolver las secciones "Próximamente" (implementar dos en el detalle del ingrediente y retirar dos del detalle del producto), agregar navegación anterior/siguiente en los detalles de producto, elaboración e insumo y rediseñar cuatro interfaces (lista de ingredientes, login, inicio y vista de insumos) |
 | Motivo | Evitar secciones inconclusas en la versión final, retirar dos que contradicen el modelo de datos y la decisión de no certificar declaraciones "libre de", y mejorar la usabilidad y la presentación del MVP |
 | Nivel de impacto | Medio (se incorpora al Sprint 3) |
 | Decisión | Aprobada e incorporada al Sprint 3. Las secciones y la navegación las implementa el agente; el rediseño lo hace Laura en la misma rama (commits `design`). Si no alcanza, se ejecutan al menos T-HT08-03 y el retiro de las tarjetas "Próximamente" del ingrediente; las pantallas no rediseñadas quedan como trabajo futuro |
@@ -122,8 +124,9 @@ Esta parte **no es tarea del agente**. Se incluye para que conozca el alcance co
 | T-HT08-02 | Interfaz de las dos secciones en el detalle del ingrediente, reemplazando "Próximamente" | 0,75 |
 | T-HT08-03 | Retirar del detalle del producto "Trazabilidad de ingredientes" e "Información adicional", y registrarlo como diferencia con el diseño | 0,25 |
 | T-HT08-04 | Navegación anterior/siguiente en el detalle del producto | 0,5 |
+| T-HT08-04B | Navegación anterior/siguiente en los detalles de elaboración e insumo, reutilizando el componente y el patrón de T-HT08-04 | 0,75 |
 | T-HT08-05 | Pruebas y documentación de toda la HT08, incluido el rediseño (`docs/test/ht08-test-results.md`) | 0,5 |
-| | **Subtotal agente** | **2,5** |
+| | **Subtotal agente** | **3,25** |
 
 **Tareas de Laura (commits `design`):**
 
@@ -133,7 +136,7 @@ Esta parte **no es tarea del agente**. Se incluye para que conozca el alcance co
 | T-HT08-D2 | Rediseño: lista de ingredientes y vista de insumos | 1 |
 | | **Subtotal Laura** | **2** |
 
-Total HT08: 4,5 h. La estimación original era 1,75 h (solo las secciones). La navegación y el rediseño suman 2,75 h.
+Total HT08: 5,25 h. La estimación original era 1,75 h (solo las secciones). La navegación (productos, elaboraciones e insumos) y el rediseño suman 3,5 h.
 
 T-HT08-05 se hace al final, cuando Laura confirme que terminó los commits `design`.
 
@@ -153,6 +156,7 @@ T-HT08-05 se hace al final, cuando Laura confirme que terminó los commits `desi
 | PT-HT08-08 | Las consultas de las secciones | No escriben en la base | 7 |
 | PT-HT08-09 | Navegar con "Siguiente" y "Anterior" desde el primer producto hasta el último | Recorre en el orden de la lista; en los extremos el botón correspondiente no está activo | 8, 9 |
 | PT-HT08-10 | Navegación con productos de otro productor en la base | Nunca aparecen | 10 |
+| PT-HT08-14 | Navegar con "Siguiente" y "Anterior" en elaboraciones y en insumos | Recorre en el orden por defecto de cada lista; extremos no activos; nunca aparecen registros de otro productor | 8, 9, 10 |
 | PT-HT08-11 | Login, inicio, lista de ingredientes e insumos rediseñados (manual, Laura) | Se ven como el diseño en escritorio y en el teléfono; mismas acciones y mensajes | 11, 12, 13 |
 | PT-HT08-12 | Login con credenciales incorrectas y correctas tras el rediseño (manual, Laura; más las pruebas existentes de login) | Mismo mensaje de error y mismo ingreso que antes | 12 |
 | PT-HT08-13 | Búsqueda en el frontend de "Próximamente" | Sin resultados en los detalles de ingrediente y producto | 6 |
