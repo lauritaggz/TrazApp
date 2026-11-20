@@ -63,6 +63,8 @@ vi.mock("@/services/insumoService", () => ({
   updateInsumoAlergenoTipo: vi.fn(),
   deleteInsumoAlergeno: vi.fn(),
   replaceInsumoAlergenos: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -91,6 +93,8 @@ vi.mock("@/services/elaboracionService", () => ({
   deleteElaboracion: vi.fn(),
   finalizarElaboracion: vi.fn(),
   listLotesInsumo: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // --- datos ---

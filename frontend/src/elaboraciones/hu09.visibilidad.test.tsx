@@ -48,6 +48,8 @@ vi.mock("@/services/elaboracionService", () => ({
   deleteElaboracion: vi.fn(),
   finalizarElaboracion: vi.fn(),
   listLotesInsumo: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/visibilidadService", () => ({

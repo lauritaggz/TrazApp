@@ -17,6 +17,12 @@ from app.models import (
     UsoInsumo,
 )
 from app.models.elaboracion import ESTADO_FINALIZADA
+from app.repositories.vecinos import Vecinos, buscar_vecinos
+
+
+def _orden_del_historial() -> tuple:
+    """Order of the historial (most recent first). Shared with the detail navigation (HT08)."""
+    return (Elaboracion.fecha_elaboracion.desc(), Elaboracion.id.desc())
 
 
 class ElaboracionRepository:
@@ -221,6 +227,28 @@ class ElaboracionRepository:
             )
         return stmt
 
+    def vecinos(self, productor_id: int, elaboracion_id: int) -> Vecinos | None:
+        """Previous and next FINALIZED elaboración of the productor, in the order of the historial (HT08).
+
+        All products together (the historial is global); hidden ones (HU09) included; borradores out,
+        because a borrador has no detail. Name for the link: «E-002 · Queque de vainilla», built in the
+        same query (`||` on SQLite and PostgreSQL; both columns are text). None when the elaboración is
+        not among them.
+        """
+        consulta = (
+            select(
+                Elaboracion.id,
+                (Elaboracion.codigo + " · " + Producto.nombre).label("nombre"),
+            )
+            .join(Producto, Producto.id == Elaboracion.producto_id)
+            .where(
+                Elaboracion.productor_id == productor_id,
+                Elaboracion.estado == ESTADO_FINALIZADA,
+            )
+            .order_by(*_orden_del_historial())
+        )
+        return buscar_vecinos(self.db, consulta, elaboracion_id)
+
     def list_resumenes(
         self,
         productor_id: int,
@@ -267,7 +295,7 @@ class ElaboracionRepository:
         )
         stmt = (
             self._filtrar(stmt, productor_id, **filtros)
-            .order_by(Elaboracion.fecha_elaboracion.desc(), Elaboracion.id.desc())
+            .order_by(*_orden_del_historial())
             .limit(limit)
             .offset(offset)
         )

@@ -8,6 +8,7 @@ import type {
   LoteInsumo,
   UsoPayload,
 } from "@/types/elaboracion";
+import type { Vecinos } from "@/types/vecinos";
 
 export interface ListElaboracionesParams {
   productoId?: number;
@@ -100,4 +101,9 @@ export async function finalizarElaboracion(id: number): Promise<Elaboracion> {
 
 export async function listLotesInsumo(insumoId: number): Promise<LoteInsumo[]> {
   return apiRequest<LoteInsumo[]>(`/gestion/insumos/${insumoId}/lotes`, { method: "GET" }, true);
+}
+
+/** HT08: previous and next finalized elaboración in the default order of the historial (read-only). */
+export async function getElaboracionNeighbors(id: number): Promise<Vecinos> {
+  return apiRequest<Vecinos>(`/gestion/elaboraciones/${id}/vecinos`, { method: "GET" }, true);
 }

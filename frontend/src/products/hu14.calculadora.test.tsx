@@ -40,6 +40,8 @@ vi.mock("@/services/costosService", () => ({
 vi.mock("@/services/insumoService", () => ({
   getInsumo: vi.fn(),
   actualizarPrecioDesdeJumbo: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // --- datos -------------------------------------------------------------------------------------------

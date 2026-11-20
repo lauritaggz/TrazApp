@@ -50,6 +50,8 @@ vi.mock("@/services/elaboracionService", () => ({
   getCodigoSugerido: vi.fn(),
   createElaboracion: vi.fn(),
   getElaboracion: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 const PRODUCTO: Product = {
