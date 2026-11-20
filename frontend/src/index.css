@@ -146,12 +146,28 @@ body {
   animation: none;
 }
 
+/* En secuencia, no superpuestas: la página anterior se va del todo antes de que
+   aparezca la nueva. Si se cruzan, los dos títulos se ven a la vez desplazados
+   (efecto fantasma) y el texto parece arrastrarse. */
 ::view-transition-old(page) {
-  animation: page-out-fwd 180ms ease-in both;
+  animation: page-out-fwd 130ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 ::view-transition-new(page) {
-  animation: page-in-fwd 380ms var(--ease-out-soft) both;
+  animation: page-in-fwd 320ms var(--ease-out-soft) 110ms both;
+}
+
+/* El grupo no viaja entre la posición vieja y la nueva (si había scroll, la página
+   se desplazaría en diagonal): solo se mueve el contenido, en horizontal. */
+::view-transition-group(page) {
+  animation-duration: 0s;
+}
+
+/* La aparición escalonada (.reveal) es para la primera carga. Después de navegar
+   por el menú ya no corre: dentro de la transición se animaría dos veces y el
+   título llegaría tarde, como arrastrado. */
+:root[data-nav-spa] .reveal {
+  animation: none;
 }
 
 :root[data-nav-dir="back"]::view-transition-old(page) {
@@ -171,28 +187,28 @@ body {
 @keyframes page-out-fwd {
   to {
     opacity: 0;
-    transform: translateX(-24px);
+    transform: translateX(-12px);
   }
 }
 
 @keyframes page-in-fwd {
   from {
     opacity: 0;
-    transform: translateX(32px);
+    transform: translateX(20px);
   }
 }
 
 @keyframes page-out-back {
   to {
     opacity: 0;
-    transform: translateX(24px);
+    transform: translateX(12px);
   }
 }
 
 @keyframes page-in-back {
   from {
     opacity: 0;
-    transform: translateX(-32px);
+    transform: translateX(-20px);
   }
 }
 

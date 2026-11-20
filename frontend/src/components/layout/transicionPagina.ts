@@ -58,8 +58,11 @@ export function useNavegacionAnimada() {
       if (desde === hacia && pathname === to) return;
 
       event.preventDefault();
-      document.documentElement.dataset.navDir =
-        desde >= 0 && hacia >= 0 && hacia < desde ? "back" : "fwd";
+      const raiz = document.documentElement;
+      raiz.dataset.navDir = desde >= 0 && hacia >= 0 && hacia < desde ? "back" : "fwd";
+      // Desde aquí las apariciones escalonadas (.reveal) ya no corren: la transición basta.
+      // No se quita al terminar: reactivarlas haría parpadear el contenido ya visible.
+      raiz.dataset.navSpa = "";
       (document as DocumentoConTransicion).startViewTransition!(() => {
         flushSync(() => navigate(to));
         window.scrollTo(0, 0);
