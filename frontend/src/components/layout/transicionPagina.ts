@@ -25,8 +25,21 @@ function indiceSeccion(path: string): number {
 }
 
 type DocumentoConTransicion = Document & {
-  startViewTransition?: (update: () => void) => unknown;
+  startViewTransition?: (update: () => void) => { finished: Promise<void> };
 };
+
+/**
+ * El título de la página (su primer h1) se anima aparte, solo con un fundido en su lugar:
+ * texto grande desplazándose en fracciones de píxel se ve tembloroso. Se marca uno solo
+ * a la vez, porque dos elementos con el mismo nombre cancelan la transición.
+ */
+const NOMBRE_TITULO = "page-title";
+
+function marcarTitulo(): HTMLElement | null {
+  const titulo = document.querySelector<HTMLElement>(".app-page h1");
+  if (titulo) titulo.style.viewTransitionName = NOMBRE_TITULO;
+  return titulo;
+}
 
 function puedeAnimar(): boolean {
   const doc = document as DocumentoConTransicion;
@@ -63,9 +76,16 @@ export function useNavegacionAnimada() {
       // Desde aquí las apariciones escalonadas (.reveal) ya no corren: la transición basta.
       // No se quita al terminar: reactivarlas haría parpadear el contenido ya visible.
       raiz.dataset.navSpa = "";
-      (document as DocumentoConTransicion).startViewTransition!(() => {
+      const viejo = marcarTitulo();
+      let nuevo: HTMLElement | null = null;
+      const transicion = (document as DocumentoConTransicion).startViewTransition!(() => {
         flushSync(() => navigate(to));
         window.scrollTo(0, 0);
+        if (viejo) viejo.style.viewTransitionName = "";
+        nuevo = marcarTitulo();
+      });
+      void transicion.finished.finally(() => {
+        if (nuevo) nuevo.style.viewTransitionName = "";
       });
     },
     [navigate, pathname],

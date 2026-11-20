@@ -157,6 +157,38 @@ body {
   animation: page-in-fwd 320ms var(--ease-out-soft) 110ms both;
 }
 
+/* El título: fundido en su lugar, sin deslizarse ni estirarse (ver transicionPagina.ts).
+   Cada imagen conserva su tamaño natural aunque los títulos midan distinto. */
+::view-transition-group(page-title) {
+  animation-duration: 0s;
+}
+
+::view-transition-old(page-title),
+::view-transition-new(page-title) {
+  width: auto;
+  height: auto;
+}
+
+::view-transition-old(page-title) {
+  animation: titulo-sale 110ms ease-in both;
+}
+
+::view-transition-new(page-title) {
+  animation: titulo-entra 240ms ease-out 110ms both;
+}
+
+@keyframes titulo-sale {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes titulo-entra {
+  from {
+    opacity: 0;
+  }
+}
+
 /* El grupo no viaja entre la posición vieja y la nueva (si había scroll, la página
    se desplazaría en diagonal): solo se mueve el contenido, en horizontal. */
 ::view-transition-group(page) {
