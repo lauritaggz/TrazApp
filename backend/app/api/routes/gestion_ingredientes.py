@@ -12,6 +12,8 @@ from app.schemas.ingrediente import (
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
+    IngredienteInsumoAsociadoRead,
+    IngredienteUsoProductoRead,
 )
 from app.services.ingrediente_service import (
     AlergenoNotFoundError,
@@ -231,6 +233,44 @@ def eliminar_componente_composicion(
     except InvalidComposicionError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/{ingrediente_id}/productos",
+    response_model=list[IngredienteUsoProductoRead],
+)
+def listar_productos_ingrediente(
+    ingrediente_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> list[IngredienteUsoProductoRead]:
+    """HT08: products whose current formulation includes the ingredient (read-only)."""
+    try:
+        return service.list_productos_mine(current_productor, ingrediente_id)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/{ingrediente_id}/insumos",
+    response_model=list[IngredienteInsumoAsociadoRead],
+)
+def listar_insumos_ingrediente(
+    ingrediente_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: IngredienteService = Depends(get_ingrediente_service),
+) -> list[IngredienteInsumoAsociadoRead]:
+    """HT08: commercial supplies associated with the ingredient, active or not (read-only)."""
+    try:
+        return service.list_insumos_mine(current_productor, ingrediente_id)
+    except IngredienteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
 

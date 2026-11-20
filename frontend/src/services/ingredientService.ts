@@ -7,7 +7,9 @@ import type {
   ComposicionComponenteUpdatePayload,
   Ingrediente,
   IngredienteCreatePayload,
+  IngredienteInsumoAsociado,
   IngredienteUpdatePayload,
+  IngredienteUsoProducto,
 } from "@/types/ingredient";
 
 export async function listIngredients(): Promise<Ingrediente[]> {
@@ -145,6 +147,28 @@ export async function deleteIngredientAllergen(
 export async function listAlergenosCatalog(): Promise<AlergenoCatalogo[]> {
   return apiRequest<AlergenoCatalogo[]>(
     "/gestion/alergenos",
+    { method: "GET" },
+    true,
+  );
+}
+
+/** HT08: products whose current formulation includes the ingredient (read-only). */
+export async function listIngredientProducts(
+  ingredienteId: number,
+): Promise<IngredienteUsoProducto[]> {
+  return apiRequest<IngredienteUsoProducto[]>(
+    `/gestion/ingredientes/${ingredienteId}/productos`,
+    { method: "GET" },
+    true,
+  );
+}
+
+/** HT08: commercial supplies associated with the ingredient, active and inactive (read-only). */
+export async function listIngredientSupplies(
+  ingredienteId: number,
+): Promise<IngredienteInsumoAsociado[]> {
+  return apiRequest<IngredienteInsumoAsociado[]>(
+    `/gestion/ingredientes/${ingredienteId}/insumos`,
     { method: "GET" },
     true,
   );

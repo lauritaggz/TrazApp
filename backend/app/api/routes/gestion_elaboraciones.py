@@ -17,6 +17,7 @@ from app.schemas.elaboracion import (
     LoteRead,
     UsosReemplazo,
 )
+from app.schemas.vecinos import VecinosRead
 from app.services.elaboracion_service import (
     CodigoElaboracionRepetidoError,
     ElaboracionBorradorError,
@@ -127,6 +128,19 @@ def listar_elaboraciones(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"mensaje": str(exc)}
         ) from exc
+
+
+@router.get("/elaboraciones/{elaboracion_id}/vecinos", response_model=VecinosRead)
+def obtener_vecinos_elaboracion(
+    elaboracion_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: ElaboracionService = Depends(get_elaboracion_service),
+) -> VecinosRead:
+    """HT08: previous and next finalized elaboración in the order of the historial (read-only)."""
+    try:
+        return service.vecinos_mine(current_productor, elaboracion_id)
+    except ElaboracionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/elaboraciones/{elaboracion_id}", response_model=ElaboracionRead)

@@ -5,6 +5,7 @@ import type {
   ProductCreatePayload,
   ProductUpdatePayload,
 } from "@/types/product";
+import type { Vecinos } from "@/types/vecinos";
 
 export async function listCategories(): Promise<Categoria[]> {
   return apiRequest<Categoria[]>("/gestion/categorias", { method: "GET" }, true);
@@ -54,3 +55,8 @@ export async function deleteProduct(id: number): Promise<void> {
 }
 
 export { uploadProductImage } from "@/lib/productImageUpload";
+
+/** HT08: previous and next product in the default order of the list (read-only). */
+export async function getProductNeighbors(id: number): Promise<Vecinos> {
+  return apiRequest<Vecinos>(`/gestion/productos/${id}/vecinos`, { method: "GET" }, true);
+}

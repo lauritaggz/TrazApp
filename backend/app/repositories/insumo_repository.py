@@ -3,6 +3,12 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.codigo_barras import formas_equivalentes
 from app.models import Alergeno, Ingrediente, InsumoAlergeno, InsumoComercial
+from app.repositories.vecinos import Vecinos, buscar_vecinos
+
+
+def _orden_de_la_lista() -> tuple:
+    """Order of the supply list (most recent first). Shared with the detail navigation (HT08)."""
+    return (InsumoComercial.created_at.desc(), InsumoComercial.id.desc())
 
 
 class InsumoRepository:
@@ -54,11 +60,27 @@ class InsumoRepository:
                 InsumoComercial.productor_id == productor_id,
                 InsumoComercial.activo.is_(activo),
             )
-            .order_by(InsumoComercial.created_at.desc(), InsumoComercial.id.desc())
+            .order_by(*_orden_de_la_lista())
         )
         if ingrediente_id is not None:
             stmt = stmt.where(InsumoComercial.ingrediente_id == ingrediente_id)
         return list(self.db.scalars(stmt).all())
+
+    def vecinos(self, productor_id: int, insumo_id: int) -> Vecinos | None:
+        """Previous and next ACTIVE supply of the productor, in the order of the list (HT08).
+
+        Only active ones, like the list by default. None when the supply is not among them
+        (another productor's, inactive or missing).
+        """
+        consulta = (
+            select(InsumoComercial.id, InsumoComercial.nombre)
+            .where(
+                InsumoComercial.productor_id == productor_id,
+                InsumoComercial.activo.is_(True),
+            )
+            .order_by(*_orden_de_la_lista())
+        )
+        return buscar_vecinos(self.db, consulta, insumo_id)
 
     def find_by_codigo_barras(
         self,

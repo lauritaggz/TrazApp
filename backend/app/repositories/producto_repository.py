@@ -15,6 +15,7 @@ from app.models import (
     VersionProducto,
 )
 from app.models.elaboracion import ESTADO_FINALIZADA
+from app.repositories.vecinos import Vecinos, buscar_vecinos
 
 
 class DuplicateCodigoInternoError(Exception):
@@ -27,6 +28,11 @@ class InvalidCategoriaIdsError(Exception):
 
 class IdPublicoDuplicadoError(Exception):
     """Raised when the generated id_publico collides with another product's (unique index)."""
+
+
+def _orden_de_la_lista() -> tuple:
+    """Order of the product list (most recent first). Shared with the detail navigation (HT08)."""
+    return (Producto.created_at.desc().nullslast(), Producto.id.desc())
 
 
 class ProductoRepository:
@@ -82,9 +88,24 @@ class ProductoRepository:
                 Producto.productor_id == productor_id,
                 Producto.activo.is_(True),
             )
-            .order_by(Producto.created_at.desc().nullslast(), Producto.id.desc())
+            .order_by(*_orden_de_la_lista())
         )
         return list(self.db.scalars(stmt).all())
+
+    def vecinos(self, productor_id: int, producto_id: int) -> Vecinos | None:
+        """Previous and next active product of the productor, in the order of the list (HT08).
+
+        None when the product is not among them (another productor's, archived or missing).
+        """
+        consulta = (
+            select(Producto.id, Producto.nombre)
+            .where(
+                Producto.productor_id == productor_id,
+                Producto.activo.is_(True),
+            )
+            .order_by(*_orden_de_la_lista())
+        )
+        return buscar_vecinos(self.db, consulta, producto_id)
 
     def conteos_elaboraciones(self, producto_ids: list[int]) -> dict[int, tuple[int, int]]:
         """Per product: (finalized elaboraciones, of those the ones not hidden from the public).

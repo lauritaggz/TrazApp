@@ -16,6 +16,7 @@ from app.schemas.insumo import (
     InsumoRead,
     InsumoUpdate,
 )
+from app.schemas.vecinos import VecinosRead
 from app.services.insumo_service import (
     DuplicateCodigoBarrasError,
     FichaInvalidaError,
@@ -182,6 +183,19 @@ def listar_insumos(
         activo=activo,
         ingrediente_id=ingrediente_id,
     )
+
+
+@router.get("/{insumo_id}/vecinos", response_model=VecinosRead)
+def obtener_vecinos_insumo(
+    insumo_id: int,
+    current_productor: Productor = Depends(get_current_productor),
+    service: InsumoService = Depends(get_insumo_service),
+) -> VecinosRead:
+    """HT08: previous and next active supply in the order of the list (read-only)."""
+    try:
+        return service.vecinos_mine(current_productor, insumo_id)
+    except InsumoNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/{insumo_id}", response_model=InsumoRead)

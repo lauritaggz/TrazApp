@@ -11,6 +11,8 @@ import type { ConsultaCodigo } from "@/types/consultaCodigo";
 
 vi.mock("@/services/insumoService", () => ({
   consultarCodigoBarras: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 const CODIGO = "7802910000971";

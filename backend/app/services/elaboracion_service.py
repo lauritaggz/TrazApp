@@ -40,6 +40,7 @@ from app.schemas.elaboracion import (
     VersionResumenRead,
 )
 from app.schemas.insumo import AlergenoDeclaradoRead, ordenar_declarados
+from app.schemas.vecinos import VecinosRead
 from app.services.insumo_service import InsumoNotFoundError
 from app.services.producto_formulacion_service import ProductoFormulacionService
 from app.services.producto_service import ProductoNotFoundError
@@ -369,6 +370,17 @@ class ElaboracionService:
             if vigentes.get(anterior.insumo_id) == ingrediente_id:
                 return anterior.insumo_id
         return habituales.get(ingrediente_id)
+
+    def vecinos_mine(self, productor: Productor, elaboracion_id: int) -> VecinosRead:
+        """Previous and next finalized elaboración in the default order of the historial (HT08).
+
+        Without filters and across all products. A borrador, another productor's or a missing one is not
+        found.
+        """
+        vecinos = self.repository.vecinos(productor.id, elaboracion_id)
+        if vecinos is None:
+            raise ElaboracionNotFoundError("Elaboración no encontrada")
+        return VecinosRead.desde(vecinos)
 
     def get_mine(self, productor: Productor, elaboracion_id: int) -> ElaboracionRead:
         elaboracion = self.repository.get_by_id_and_productor(elaboracion_id, productor.id)

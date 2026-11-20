@@ -30,6 +30,8 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   deleteProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -41,6 +43,9 @@ vi.mock("@/services/ingredientService", () => ({
   listIngredientComposition: vi.fn(),
   listIngredientAllergens: vi.fn(),
   listAlergenosCatalog: vi.fn(),
+  // HT08: the detail now loads «Uso en formulaciones» and «Insumos asociados».
+  listIngredientProducts: vi.fn().mockResolvedValue([]),
+  listIngredientSupplies: vi.fn().mockResolvedValue([]),
 }));
 
 const complete: Product = {

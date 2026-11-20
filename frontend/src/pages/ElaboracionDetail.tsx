@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import DetailNeighborsNav from "@/components/detail/DetailNeighborsNav";
 import { CandadoIcon } from "@/components/detail/icons";
 import { ChevronIcon } from "@/components/elaboraciones/historial/iconos";
 import AlergenosAgrupados from "@/components/elaboraciones/AlergenosAgrupados";
@@ -8,16 +9,17 @@ import EtiquetaOculta from "@/components/elaboraciones/EtiquetaOculta";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import PageHeader from "@/components/ui/PageHeader";
+import PageHeader, { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useDetailNeighbors } from "@/hooks/useDetailNeighbors";
 import { consolidarAlergenos } from "@/lib/alergenosResumen";
 import {
   formatFecha,
   formatFechaDeMomento,
   textoInformacionConservada,
 } from "@/lib/elaboracionUtils";
-import { getElaboracion } from "@/services/elaboracionService";
+import { getElaboracion, getElaboracionNeighbors } from "@/services/elaboracionService";
 import { ApiError } from "@/types/auth";
 import type { Elaboracion, UsoInsumo } from "@/types/elaboracion";
 
@@ -45,6 +47,7 @@ export default function ElaboracionDetail() {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [otraDialogOpen, setOtraDialogOpen] = useState(false);
+  const { vecinos, cargando: cargandoVecinos } = useDetailNeighbors(elaboracionId, getElaboracionNeighbors);
 
   const load = useCallback(async (id: number) => {
     setLoading(true);
@@ -105,6 +108,28 @@ export default function ElaboracionDetail() {
       businessName={businessName}
     >
       <div className="mx-auto max-w-3xl space-y-6">
+        {/* Outside the loading block: moving to a neighbour keeps the pressed link (and its focus). */}
+        {elaboracionId !== null && !notFound && !loadError && (
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {!loading && elaboracion ? (
+              <Breadcrumbs
+                items={[
+                  { label: "Elaboraciones", to: "/elaboraciones" },
+                  { label: elaboracion.codigo },
+                ]}
+              />
+            ) : (
+              <span />
+            )}
+            <DetailNeighborsNav
+              vecinos={vecinos}
+              cargando={cargandoVecinos}
+              rutaBase="/elaboraciones"
+              etiqueta="Navegación entre elaboraciones"
+            />
+          </div>
+        )}
+
         {loading && (
           <div className="space-y-4" aria-live="polite" aria-busy="true">
             <p className="text-sm text-text-secondary">Cargando elaboración...</p>
@@ -149,10 +174,6 @@ export default function ElaboracionDetail() {
                   {elaboracion.oculta === true && <EtiquetaOculta />}
                 </>
               }
-              breadcrumbs={[
-                { label: "Elaboraciones", to: "/elaboraciones" },
-                { label: elaboracion.codigo },
-              ]}
               actions={
                 <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                   <Button

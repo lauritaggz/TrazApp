@@ -29,16 +29,22 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   deleteProduct: vi.fn(),
   uploadProductImage: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // HT06-07: the Dashboard also asks for the drafts in progress; no real request in these tests.
 vi.mock("@/services/elaboracionService", () => ({
   listElaboraciones: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // HT07: the Dashboard counts the supplies with allergens to review; no real request in these tests.
 vi.mock("@/services/insumoService", () => ({
   listInsumos: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({

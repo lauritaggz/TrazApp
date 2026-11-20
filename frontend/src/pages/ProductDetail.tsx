@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
-import ComingSoonCard from "@/components/detail/ComingSoonCard";
 import DetailHero from "@/components/detail/DetailHero";
+import DetailNeighborsNav from "@/components/detail/DetailNeighborsNav";
 import FactTile from "@/components/detail/FactTile";
-import { EtiquetaIcon, ProductoIcon, TrazabilidadIcon } from "@/components/detail/icons";
+import { ProductoIcon } from "@/components/detail/icons";
 import Badge from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
@@ -19,10 +19,11 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useDetailNeighbors } from "@/hooks/useDetailNeighbors";
 import { formatProductContent, formatProductPrice } from "@/lib/productListUtils";
 import { resolveProductImageUrl } from "@/lib/productImageUpload";
 import { getProductFormulation } from "@/services/formulationService";
-import { getProduct, deleteProduct } from "@/services/productService";
+import { getProduct, deleteProduct, getProductNeighbors } from "@/services/productService";
 import { ApiError } from "@/types/auth";
 import type { Product, Categoria } from "@/types/product";
 
@@ -59,6 +60,7 @@ export default function ProductDetail() {
   const [formulationVersion, setFormulationVersion] = useState(0);
   // «Nueva elaboración» needs a formulation: true / false / null (not known yet).
   const [tieneFormulacion, setTieneFormulacion] = useState<boolean | null>(null);
+  const { vecinos, cargando: cargandoVecinos } = useDetailNeighbors(productId, getProductNeighbors);
   const [elaboracionDialogOpen, setElaboracionDialogOpen] = useState(false);
 
   const loadProduct = useCallback(async (id: number) => {
@@ -162,6 +164,25 @@ export default function ProductDetail() {
       businessName={businessName}
     >
       <div className="max-w-6xl space-y-6">
+        {/* Outside the loading block: moving to a neighbour keeps the pressed link (and its focus). */}
+        {productId != null && !unavailable && (
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {!loading && product ? (
+              <Breadcrumbs
+                items={[{ label: "Productos", to: "/productos" }, { label: product.nombre }]}
+              />
+            ) : (
+              <span />
+            )}
+            <DetailNeighborsNav
+              vecinos={vecinos}
+              cargando={cargandoVecinos}
+              rutaBase="/productos"
+              etiqueta="Navegación entre productos"
+            />
+          </div>
+        )}
+
         {loading && <ProductDetailLoading />}
 
         {!loading && unavailable && (
@@ -170,9 +191,6 @@ export default function ProductDetail() {
 
         {!loading && product && (
           <>
-            <Breadcrumbs
-              items={[{ label: "Productos", to: "/productos" }, { label: product.nombre }]}
-            />
             <DetailHero
               kind="Producto"
               icon={<ProductoIcon size={30} />}
@@ -301,21 +319,6 @@ export default function ProductDetail() {
                     </FactTile>
                   </dl>
                 </ProductDetailSection>
-
-                <ComingSoonCard
-                  id="product-soon-trazabilidad"
-                  title="Trazabilidad de ingredientes"
-                  description="Verás cuántos ingredientes del producto tienen su información completa."
-                  icon={<TrazabilidadIcon size={20} />}
-                  rows={1}
-                />
-                <ComingSoonCard
-                  id="product-soon-adicional"
-                  title="Información adicional"
-                  description="Lote, vigencia y sellos como «Sin TACC» o «Sin conservantes»."
-                  icon={<EtiquetaIcon size={20} />}
-                  rows={0}
-                />
 
                 <section
                   aria-labelledby="product-delete-title"
