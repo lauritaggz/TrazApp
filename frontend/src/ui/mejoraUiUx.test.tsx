@@ -70,6 +70,11 @@ describe("Contraste de tokens (UI-A1/A2/A3)", () => {
     ["text-muted", "card"],
     ["text-muted", "surface"],
     ["text-secondary", "surface"],
+    // HT08: paneles trigo y crema de la dirección «Cuaderno de campo».
+    ["text-muted", "panel"],
+    ["text-muted", "wheat"],
+    ["text-primary", "wheat-deep"],
+    ["accent", "surface"],
     ["panel-muted", "brand-600"],
     ["panel-soft", "brand-600"],
     ["panel-faint", "brand-600"],
@@ -83,6 +88,10 @@ describe("Contraste de tokens (UI-A1/A2/A3)", () => {
 
   it("el borde de campos cumple 3:1 sobre la tarjeta", () => {
     expect(ratio(token("border-strong"), token("card"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("el texto claro sobre el panel profundo cumple 4.5:1", () => {
+    expect(ratio(token("surface"), token("deep"))).toBeGreaterThanOrEqual(4.5);
   });
 });
 

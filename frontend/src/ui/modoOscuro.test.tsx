@@ -173,6 +173,8 @@ describe("Contraste del modo oscuro", () => {
     ["text-muted", "surface"],
     ["text-muted", "card"],
     ["text-muted", "brand-50"],
+    ["text-muted", "panel"],
+    ["text-muted", "wheat"],
     ["accent-strong", "card"],
     ["accent-strong", "brand-50"],
     ["error", "error-bg"],
@@ -194,4 +196,11 @@ describe("Contraste del modo oscuro", () => {
   it("el relleno de marca conserva texto blanco legible", () => {
     expect(ratio("#ffffff", token("brand-600", css))).toBeGreaterThanOrEqual(4.5);
   });
+
+  it.each(["brand-600", "brand-700", "brand-800"])(
+    "en oscuro el relleno %s conserva texto blanco legible",
+    (name) => {
+      expect(ratio("#ffffff", token(name))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });
