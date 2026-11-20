@@ -9,6 +9,7 @@ from app.models import (
     Categoria,
     Elaboracion,
     ElaboracionOculta,
+    EvaluacionUtilidad,
     FormulacionVersionProducto,
     Producto,
     VersionProducto,
@@ -105,6 +106,24 @@ class ProductoRepository:
                 Elaboracion.estado == ESTADO_FINALIZADA,
             )
             .group_by(Elaboracion.producto_id)
+        )
+        return {fila[0]: (int(fila[1]), int(fila[2] or 0)) for fila in self.db.execute(stmt)}
+
+    def conteos_evaluaciones(self, producto_ids: list[int]) -> dict[int, tuple[int, int]]:
+        """Per product: (answers, positive answers) of the anonymous evaluation (HU11).
+
+        One grouped query for any number of products; a product without answers is absent.
+        """
+        if not producto_ids:
+            return {}
+        stmt = (
+            select(
+                EvaluacionUtilidad.producto_id,
+                func.count(EvaluacionUtilidad.id),
+                func.sum(case((EvaluacionUtilidad.util.is_(True), 1), else_=0)),
+            )
+            .where(EvaluacionUtilidad.producto_id.in_(producto_ids))
+            .group_by(EvaluacionUtilidad.producto_id)
         )
         return {fila[0]: (int(fila[1]), int(fila[2] or 0)) for fila in self.db.execute(stmt)}
 

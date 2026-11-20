@@ -134,22 +134,25 @@ def _tablas_y_columnas_nuevas(engine: Engine) -> bool:
 # --- cabeza de Alembic -----------------------------------------------------------------------------
 
 
-def test_la_cabeza_de_alembic_es_la_019_y_cuelga_de_la_018(alembic_cfg: Config) -> None:
+def test_la_019_esta_en_la_cadena_con_una_sola_cabeza_y_cuelga_de_la_018(alembic_cfg: Config) -> None:
+    """The head is pinned by the newest migration's own tests (020 moved it past the 019)."""
     scripts = ScriptDirectory.from_config(alembic_cfg)
 
-    assert scripts.get_heads() == [REV_019]
+    assert len(scripts.get_heads()) == 1
+    assert REV_019 in [revision.revision for revision in scripts.walk_revisions()]
     assert scripts.get_revision(REV_019).down_revision == REV_018
     assert len(REV_019) <= 32
 
 
 def test_la_019_esta_en_la_cadena_real_o_pendiente() -> None:
-    """Against the real script directory: approved (a `.py` and the head) or still a `.pendiente`."""
+    """Against the real script directory: approved (a `.py` in the chain) or still a `.pendiente`."""
     cfg = Config()
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     scripts = ScriptDirectory.from_config(cfg)
 
+    assert len(scripts.get_heads()) == 1
     if (VERSIONES / ARCHIVO_019).exists():
-        assert scripts.get_heads() == [REV_019]
+        assert REV_019 in [revision.revision for revision in scripts.walk_revisions()]
         assert scripts.get_revision(REV_019).down_revision == REV_018
     else:
         assert (VERSIONES / f"{ARCHIVO_019}.pendiente").exists()

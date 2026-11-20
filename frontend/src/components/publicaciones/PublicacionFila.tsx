@@ -5,6 +5,7 @@ import PublicacionSwitch from "@/components/publicaciones/PublicacionSwitch";
 import { RequisitosFaltantes, rutaDeRequisito } from "@/components/publicaciones/Requisitos";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
 import Alert from "@/components/ui/Alert";
+import { textoUtilidad } from "@/lib/evaluacionTexto";
 import { usePublicacionProducto } from "@/hooks/usePublicacionProducto";
 import type { Product } from "@/types/product";
 
@@ -44,6 +45,7 @@ export default function PublicacionFila({ product, onChange, onNotFound }: Publi
             <span aria-hidden="true"> · </span>
             {textoElaboraciones(finalizadas)}
           </p>
+          <p className="mt-0.5 text-[13px] text-text-secondary">{textoUtilidad(product.evaluacion_utilidad)}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 text-[13px]">

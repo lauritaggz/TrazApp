@@ -5,6 +5,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.core.publicacion import url_publica_o_none
+from app.schemas.evaluacion import EvaluacionUtilidadResumen
 
 
 UnidadMedida = Literal["g", "kg", "ml", "L", "unidad"]
@@ -247,6 +248,9 @@ class ProductoGestionRead(BaseModel):
     # of PATCH fill it; it is null in the list and the POST, and whenever the calculation is not complete
     # or the product has no rendimiento. It never replaces `costo_produccion`, which stays as typed.
     costo_calculado: Decimal | None = None
+    # HU11: anonymous usefulness answers of the product (total, positive, integer percentage or null).
+    # Filled by the service in one grouped query for the whole list; without answers the percentage is null.
+    evaluacion_utilidad: EvaluacionUtilidadResumen = Field(default_factory=EvaluacionUtilidadResumen)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

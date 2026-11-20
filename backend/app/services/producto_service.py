@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from app.core.evaluacion_resultados import porcentaje_positivas
 from app.core.publicacion import construir_url_publica, generar_id_publico
 from app.models import Producto, Productor
 from app.services.qr_service import TIPOS_MEDIA, FormatoQr, generar_qr, nombre_archivo_qr
 from app.repositories.producto_repository import IdPublicoDuplicadoError, ProductoRepository
+from app.schemas.evaluacion import EvaluacionUtilidadResumen
 from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
@@ -51,6 +53,10 @@ class IdPublicoAgotadoError(Exception):
     """Every attempt to generate a free id_publico collided."""
 
 
+def _resumen_evaluacion(total: int, positivas: int) -> EvaluacionUtilidadResumen:
+    return EvaluacionUtilidadResumen(total=total, positivas=positivas, porcentaje=porcentaje_positivas(positivas, total))
+
+
 def leer_productos(
     repository: ProductoRepository, productos: list[Producto]
 ) -> list[ProductoGestionRead]:
@@ -59,12 +65,14 @@ def leer_productos(
     ids = [producto.id for producto in productos]
     con_formulacion = repository.ids_con_formulacion(ids)
     conteos = repository.conteos_elaboraciones(ids)
+    evaluaciones = repository.conteos_evaluaciones(ids)
     return [
         ProductoGestionRead.model_validate(producto).model_copy(
             update={
                 "tiene_formulacion": producto.id in con_formulacion,
                 "elaboraciones_finalizadas": conteos.get(producto.id, (0, 0))[0],
                 "elaboraciones_visibles": conteos.get(producto.id, (0, 0))[1],
+                "evaluacion_utilidad": _resumen_evaluacion(*evaluaciones.get(producto.id, (0, 0))),
             }
         )
         for producto in productos

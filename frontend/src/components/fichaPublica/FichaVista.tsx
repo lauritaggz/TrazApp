@@ -17,6 +17,7 @@ import {
   MENSAJE_ELABORACION_NO_DISPONIBLE,
   type TextosDeEstado,
 } from "@/components/fichaPublica/fichaPublicaTextos";
+import PreguntaUtilidad from "@/components/fichaPublica/PreguntaUtilidad";
 import ProductoEncabezado from "@/components/fichaPublica/ProductoEncabezado";
 import SelectorElaboracion from "@/components/fichaPublica/SelectorElaboracion";
 import Logo from "@/components/Logo";
@@ -39,6 +40,8 @@ export interface FichaVistaProps {
   barraSuperior?: ReactNode;
   prefijoTitulo?: string;
   estado404?: TextosDeEstado;
+  /** Shows «¿te resultó útil?» (HU11). Only the public view turns it on: the preview never asks. */
+  evaluable?: boolean;
 }
 
 /** The public ficha as the consumer sees it (HU10). The URL holds the selection (`?codigo=` / `?fecha=`). */
@@ -49,6 +52,7 @@ export default function FichaVista({
   barraSuperior,
   prefijoTitulo,
   estado404 = ESTADO_404_PUBLICO,
+  evaluable = false,
 }: FichaVistaProps) {
   const [params, setParams] = useSearchParams();
   const codigoEnUrl = params.get("codigo");
@@ -84,6 +88,7 @@ export default function FichaVista({
             cargando={fase === "cargando"}
             codigoEnUrl={codigoEnUrl ?? ""}
             fechaEnUrl={fechaEnUrl ?? ""}
+            evaluable={evaluable}
             onElegir={elegirCodigo}
             onBuscarCodigo={elegirCodigo}
             onBuscarFecha={elegirFecha}
@@ -154,13 +159,18 @@ interface ContenidoProps {
   cargando: boolean;
   codigoEnUrl: string;
   fechaEnUrl: string;
+  evaluable: boolean;
   onElegir: (codigo: string) => void;
   onBuscarCodigo: (codigo: string) => void;
   onBuscarFecha: (fecha: string) => void;
 }
 
-function Contenido({ ficha, cargando, codigoEnUrl, fechaEnUrl, ...acciones }: ContenidoProps) {
+function Contenido({ ficha, cargando, codigoEnUrl, fechaEnUrl, evaluable, ...acciones }: ContenidoProps) {
   const sinElaboraciones = ficha.estado_elaboracion === "sin_elaboraciones";
+  // Asked only in the public view, with a token (estado "ok") and once the elaboración is on screen.
+  const token = ficha.token_evaluacion;
+  const idPublico = ficha.producto.id_publico; // null in the preview
+  const preguntar = evaluable && !cargando && ficha.estado_elaboracion === "ok" && !!token && !!ficha.elaboracion;
   return (
     <>
       <ProductoEncabezado producto={ficha.producto} />
@@ -187,6 +197,16 @@ function Contenido({ ficha, cargando, codigoEnUrl, fechaEnUrl, ...acciones }: Co
           />
           {cargando ? <ElaboracionCargando /> : <AreaElaboracion ficha={ficha} />}
         </>
+      )}
+
+      {preguntar && token && idPublico && ficha.elaboracion && (
+        // Keyed by the token: a new elaboración brings a new token and a fresh question.
+        <PreguntaUtilidad
+          key={token}
+          idPublico={idPublico}
+          codigo={ficha.elaboracion.codigo}
+          token={token}
+        />
       )}
 
       <AvisoConsumidor />

@@ -61,6 +61,8 @@ export interface FichaPublica {
   estado_elaboracion: EstadoElaboracionPublica;
   /** Only filled with estado_elaboracion "varias". */
   coincidencias: ElaboracionResumenPublica[];
+  /** Signed single-use token to answer «¿te resultó útil?» (HU11). Only with estado "ok"; null in the preview. */
+  token_evaluacion: string | null;
 }
 
 /** Which elaboración the consumer asks for: by code or by date (never both from the UI). */

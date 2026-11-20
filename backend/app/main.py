@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,6 +13,7 @@ from app.api.routes import (
     gestion_ingredientes,
     gestion_insumos,
     gestion_costos,
+    gestion_evaluaciones,
     gestion_producto_formulacion,
     gestion_vista_publica,
     gestion_productos,
@@ -24,6 +26,20 @@ from app.api.routes import (
 from app.core.config import get_settings
 
 settings = get_settings()
+
+
+class _SinEvaluaciones(logging.Filter):
+    """HU11: the access log (client IP + path + time) must not record who answered a consultation.
+
+    Drops only the lines of the evaluation endpoint; every other request is logged as before. The
+    token travels in the body, never in the URL. A hosting provider's own logs are out of reach.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/evaluaciones" not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(_SinEvaluaciones())
 
 app = FastAPI(
     title=settings.app_name,
@@ -49,6 +65,7 @@ app.include_router(auth.router)
 app.include_router(gestion_productos.router)
 app.include_router(gestion_producto_formulacion.router)
 app.include_router(gestion_costos.router)
+app.include_router(gestion_evaluaciones.router)
 app.include_router(gestion_vista_publica.router)
 app.include_router(gestion_categorias.router)
 app.include_router(gestion_alergenos.router)

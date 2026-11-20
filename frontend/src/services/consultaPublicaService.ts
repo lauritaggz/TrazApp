@@ -2,6 +2,21 @@ import { apiRequest } from "@/lib/apiClient";
 import type { FichaPublica, SeleccionElaboracion } from "@/types/consultaPublica";
 
 /**
+ * Anonymous answer to «¿Esta información te resultó útil?» (HU11).
+ *
+ * Like the consultation, it NEVER sends the productor's token: only the signed consultation token
+ * that came with the ficha and the answer. Errors keep their status (409 already answered, 422 the
+ * token is not valid or expired, 404 not available, 0 network).
+ */
+export async function enviarEvaluacion(idPublico: string, token: string, util: boolean): Promise<void> {
+  await apiRequest<{ registrada: boolean }>(
+    `/publico/productos/${encodeURIComponent(idPublico)}/evaluaciones`,
+    { method: "POST", body: JSON.stringify({ token, util }), cache: "no-store" },
+    false,
+  );
+}
+
+/**
  * Ficha of a published product, for any visitor.
  *
  * It NEVER sends the productor's token, even with a session open in the same browser: it calls

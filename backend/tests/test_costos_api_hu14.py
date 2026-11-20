@@ -885,7 +885,7 @@ def test_el_numero_de_consultas_del_get_y_del_detalle_no_depende_del_numero_de_l
     # there is one more query (its uses) in each calculation.
     assert cantidades["get"][0] == 8
     assert cantidades["put"][0] == 9
-    assert cantidades["detalle"][0] == 12
+    assert cantidades["detalle"][0] == 13  # +1 since HU11 (T11-03): grouped count of evaluaciones
 
 
 def test_sin_rendimiento_o_sin_formulacion_el_detalle_no_hace_consultas_de_costos(api, motor) -> None:
@@ -904,5 +904,5 @@ def test_sin_rendimiento_o_sin_formulacion_el_detalle_no_hace_consultas_de_costo
     api.put(f"/gestion/productos/{completo}/costos", headers=headers, json={"rendimiento": 4})
     con_rendimiento = consultas_de_detalle(completo)
 
-    assert sin_rendimiento == sin_formulacion == 5
+    assert sin_rendimiento == sin_formulacion == 6  # +1 since HU11 (T11-03): grouped count of evaluaciones
     assert con_rendimiento - sin_rendimiento == 7  # 8 when the product has a finalized elaboración

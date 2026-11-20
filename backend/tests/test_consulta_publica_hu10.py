@@ -99,6 +99,9 @@ RUTAS_APROBADAS = {
     # up in the paths when there are matches (see the "varias" whitelist test).
     "estado_elaboracion",
     "coincidencias",
+    # HU11 (T11-01): signed token to evaluate this consultation. A string only for the "ok" state of
+    # the public consultation, null otherwise and in the preview; the key is always present.
+    "token_evaluacion",
 }
 
 
@@ -402,7 +405,12 @@ def test_sin_token_con_token_de_productor_y_con_token_invalido_la_ficha_es_la_mi
     invalido = _ficha(client, publicado["id_publico"], {"Authorization": "Bearer no-es-un-token"})
 
     assert sin_token.status_code == con_token.status_code == invalido.status_code == 200
-    assert sin_token.json() == con_token.json() == invalido.json()
+    # HU11: every consultation gets its own evaluation token (random nonce), so the three fichas are
+    # equal except for that one field. Same content, three valid and different tokens.
+    fichas = [r.json() for r in (sin_token, con_token, invalido)]
+    tokens = [f.pop("token_evaluacion") for f in fichas]
+    assert fichas[0] == fichas[1] == fichas[2]
+    assert all(isinstance(t, str) and t for t in tokens) and len(set(tokens)) == 3
     # The same holds for the unavailable answer: a session changes nothing.
     assert _forma(_ficha(client, "inexistente", publicado["headers"])) == _forma(_ficha(client, "inexistente"))
 

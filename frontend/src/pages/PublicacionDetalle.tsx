@@ -5,6 +5,7 @@ import DeshabilitarPublicacionDialog from "@/components/publicaciones/Deshabilit
 import { EyeIcon, GlobeIcon, ShieldIcon } from "@/components/publicaciones/iconos";
 import AccionesFichaPublica from "@/components/publicaciones/AccionesFichaPublica";
 import PublicacionSwitch from "@/components/publicaciones/PublicacionSwitch";
+import EvaluacionUtilidadCard from "@/components/publicaciones/EvaluacionUtilidadCard";
 import QrPanel from "@/components/publicaciones/QrPanel";
 import PublicacionElaboraciones from "@/components/publicaciones/PublicacionElaboraciones";
 import { RequisitosFaltantes } from "@/components/publicaciones/Requisitos";
@@ -194,6 +195,8 @@ function Contenido({
       </section>
 
       <PublicacionElaboraciones productoId={product.id} />
+
+      <EvaluacionUtilidadCard productoId={product.id} />
 
       <div className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4">
         <span aria-hidden="true" className="mt-0.5 text-text-secondary">

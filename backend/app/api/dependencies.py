@@ -12,6 +12,7 @@ from app.models import Productor
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.consulta_publica_repository import ConsultaPublicaRepository
 from app.repositories.elaboracion_repository import ElaboracionRepository
+from app.repositories.evaluacion_repository import EvaluacionRepository
 from app.repositories.ingrediente_repository import IngredienteRepository
 from app.repositories.insumo_repository import InsumoRepository
 from app.repositories.producto_formulacion_repository import ProductoFormulacionRepository
@@ -23,6 +24,8 @@ from app.services.categoria_service import CategoriaService
 from app.services.consulta_publica_service import ConsultaPublicaService
 from app.services.costos_service import CostosService
 from app.services.elaboracion_service import ElaboracionService
+from app.services.evaluacion_resultados_service import EvaluacionResultadosService
+from app.services.evaluacion_service import EvaluacionService
 from app.services.ingrediente_service import IngredienteService
 from app.services.insumo_service import InsumoService
 from app.services.product_image_service import ProductImageService
@@ -122,6 +125,14 @@ def get_producto_formulacion_service(
 
 def get_consulta_publica_service(db: Session = Depends(get_db)) -> ConsultaPublicaService:
     return ConsultaPublicaService(ConsultaPublicaRepository(db))
+
+
+def get_evaluacion_service(db: Session = Depends(get_db)) -> EvaluacionService:
+    return EvaluacionService(ConsultaPublicaRepository(db), EvaluacionRepository(db))
+
+
+def get_evaluacion_resultados_service(db: Session = Depends(get_db)) -> EvaluacionResultadosService:
+    return EvaluacionResultadosService(EvaluacionRepository(db))
 
 
 def get_elaboracion_service(db: Session = Depends(get_db)) -> ElaboracionService:

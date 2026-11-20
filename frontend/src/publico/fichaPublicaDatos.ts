@@ -36,6 +36,7 @@ export function fichaDePrueba(cambios: Partial<FichaPublica> = {}): FichaPublica
     elaboracion,
     estado_elaboracion: "ok",
     coincidencias: [],
+    token_evaluacion: null,
     ...cambios,
   };
 }
