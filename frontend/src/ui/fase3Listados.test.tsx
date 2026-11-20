@@ -41,6 +41,9 @@ vi.mock("@/services/ingredientService", () => ({
   listIngredientComposition: vi.fn(),
   listIngredientAllergens: vi.fn(),
   listAlergenosCatalog: vi.fn(),
+  // HT08: the detail now loads «Uso en formulaciones» and «Insumos asociados».
+  listIngredientProducts: vi.fn().mockResolvedValue([]),
+  listIngredientSupplies: vi.fn().mockResolvedValue([]),
 }));
 
 const complete: Product = {

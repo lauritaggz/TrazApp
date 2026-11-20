@@ -2,14 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
-import ComingSoonCard from "@/components/detail/ComingSoonCard";
 import DetailHero from "@/components/detail/DetailHero";
 import FactTile from "@/components/detail/FactTile";
-import { IngredienteIcon, InsumoIcon, ProductoIcon } from "@/components/detail/icons";
+import { IngredienteIcon } from "@/components/detail/icons";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import IngredientAllergensSection from "@/components/ingredients/IngredientAllergensSection";
 import IngredientUnavailable from "@/components/ingredients/IngredientUnavailable";
+import {
+  IngredientProductsSection,
+  IngredientSuppliesSection,
+} from "@/components/ingredients/IngredientUsageSections";
 import ProductDetailSection from "@/components/products/ProductDetailSection";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
@@ -157,18 +160,8 @@ export default function IngredientDetail() {
               </div>
 
               <aside className="min-w-0 space-y-6">
-                <ComingSoonCard
-                  id="ingredient-soon-uso"
-                  title="Uso en formulaciones"
-                  description="Verás qué productos llevan este ingrediente y en qué proporción."
-                  icon={<ProductoIcon size={20} />}
-                />
-                <ComingSoonCard
-                  id="ingredient-soon-insumos"
-                  title="Insumos asociados"
-                  description="Verás los insumos que abastecen este ingrediente y podrás asociar más."
-                  icon={<InsumoIcon size={20} />}
-                />
+                <IngredientProductsSection ingredienteId={ingredientId} />
+                <IngredientSuppliesSection ingredienteId={ingredientId} />
 
                 <section
                   aria-label="Desactivar ingrediente"

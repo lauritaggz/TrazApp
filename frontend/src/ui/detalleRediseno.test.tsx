@@ -56,10 +56,14 @@ describe("Páginas de detalle: maquetas y simplicidad (código fuente)", () => {
     for (const pagina of ["ProductDetail.tsx", "InsumoDetail.tsx", "IngredientDetail.tsx"]) {
       expect(leer(pagina), pagina).toContain("<DetailHero");
     }
-    // Lo que todavía no existe sigue marcado como «Próximamente» en el producto y en el ingrediente.
-    for (const pagina of ["ProductDetail.tsx", "IngredientDetail.tsx"]) {
+    // Lo que todavía no existe sigue marcado como «Próximamente» en el producto (hasta T-HT08-03).
+    for (const pagina of ["ProductDetail.tsx"]) {
       expect(leer(pagina), pagina).toMatch(/ComingSoonCard|próximamente/);
     }
+    // HT08 (T-HT08-02): «Uso en formulaciones» e «Insumos asociados» del ingrediente dejaron de ser maquetas.
+    expect(leer("IngredientDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/i);
+    expect(leer("IngredientDetail.tsx")).toContain("IngredientProductsSection");
+    expect(leer("IngredientDetail.tsx")).toContain("IngredientSuppliesSection");
     // HU08 (T08-04): la sección «Uso reciente en elaboraciones» del insumo dejó de ser una maqueta.
     expect(leer("InsumoDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/);
     expect(leer("InsumoDetail.tsx")).toContain("SeccionUsoInsumo");

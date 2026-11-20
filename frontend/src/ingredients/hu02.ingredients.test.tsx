@@ -36,6 +36,9 @@ vi.mock("@/services/ingredientService", () => ({
   addIngredientAllergen: vi.fn(),
   deleteIngredientAllergen: vi.fn(),
   listAlergenosCatalog: vi.fn(),
+  // HT08: the detail now loads «Uso en formulaciones» and «Insumos asociados».
+  listIngredientProducts: vi.fn(),
+  listIngredientSupplies: vi.fn(),
 }));
 
 const mockIngredients: Ingrediente[] = [
@@ -96,6 +99,8 @@ function setupDefaultMocks() {
   vi.mocked(ingredientService.listIngredientAllergens).mockResolvedValue([]);
   vi.mocked(ingredientService.listAlergenosCatalog).mockResolvedValue(mockCatalog);
   vi.mocked(ingredientService.listIngredients).mockResolvedValue(mockIngredients);
+  vi.mocked(ingredientService.listIngredientProducts).mockResolvedValue([]);
+  vi.mocked(ingredientService.listIngredientSupplies).mockResolvedValue([]);
 }
 
 async function openIngredientsPage(initialEntries = ["/ingredientes"]) {
