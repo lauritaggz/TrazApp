@@ -91,3 +91,7 @@ class FichaPublicaRead(_Publico):
     estado_elaboracion: EstadoElaboracionPublico
     # Only filled with "varias": the visible elaboraciones of the requested date, in list order.
     coincidencias: list[ElaboracionResumenPublicoRead]
+    # HU11: signed single-use token to answer "was this useful?" about THIS consultation. Only with
+    # estado_elaboracion "ok" on the public consultation; null otherwise and always null in the
+    # productor's preview (nobody rates their own product). Issuing it writes nothing.
+    token_evaluacion: str | None = None

@@ -12,6 +12,7 @@ import re
 from datetime import date
 from typing import Any
 
+from app.core.evaluacion_token import emitir_token as emitir_token_evaluacion
 from app.repositories.consulta_publica_repository import ConsultaPublicaRepository
 from app.schemas.consulta_publica import (
     AlergenoGrupoPublicoRead,
@@ -173,9 +174,12 @@ def armar_ficha(
     seleccionada: Any | None,
     coincidencias: list[Any],
     copias: list[tuple[int, Any]],
+    token_evaluacion: str | None = None,
 ) -> FichaPublicaRead:
     """The public response. `visibles` are the visible elaboraciones, in "Predeterminada" order;
-    `seleccionada` is the chosen one (or None) and `copias` its conserved copies."""
+    `seleccionada` is the chosen one (or None) and `copias` its conserved copies.
+
+    `token_evaluacion` (HU11) is only kept when the state is "ok" and there is a chosen elaboración."""
     nombre_negocio = (producto.nombre_negocio or "").strip()
     elaboracion = None
     if seleccionada is not None:
@@ -207,6 +211,7 @@ def armar_ficha(
         coincidencias=[
             ElaboracionResumenPublicoRead(codigo=fila.codigo, fecha=fila.fecha_elaboracion) for fila in coincidencias
         ],
+        token_evaluacion=token_evaluacion if estado == "ok" and seleccionada is not None else None,
     )
 
 
@@ -243,7 +248,7 @@ class ConsultaPublicaService:
         # One check, one error: not published, deleted and unknown cannot be told apart.
         if producto is None or not producto_disponible_publicamente(producto):
             raise FichaNoDisponibleError(MENSAJE_NO_DISPONIBLE)
-        return self._ficha(producto, producto, codigo, fecha)
+        return self._ficha(producto, producto, codigo, fecha, emitir_token=True)
 
     def previsualizar(
         self, productor_id: int, producto_id: int, codigo: str | None = None, fecha: date | None = None
@@ -258,14 +263,22 @@ class ConsultaPublicaService:
         producto = self.repository.get_producto_de_productor(producto_id, productor_id)
         if producto is None:
             raise ProductoNotFoundError("Producto no encontrado")
-        return self._ficha(producto, _ProductoComoPublicado(producto), codigo, fecha)
+        return self._ficha(producto, _ProductoComoPublicado(producto), codigo, fecha, emitir_token=False)
 
-    def _ficha(self, producto: Any, vista: Any, codigo: str | None, fecha: date | None) -> FichaPublicaRead:
+    def _ficha(
+        self, producto: Any, vista: Any, codigo: str | None, fecha: date | None, emitir_token: bool = False
+    ) -> FichaPublicaRead:
         """Single source of the ficha. `vista` is what the visibility rules judge (the product itself
-        for the public consultation; the product as if published for the preview)."""
+        for the public consultation; the product as if published for the preview).
+
+        `emitir_token` (HU11): only the public consultation issues the evaluation token, and only for
+        an "ok" state. Issuing it is pure (no query, no write)."""
         filas = self.repository.filas_elaboraciones(producto.id)
         visibles = [fila for fila in filas if elaboracion_visible_publicamente(vista, fila, fila.oculta)]
         estado, seleccionada, coincidencias = resolver_seleccion(visibles, codigo, fecha)
         copias = self.repository.copias_conservadas(seleccionada.id) if seleccionada is not None else []
         categorias = self.repository.nombres_categorias(producto.id)
-        return armar_ficha(producto, categorias, visibles, estado, seleccionada, coincidencias, copias)
+        token = None
+        if emitir_token and estado == "ok" and seleccionada is not None:
+            token = emitir_token_evaluacion(producto.id_publico, seleccionada.codigo)
+        return armar_ficha(producto, categorias, visibles, estado, seleccionada, coincidencias, copias, token)

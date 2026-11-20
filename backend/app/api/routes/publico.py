@@ -2,8 +2,14 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from app.api.dependencies import get_consulta_publica_service
+from app.api.dependencies import get_consulta_publica_service, get_evaluacion_service
 from app.schemas.consulta_publica import FichaPublicaRead
+from app.schemas.evaluacion import EvaluacionCreate, EvaluacionRegistradaRead
+from app.services.evaluacion_service import (
+    ConsultaYaEvaluadaError,
+    EvaluacionService,
+    TokenInvalidoError,
+)
 from app.services.consulta_publica_service import (
     MENSAJE_NO_DISPONIBLE,
     ConsultaPublicaService,
@@ -60,3 +66,45 @@ def consultar_ficha(
         ) from None
     response.headers.update(CABECERAS_PUBLICAS)
     return ficha
+
+
+@router.post(
+    "/productos/{id_publico}/evaluaciones",
+    response_model=EvaluacionRegistradaRead,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"description": "Producto o elaboración ya no disponibles"},
+        409: {"description": "Esta consulta ya fue evaluada"},
+        422: {"description": "Token inválido, vencido o de otro producto"},
+    },
+)
+def evaluar_consulta(
+    id_publico: str,
+    payload: EvaluacionCreate,
+    response: Response,
+    service: EvaluacionService = Depends(get_evaluacion_service),
+) -> EvaluacionRegistradaRead:
+    # ANONYMOUS: neither the Authorization header nor the client (IP, user agent) is read. The
+    # elaboración comes only from the signed token. The three token failures share one 422 body.
+    try:
+        service.registrar(id_publico, payload.token, payload.util)
+    except TokenInvalidoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"mensaje": str(exc)},
+            headers=CABECERAS_PUBLICAS,
+        ) from None
+    except FichaNoDisponibleError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"mensaje": MENSAJE_NO_DISPONIBLE},
+            headers=CABECERAS_PUBLICAS,
+        ) from None
+    except ConsultaYaEvaluadaError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"mensaje": str(exc)},
+            headers=CABECERAS_PUBLICAS,
+        ) from None
+    response.headers.update(CABECERAS_PUBLICAS)
+    return EvaluacionRegistradaRead()

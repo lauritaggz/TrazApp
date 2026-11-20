@@ -113,7 +113,13 @@ def test_la_previsualizacion_es_identica_a_la_consulta_publica_de_un_producto_pu
         publica = _ficha(client, publicado["id_publico"], **params)
         previa = _previa(client, publicado, **params)
         assert previa.status_code == publica.status_code == 200, params
-        assert previa.json() == publica.json(), params
+        # HU11: the preview never carries the evaluation token and the public consultation carries one
+        # only for "ok"; the rest of the body is identical.
+        cuerpo_previa, cuerpo_publica = previa.json(), publica.json()
+        assert cuerpo_previa.pop("token_evaluacion") is None, params
+        token_publico = cuerpo_publica.pop("token_evaluacion")
+        assert (token_publico is not None) == (cuerpo_publica["estado_elaboracion"] == "ok"), params
+        assert cuerpo_previa == cuerpo_publica, params
     assert _ficha(client, publicado["id_publico"], fecha=_dia(3)).json()["estado_elaboracion"] == "varias"
 
 
