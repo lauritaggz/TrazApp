@@ -146,6 +146,30 @@ class IngredienteGestionRead(BaseModel):
     created_at: datetime | None
 
 
+# --- Detalle del ingrediente HT08 (T-HT08-01): solo lectura, lista blanca de campos ---
+
+
+class IngredienteUsoProductoRead(BaseModel):
+    """A product whose CURRENT formulation includes the ingredient (CA1, without quantity)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nombre: str
+    numero_version: int
+
+
+class IngredienteInsumoAsociadoRead(BaseModel):
+    """A commercial supply associated with the ingredient, active or not (CA2)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nombre: str
+    marca_origen: str
+    activo: bool
+
+
 # --- Composición declarada HU02 (T02-04) ---
 
 
