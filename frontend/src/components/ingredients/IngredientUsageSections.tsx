@@ -135,8 +135,15 @@ function SeccionLista<T>({
   );
 }
 
-/** «Uso en formulaciones» (HT08, CA1, CA3, CA4): products whose current formulation has the ingredient. */
+/**
+ * «Uso en formulaciones» (HT08, CA1, CA3, CA4): products whose current formulation has the ingredient.
+ * Keyed by the ingredient: moving to another one without leaving the page starts over (collapsed, no old rows).
+ */
 export function IngredientProductsSection({ ingredienteId }: { ingredienteId: number }) {
+  return <SeccionProductos key={ingredienteId} ingredienteId={ingredienteId} />;
+}
+
+function SeccionProductos({ ingredienteId }: { ingredienteId: number }) {
   const { estado, recargar } = useListaDelIngrediente(ingredienteId, listIngredientProducts);
   return (
     <SeccionLista<IngredienteUsoProducto>
@@ -160,8 +167,15 @@ export function IngredientProductsSection({ ingredienteId }: { ingredienteId: nu
   );
 }
 
-/** «Insumos asociados» (HT08, CA2, CA3, CA4): active and inactive supplies of the ingredient. */
+/**
+ * «Insumos asociados» (HT08, CA2, CA3, CA4): active and inactive supplies of the ingredient.
+ * Keyed by the ingredient, like «Uso en formulaciones».
+ */
 export function IngredientSuppliesSection({ ingredienteId }: { ingredienteId: number }) {
+  return <SeccionInsumos key={ingredienteId} ingredienteId={ingredienteId} />;
+}
+
+function SeccionInsumos({ ingredienteId }: { ingredienteId: number }) {
   const { estado, recargar } = useListaDelIngrediente(ingredienteId, listIngredientSupplies);
   return (
     <SeccionLista<IngredienteInsumoAsociado>

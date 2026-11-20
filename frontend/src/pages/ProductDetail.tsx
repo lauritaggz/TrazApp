@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ElaboracionCreateDialog from "@/components/elaboraciones/ElaboracionCreateDialog";
 import AppShell from "@/components/layout/AppShell";
-import ComingSoonCard from "@/components/detail/ComingSoonCard";
 import DetailHero from "@/components/detail/DetailHero";
 import FactTile from "@/components/detail/FactTile";
-import { EtiquetaIcon, ProductoIcon, TrazabilidadIcon } from "@/components/detail/icons";
+import { ProductoIcon } from "@/components/detail/icons";
 import Badge from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
@@ -301,21 +300,6 @@ export default function ProductDetail() {
                     </FactTile>
                   </dl>
                 </ProductDetailSection>
-
-                <ComingSoonCard
-                  id="product-soon-trazabilidad"
-                  title="Trazabilidad de ingredientes"
-                  description="Verás cuántos ingredientes del producto tienen su información completa."
-                  icon={<TrazabilidadIcon size={20} />}
-                  rows={1}
-                />
-                <ComingSoonCard
-                  id="product-soon-adicional"
-                  title="Información adicional"
-                  description="Lote, vigencia y sellos como «Sin TACC» o «Sin conservantes»."
-                  icon={<EtiquetaIcon size={20} />}
-                  rows={0}
-                />
 
                 <section
                   aria-labelledby="product-delete-title"

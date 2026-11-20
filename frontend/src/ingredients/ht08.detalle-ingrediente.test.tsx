@@ -230,6 +230,64 @@ describe("Listas largas: las primeras 5 y «Ver todos (n)»", () => {
     }
   });
 
+  it("al cambiar de ingrediente sin desmontar la página, cada sección vuelve a contraerse y muestra los datos del nuevo", async () => {
+    vi.mocked(ingredientService.listIngredientProducts).mockImplementation(async (id) =>
+      id === 7 ? productos(7) : [{ id: 900, nombre: "Producto del ingrediente 8", numero_version: 2 }],
+    );
+    vi.mocked(ingredientService.listIngredientSupplies).mockImplementation(async (id) =>
+      id === 7 ? insumos(7) : [{ id: 901, nombre: "Insumo del ingrediente 8", marca_origen: "Otra", activo: true }],
+    );
+    const user = userEvent.setup();
+    const secciones = (id: number) => (
+      <MemoryRouter>
+        <IngredientProductsSection ingredienteId={id} />
+        <IngredientSuppliesSection ingredienteId={id} />
+      </MemoryRouter>
+    );
+    const { rerender } = render(secciones(7));
+    for (const region of [seccionUso, seccionInsumos]) {
+      await user.click(await within(region()).findByRole("button", { name: "Ver todos (7)" }));
+      expect(within(within(region()).getByRole("list")).getAllByRole("listitem")).toHaveLength(7);
+    }
+
+    rerender(secciones(8));
+
+    expect(await within(seccionUso()).findByRole("link", { name: /Producto del ingrediente 8/ })).toHaveAttribute(
+      "href",
+      "/productos/900",
+    );
+    expect(await within(seccionInsumos()).findByRole("link", { name: /Insumo del ingrediente 8/ })).toHaveAttribute(
+      "href",
+      "/insumos/901",
+    );
+    for (const region of [seccionUso, seccionInsumos]) {
+      expect(within(within(region()).getByRole("list")).getAllByRole("listitem")).toHaveLength(1);
+      expect(within(region()).queryByRole("button", { name: /Ver todos|Ver menos/ })).not.toBeInTheDocument();
+      expect(within(region()).getByRole("heading", { name: /\(1\)$/ })).toBeInTheDocument();
+    }
+  });
+
+  it("al cambiar a otro ingrediente que también tiene más de 5, la lista vuelve a mostrar 5", async () => {
+    vi.mocked(ingredientService.listIngredientProducts).mockImplementation(async (id) =>
+      productos(id === 7 ? 7 : 6).map((p) => ({ ...p, id: p.id + id * 1000 })),
+    );
+    vi.mocked(ingredientService.listIngredientSupplies).mockResolvedValue([]);
+    const user = userEvent.setup();
+    const seccion = (id: number) => (
+      <MemoryRouter>
+        <IngredientProductsSection ingredienteId={id} />
+      </MemoryRouter>
+    );
+    const { rerender } = render(seccion(7));
+    await user.click(await within(seccionUso()).findByRole("button", { name: "Ver todos (7)" }));
+
+    rerender(seccion(8));
+
+    const boton = await within(seccionUso()).findByRole("button", { name: "Ver todos (6)" });
+    expect(boton).toHaveAttribute("aria-expanded", "false");
+    expect(within(within(seccionUso()).getByRole("list")).getAllByRole("listitem")).toHaveLength(5);
+  });
+
   it("con 5 filas se ven todas y no hay botón", async () => {
     vi.mocked(ingredientService.listIngredientProducts).mockResolvedValue(productos(5));
     vi.mocked(ingredientService.listIngredientSupplies).mockResolvedValue(insumos(5));
