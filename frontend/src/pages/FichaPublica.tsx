@@ -14,5 +14,7 @@ export default function FichaPublica() {
     (seleccion: SeleccionElaboracion, signal: AbortSignal) => obtenerFichaPublica(idPublico, seleccion, signal),
     [idPublico],
   );
-  return <FichaVista fuente={idPublico} cargar={cargar} rutaBase={`/p/${encodeURIComponent(idPublico)}`} />;
+  return (
+    <FichaVista fuente={idPublico} cargar={cargar} rutaBase={`/p/${encodeURIComponent(idPublico)}`} evaluable />
+  );
 }
