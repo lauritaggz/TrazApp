@@ -100,7 +100,7 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       role="presentation"
     >
-      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div className="dialogo-fondo absolute inset-0 bg-black/35 backdrop-blur-[6px]" aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"

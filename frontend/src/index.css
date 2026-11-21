@@ -242,6 +242,28 @@ body {
   }
 }
 
+/* Diálogos de confirmación: el fondo se desenfoca y el panel entra con una escala corta. */
+.dialogo-fondo {
+  animation: dialogo-fondo 200ms ease-out both;
+}
+
+.dialogo-panel {
+  animation: dialogo-panel 260ms var(--ease-out-soft) both;
+}
+
+@keyframes dialogo-fondo {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialogo-panel {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
 @keyframes form-actions-float {
   from {
     opacity: 0.6;
