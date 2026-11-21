@@ -106,7 +106,7 @@ export default function EscanerCodigoBarras({ onDetectado, onCerrar }: EscanerCo
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={estadoId}
-        className="relative w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-xl sm:rounded-xl border border-border bg-card p-5 sm:p-6 shadow-lg space-y-4"
+        className="relative w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-lift space-y-4"
       >
         <h2 id={titleId} className="text-lg font-semibold text-text-primary">
           Escanear código de barras

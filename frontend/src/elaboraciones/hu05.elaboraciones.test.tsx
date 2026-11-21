@@ -650,7 +650,7 @@ describe("Diálogo «Nueva elaboración»", () => {
     const dialogo = await abrirDialogo(user);
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
-    expect(dialogo).toHaveClass("w-full", "sm:max-w-lg", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
+    expect(dialogo).toHaveClass("w-full", "sm:max-w-lg", "rounded-t-2xl", "sm:rounded-2xl", "max-h-[90dvh]", "overflow-y-auto");
     expect(dialogo).toHaveAttribute("aria-modal", "true");
     for (const nombre of ["Cancelar", "Crear borrador"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
@@ -1687,7 +1687,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
-    expect(dialogo).toHaveClass("w-full", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
+    expect(dialogo).toHaveClass("w-full", "rounded-t-2xl", "sm:rounded-2xl", "max-h-[90dvh]", "overflow-y-auto");
     for (const nombre of ["Cancelar", "Crear insumo"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
     }

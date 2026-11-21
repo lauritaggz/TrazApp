@@ -50,7 +50,7 @@ const BOTON_VER =
   "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-accent-strong underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 const FILA =
-  "flex min-h-11 flex-col gap-0.5 px-4 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent";
+  "flex min-h-11 flex-col gap-0.5 px-4 py-3 hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent";
 
 interface SeccionListaProps<T> {
   id: string;

@@ -65,7 +65,7 @@ export function MaquetaPanel() {
             Hola, <span className="text-accent">María Paz</span>
           </h4>
           <div className="grid grid-cols-[1.6fr_1fr] gap-2.5">
-            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+            <div className="rounded-2xl border border-border bg-card px-3 py-2.5">
               <b className="font-display text-[13px]">Requiere tu atención</b>
               <FilaMini tono="bg-warning-bg text-warning" icono={TRAZOS.alerta}>
                 <b>4 insumos</b> sin revisar alérgenos
@@ -154,7 +154,7 @@ export function TelefonoFicha({
             <span className="rounded bg-panel px-1.5 py-0.5 font-mono text-[10px]">{ficha.codigo}</span>
           </p>
           {ficha.alergenos}
-          <div className="flex flex-col gap-1 rounded-xl border border-border bg-card px-2.5 py-2">
+          <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card px-2.5 py-2">
             <b className="text-[10px] font-semibold text-text-muted">Ingredientes</b>
             {ficha.ingredientes.map(([ingrediente, origen]) => (
               <div key={ingrediente} className="flex justify-between gap-1.5">

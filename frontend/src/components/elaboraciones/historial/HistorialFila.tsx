@@ -24,7 +24,7 @@ export default function HistorialFila({ elaboracion }: { elaboracion: Elaboracio
     <li>
       <Link
         to={destino}
-        className="flex min-h-11 items-start gap-3 px-4 py-3 transition-colors hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-5 sm:py-4"
+        className="flex min-h-11 items-start gap-3 px-4 py-3 transition-colors hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-5 sm:py-4"
       >
         <span
           aria-hidden="true"

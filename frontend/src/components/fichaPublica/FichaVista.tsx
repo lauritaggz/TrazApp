@@ -134,7 +134,7 @@ function EstadoDeError({
       >
         <Link
           to={rutaBase}
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-on-brand hover:bg-brand-700"
         >
           Ver la elaboración más reciente
         </Link>
@@ -232,7 +232,7 @@ function AreaElaboracion({ ficha }: { ficha: Ficha }) {
   }
   if (ficha.estado_elaboracion === "varias") {
     return (
-      <section aria-label="Elaboraciones de esa fecha" className="mt-4 rounded-xl border border-border bg-card p-5">
+      <section aria-label="Elaboraciones de esa fecha" className="mt-4 rounded-2xl border border-border bg-card p-5">
         <h2 className="text-base font-semibold text-text-primary">Hay más de una elaboración de esa fecha</h2>
         <p className="mt-1 text-sm text-text-secondary">Elige la tuya por el código impreso en el envase.</p>
         <ul className="mt-4 flex flex-wrap gap-2">
@@ -240,7 +240,7 @@ function AreaElaboracion({ ficha }: { ficha: Ficha }) {
             <li key={coincidencia.codigo}>
               <Link
                 to={{ search: `?codigo=${encodeURIComponent(coincidencia.codigo)}` }}
-                className="inline-flex min-h-11 items-center rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface"
+                className="inline-flex min-h-11 items-center rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary hover:bg-panel"
               >
                 {coincidencia.codigo} · {formatearFecha(coincidencia.fecha)}
               </Link>

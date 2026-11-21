@@ -115,7 +115,7 @@ function OpcionDeIngrediente({
       className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors focus-within:ring-2 focus-within:ring-accent ${
         elegido
           ? "border-brand-600 bg-brand-50 font-medium text-brand-700"
-          : "border-border bg-card text-text-primary hover:bg-surface"
+          : "border-border bg-card text-text-primary hover:bg-panel"
       } ${deshabilitado ? "cursor-not-allowed opacity-60" : ""}`}
     >
       <input

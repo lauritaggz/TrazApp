@@ -80,7 +80,7 @@ export default function ElaboracionRegistro() {
         {loading && <p className="text-sm text-text-secondary">Cargando elaboración...</p>}
 
         {!loading && unavailable && (
-          <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
             <h1 className="text-lg font-semibold text-text-primary">Elaboración no disponible</h1>
             <p className="text-sm text-text-secondary">
               No encontramos esta elaboración. Puede haber sido eliminada o no pertenecer a tu cuenta.
@@ -223,7 +223,7 @@ function Registro({ elaboracion }: { elaboracion: Elaboracion }) {
       >
         <section
           aria-labelledby="elaboracion-encabezado"
-          className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
+          className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5"
         >
           <h2 id="elaboracion-encabezado" className="text-sm font-semibold text-text-primary">
             Datos de la elaboración

@@ -66,7 +66,7 @@ export default function AlergenosPublicos({ contiene, puedeContener }: Alergenos
         Información de alérgenos
       </h2>
       <p className="mb-3 mt-0.5 text-sm text-text-secondary">Declaración del productor para esta elaboración.</p>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
         <Grupo titulo="Contiene" items={contiene} textoVacio={TEXTO_SIN_ALERGENOS} tono="contiene" />
         <Grupo titulo="Puede contener" items={puedeContener} textoVacio={TEXTO_SIN_TRAZAS} tono="trazas" />
       </div>

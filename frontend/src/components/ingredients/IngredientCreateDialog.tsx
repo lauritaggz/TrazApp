@@ -59,7 +59,7 @@ export default function IngredientCreateDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className="relative w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-xl sm:rounded-xl border border-border bg-card p-5 sm:p-6 shadow-lg space-y-4"
+        className="relative w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-lift space-y-4"
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">

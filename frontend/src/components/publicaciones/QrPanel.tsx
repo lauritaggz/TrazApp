@@ -113,7 +113,7 @@ export default function QrPanel({ product }: { product: Product }) {
   }
 
   return (
-    <section aria-labelledby="qr-titulo" className="overflow-hidden rounded-xl border border-border bg-card">
+    <section aria-labelledby="qr-titulo" className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="border-b border-border p-4 sm:p-5">
         <h2 id="qr-titulo" className="text-sm font-semibold text-text-primary">
           Código QR permanente
@@ -136,7 +136,7 @@ export default function QrPanel({ product }: { product: Product }) {
         )}
 
         {puedeDescargar && (
-          <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-border bg-white p-4 shadow-soft">
             {vistaPrevia ? (
               <img
                 src={vistaPrevia}

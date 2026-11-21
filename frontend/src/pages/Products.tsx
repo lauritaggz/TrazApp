@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
 import Button from "@/components/ui/Button";
+import { AvisoLista, FlechaFila } from "@/components/ui/ListaPiezas";
 import EmptyStateCard from "@/components/ui/EmptyStateCard";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PublicacionBadge from "@/components/products/PublicacionBadge";
@@ -306,22 +307,22 @@ function ProductsTable({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+    <div className="hidden overflow-hidden rounded-2xl border border-border bg-card md:block">
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[40rem] table-auto text-sm">
           <thead>
-            <tr className="border-b border-border bg-surface/60">
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+            <tr className="border-b border-border bg-panel/70">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Producto
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Contenido
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Presentación
               </th>
-              <th className="px-4 py-3 text-right font-semibold text-text-secondary">
-                Acción
+              <th className="w-12 px-4 py-3 text-right">
+                <span className="sr-only">Acción</span>
               </th>
             </tr>
           </thead>
@@ -349,7 +350,7 @@ function ProductRow({
 }) {
   return (
     <tr
-      className="border-b border-border last:border-b-0 hover:bg-brand-50/40 transition-colors cursor-pointer focus-within:bg-brand-50/40"
+      className="group cursor-pointer border-b border-border-soft transition-colors duration-150 last:border-b-0 hover:bg-panel/60 focus-within:bg-panel/60"
       onClick={(e) => {
         if (!(e.target as HTMLElement).closest("a")) onSelect();
       }}
@@ -365,7 +366,7 @@ function ProductRow({
               <Link
                 to={`/productos/${product.id}`}
                 aria-label={`Ver producto ${product.nombre}`}
-                className="inline-flex min-h-11 items-center rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
+                className="inline-flex min-h-11 items-center rounded text-[15px] font-semibold text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
               >
                 {product.nombre}
               </Link>
@@ -391,12 +392,8 @@ function ProductRow({
         {formatPresentacion(product.presentacion)}
       </td>
       <td className="px-4 py-3 text-right">
-        <span
-          aria-hidden="true"
-          className="inline-flex items-center gap-1 text-accent font-medium"
-        >
-          Ver
-          <ArrowRightIcon />
+        <span aria-hidden="true">
+          <FlechaFila />
         </span>
       </td>
     </tr>
@@ -409,7 +406,7 @@ function ProductsCards({ products }: { products: Product[] }) {
       {products.map((product) => (
         <article
           key={product.id}
-          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent hover:shadow-sm transition-all focus-within:ring-2 focus-within:ring-accent"
+          className="group relative rounded-2xl border border-border bg-card p-4 transition-[border-color,transform] duration-150 active:scale-[0.99] hover:border-wheat-deep focus-within:ring-2 focus-within:ring-accent"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -418,7 +415,7 @@ function ProductsCards({ products }: { products: Product[] }) {
                 nombre={product.nombre}
               />
               <div className="min-w-0 space-y-0.5">
-                <h2 className="text-sm font-semibold text-text-primary truncate">
+                <h2 className="truncate text-[15px] font-semibold text-text-primary">
                   <Link
                     to={`/productos/${product.id}`}
                     aria-label={`Ver producto ${product.nombre}`}
@@ -427,7 +424,7 @@ function ProductsCards({ products }: { products: Product[] }) {
                     {product.nombre}
                   </Link>
                 </h2>
-                <p className="text-[13px] font-medium text-accent">
+                <p className="text-[13px] tabular-nums text-text-secondary">
                   {product.codigo_interno ?? "—"}
                 </p>
                 <PublicacionBadge publicado={product.publicado} />
@@ -449,12 +446,8 @@ function ProductsCards({ products }: { products: Product[] }) {
                 </p>
               </div>
             </div>
-            <span
-              aria-hidden="true"
-              className="inline-flex items-center gap-1 text-[13px] font-medium text-accent shrink-0"
-            >
-              Ver
-              <ArrowRightIcon />
+            <span aria-hidden="true" className="mt-3 shrink-0">
+              <FlechaFila />
             </span>
           </div>
         </article>
@@ -488,18 +481,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function NoResultsState({ onClear }: { onClear: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold text-text-primary mb-2">
-        No encontramos productos
-      </h2>
-      <p className="text-sm text-text-secondary leading-relaxed mb-6">
-        No hay productos que coincidan con la búsqueda o los filtros
-        seleccionados.
-      </p>
-      <Button type="button" variant="secondary" onClick={onClear}>
-        Limpiar filtros
-      </Button>
-    </div>
+    <AvisoLista
+      title="No encontramos productos"
+      description="No hay productos que coincidan con la búsqueda o los filtros seleccionados."
+      action={
+        <Button type="button" variant="secondary" onClick={onClear}>
+          Limpiar filtros
+        </Button>
+      }
+    />
   );
 }
 
@@ -511,17 +501,15 @@ function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold text-text-primary mb-2">
-        {message}
-      </h2>
-      <p className="text-sm text-text-secondary mb-6">
-        Verifica tu conexión e inténtalo nuevamente.
-      </p>
-      <Button type="button" variant="secondary" onClick={onRetry}>
-        Reintentar
-      </Button>
-    </div>
+    <AvisoLista
+      title={message}
+      description="Verifica tu conexión e inténtalo nuevamente."
+      action={
+        <Button type="button" variant="secondary" onClick={onRetry}>
+          Reintentar
+        </Button>
+      }
+    />
   );
 }
 
@@ -574,25 +562,6 @@ function ProductPlaceholderIcon() {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <circle cx="8.5" cy="8.5" r="1.5" />
       <path d="m21 15-5-5L5 21" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
     </svg>
   );
 }

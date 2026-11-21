@@ -34,7 +34,7 @@ function Opcion({ to, titulo, descripcion, accion, principal = false, icono }: O
       <span
         aria-hidden="true"
         className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-          principal ? "bg-brand-600 text-white" : "bg-surface text-brand-600"
+          principal ? "bg-brand-600 text-on-brand" : "bg-surface text-brand-600"
         }`}
       >
         {icono}

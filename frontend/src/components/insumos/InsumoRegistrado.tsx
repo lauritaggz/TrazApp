@@ -106,7 +106,7 @@ export default function InsumoRegistrado({ insumo, imagen, onVolver, onOtro }: I
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="text-sm font-semibold text-text-primary">Origen de la información</h3>
             <p className="mt-1 text-xs text-text-secondary">Datos recuperados y luego revisados por el productor.</p>
             <ul className="mt-4 space-y-3">
@@ -169,7 +169,7 @@ function Tarjeta({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex items-start gap-3 border-b border-border px-5 py-4">
         {imagen && nombre && <MiniaturaProducto src={imagen.url} nombre={nombre} fuente={imagen.fuente} tamano={64} />}
         <div>

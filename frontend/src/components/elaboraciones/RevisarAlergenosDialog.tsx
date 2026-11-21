@@ -85,7 +85,7 @@ export default function RevisarAlergenosDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative max-h-[90dvh] w-full space-y-4 overflow-y-auto rounded-t-xl border border-border bg-card p-5 shadow-lg sm:max-w-xl sm:rounded-xl sm:p-6"
+        className="relative max-h-[90dvh] w-full space-y-4 overflow-y-auto rounded-t-xl border border-border bg-card p-5 shadow-lift sm:max-w-xl sm:rounded-xl sm:p-6"
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">

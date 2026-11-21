@@ -137,7 +137,7 @@ export default function ProductImageField({
           />
           <label
             htmlFor="imagen_producto"
-            className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+            className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4 text-sm font-medium text-text-primary transition-colors hover:bg-panel peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
           >
             {displayUrl ? "Cambiar imagen" : "Elegir imagen"}
           </label>

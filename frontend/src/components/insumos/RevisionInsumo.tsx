@@ -444,7 +444,7 @@ export default function RevisionInsumo({
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-5">
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-sm font-semibold text-text-primary">Asociar a un ingrediente</h2>
               <p className="mb-4 mt-1 text-xs leading-relaxed text-text-secondary">
                 Elige qué ingrediente de tus formulaciones cubre este producto comercial.
@@ -481,7 +481,7 @@ export default function RevisionInsumo({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-sm font-semibold text-text-primary">
                 {crear ? "Confirmar registro" : "Confirmar cambios"}
               </h2>
@@ -568,7 +568,7 @@ function Tarjeta({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-xl bg-card ${destacada ? "border-2 border-brand-200 shadow-sm" : "border border-border"}`}
+      className={`overflow-hidden rounded-xl bg-card ${destacada ? "border-2 border-brand-200 shadow-soft" : "border border-border"}`}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
         <div className="flex min-w-0 items-start gap-3">
@@ -640,7 +640,7 @@ function FilaDeRequisito({ listo, texto }: { listo: boolean; texto: string }) {
       <span
         aria-hidden="true"
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-          listo ? "border-success bg-success text-white" : "border-border-strong"
+          listo ? "border-success bg-success text-surface" : "border-border-strong"
         }`}
       >
         {listo && (

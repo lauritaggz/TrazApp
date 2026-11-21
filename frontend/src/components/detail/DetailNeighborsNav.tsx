@@ -4,7 +4,7 @@ import type { Vecino, Vecinos } from "@/types/vecinos";
 
 const BOTON =
   "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary";
-const ACTIVO = "hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
+const ACTIVO = "hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
 const INACTIVO = "cursor-not-allowed opacity-50";
 
 interface DetailNeighborsNavProps {

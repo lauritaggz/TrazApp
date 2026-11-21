@@ -74,7 +74,7 @@ export default function PublicacionFila({ product, onChange, onNotFound }: Publi
           <Link
             to={`/publicaciones/${product.id}`}
             aria-label={`Gestionar ${product.nombre}`}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             Gestionar
             <FlechaIcon />

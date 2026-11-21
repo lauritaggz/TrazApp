@@ -282,7 +282,7 @@ export default function ProductDetail() {
                     <PublicacionBadge publicado={product.publicado} />
                     <Link
                       to={`/publicaciones/${product.id}`}
-                      className="inline-flex min-h-11 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="inline-flex min-h-11 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       Gestionar publicación
                     </Link>

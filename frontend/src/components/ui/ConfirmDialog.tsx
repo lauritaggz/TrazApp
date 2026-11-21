@@ -99,7 +99,7 @@ export default function ConfirmDialog({
             type="button"
             className={`w-full sm:w-auto ${
               destructive
-                ? "bg-error text-white hover:bg-error/90 focus-visible:ring-error"
+                ? "bg-error text-surface hover:bg-error/90 focus-visible:ring-error"
                 : ""
             }`}
             loading={loading}

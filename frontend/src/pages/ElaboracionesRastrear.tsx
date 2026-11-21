@@ -168,7 +168,7 @@ export default function ElaboracionesRastrear() {
               Cargando elaboraciones...
             </p>
             {[0, 1, 2].map((n) => (
-              <div key={n} className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <div key={n} className="space-y-2 rounded-2xl border border-border bg-card p-4">
                 <Skeleton className="h-3.5 w-1/3" />
                 <Skeleton className="h-3 w-1/4" />
               </div>
@@ -186,7 +186,7 @@ export default function ElaboracionesRastrear() {
         )}
 
         {estado.fase === "no_encontrado" && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
             <h2 className="mb-2 text-lg font-semibold text-text-primary">
               {seleccion.lote === null ? "No encontramos ese insumo" : "No encontramos ese lote en este insumo"}
             </h2>
@@ -244,7 +244,7 @@ function Resultado({ datos }: { datos: ResultadoRelacionadas }) {
       )}
 
       {elaboraciones.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
           <h3 className="text-sm font-semibold text-text-primary">
             {deLote ? "Este lote no se ha usado en ninguna elaboración" : "Este insumo no se ha usado en ninguna elaboración"}
           </h3>
@@ -259,7 +259,7 @@ function Resultado({ datos }: { datos: ResultadoRelacionadas }) {
           <CifrasRelacionadas cifras={cifrasDelResultado(resumen, elaboraciones)} />
           <ul
             aria-label="Elaboraciones relacionadas"
-            className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+            className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
           >
             {elaboraciones.map((elaboracion) => (
               <FilaRelacionada key={elaboracion.id} elaboracion={elaboracion} insumoNombre={insumo.nombre} />

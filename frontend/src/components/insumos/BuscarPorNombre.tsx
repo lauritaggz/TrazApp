@@ -180,7 +180,7 @@ export default function BuscarPorNombre({ busqueda, existente }: BuscarPorNombre
             {existente.hrefVer && (
               <Link
                 to={existente.hrefVer(duplicado)}
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 Usar el insumo existente
               </Link>
@@ -222,7 +222,7 @@ export default function BuscarPorNombre({ busqueda, existente }: BuscarPorNombre
                       aria-busy={cargando || undefined}
                       disabled={ocupado}
                       onClick={() => void busqueda.elegir(resultado)}
-                      className="flex min-h-11 w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent disabled:opacity-60 lg:flex-col lg:items-stretch lg:gap-3 lg:rounded-xl lg:border lg:border-border lg:bg-card lg:p-4 lg:focus-visible:ring-inset"
+                      className="flex min-h-11 w-full items-center gap-3 p-4 text-left transition-colors hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent disabled:opacity-60 lg:flex-col lg:items-stretch lg:gap-3 lg:rounded-xl lg:border lg:border-border lg:bg-card lg:p-4 lg:focus-visible:ring-inset"
                     >
                       <MiniaturaProducto
                         src={resultado.imagen_url}
@@ -246,7 +246,7 @@ export default function BuscarPorNombre({ busqueda, existente }: BuscarPorNombre
                       </span>
                       <span
                         aria-hidden="true"
-                        className="hidden min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white lg:mt-auto lg:flex"
+                        className="hidden min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-on-brand lg:mt-auto lg:flex"
                       >
                         {cargando ? "Recuperando…" : "Revisar ficha"}
                         <IconoFlechaDerecha />

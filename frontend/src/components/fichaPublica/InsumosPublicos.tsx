@@ -51,7 +51,7 @@ function InsumoTarjeta({ insumo, numero }: { insumo: InsumoPublico; numero: numb
   const idDetalle = useId();
 
   return (
-    <li className="overflow-hidden rounded-xl border border-border bg-card transition-colors duration-150 hover:border-border-strong">
+    <li className="overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-150 hover:border-border-strong">
       {/* Every supply has the same shape: summary + arrow, so one with warnings looks like the rest. */}
       <button
         type="button"

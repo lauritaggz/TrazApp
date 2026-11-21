@@ -99,7 +99,7 @@ export default function PublicacionElaboraciones({ productoId }: { productoId: n
   const predeterminada = items.find((i) => i.oculta !== true)?.id;
 
   return (
-    <section aria-labelledby="publicacion-elaboraciones" className="overflow-hidden rounded-xl border border-border bg-card">
+    <section aria-labelledby="publicacion-elaboraciones" className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="border-b border-border px-4 py-4 sm:px-5">
         <h2 id="publicacion-elaboraciones" className="text-sm font-semibold text-text-primary">
           Elaboraciones finalizadas

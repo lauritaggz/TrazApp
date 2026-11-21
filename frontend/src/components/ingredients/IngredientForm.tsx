@@ -123,7 +123,7 @@ export default function IngredientForm({
           className={
             embedded
               ? ""
-              : "rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
+              : "rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6"
           }
         >
           <ProductFormSection
@@ -181,7 +181,7 @@ export default function IngredientForm({
         {showNextSteps && (
           <aside
             aria-labelledby="ingredient-next-steps"
-            className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-6"
+            className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-6"
           >
             <div className="space-y-1">
               <h2

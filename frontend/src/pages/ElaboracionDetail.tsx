@@ -134,12 +134,12 @@ export default function ElaboracionDetail() {
           <div className="space-y-4" aria-live="polite" aria-busy="true">
             <p className="text-sm text-text-secondary">Cargando elaboración...</p>
             <div className="h-8 w-2/3 animate-pulse rounded-lg border border-border bg-card" />
-            <div className="h-32 animate-pulse rounded-xl border border-border bg-card" />
+            <div className="h-32 animate-pulse rounded-2xl border border-border bg-card" />
           </div>
         )}
 
         {!loading && notFound && (
-          <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
             <h1 className="text-lg font-semibold text-text-primary">Elaboración no disponible</h1>
             <p className="text-sm text-text-secondary">
               No encontramos esta elaboración. Puede haber sido eliminada o no pertenecer a tu cuenta.
@@ -193,7 +193,7 @@ export default function ElaboracionDetail() {
                   </Button>
                   <Link
                     to={`/publicaciones/${elaboracion.producto.id}`}
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:w-auto"
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:w-auto"
                   >
                     Gestionar visibilidad
                   </Link>
@@ -203,7 +203,7 @@ export default function ElaboracionDetail() {
 
             <section
               aria-labelledby="elaboracion-datos"
-              className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
+              className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5"
             >
               <h2 id="elaboracion-datos" className="sr-only">
                 Datos de la elaboración
@@ -252,7 +252,7 @@ export default function ElaboracionDetail() {
 
             <section
               aria-labelledby="elaboracion-resumen-alergenos"
-              className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5"
+              className="space-y-3 rounded-2xl border border-border bg-card p-4 sm:p-5"
             >
               <h2
                 id="elaboracion-resumen-alergenos"
@@ -286,7 +286,7 @@ export default function ElaboracionDetail() {
               >
                 Insumos utilizados
               </h2>
-              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
                 {elaboracion.usos.map((uso, indice) => (
                   <li key={uso.ingrediente_id}>
                     <UsoDetalle uso={uso} numero={indice + 1} inicialAbierto={indice === 0} />
@@ -352,7 +352,7 @@ function UsoDetalle({ uso, numero, inicialAbierto }: { uso: UsoInsumo; numero: n
           aria-expanded={abierto}
           aria-controls={panelId}
           onClick={() => setAbierto((valor) => !valor)}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-5 sm:py-4"
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-5 sm:py-4"
         >
           <span
             aria-hidden="true"

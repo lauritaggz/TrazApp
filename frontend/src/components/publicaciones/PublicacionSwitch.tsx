@@ -24,7 +24,7 @@ export default function PublicacionSwitch({ checked, label, onChange, disabled, 
         className={`relative inline-block h-6 w-10 rounded-full transition-colors ${checked ? "bg-brand-600" : "bg-border"}`}
       >
         <span
-          className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-4" : "translate-x-0"}`}
+          className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-soft transition-transform ${checked ? "translate-x-4" : "translate-x-0"}`}
         />
       </span>
     </button>

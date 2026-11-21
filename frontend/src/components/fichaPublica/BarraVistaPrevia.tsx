@@ -11,7 +11,7 @@ interface BarraVistaPreviaProps {
  *  The consumer's public view never renders it. */
 export default function BarraVistaPrevia({ publicado, volverA }: BarraVistaPreviaProps) {
   return (
-    <section aria-label="Vista previa pública" className="bg-brand-800 text-white">
+    <section aria-label="Vista previa pública" className="bg-brand-800 text-on-brand">
       <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
           <p className="text-sm font-semibold">Vista previa pública</p>

@@ -24,7 +24,7 @@ export default function CifrasRelacionadas({ cifras }: { cifras: Cifras }) {
         <div
           key={clave}
           title={ayuda}
-          className={`min-w-0 rounded-xl border border-border bg-card p-3 ${
+          className={`min-w-0 rounded-2xl border border-border bg-card p-3 ${
             indice === CIFRAS.length - 1 ? "col-span-2 md:col-span-1" : ""
           }`}
         >

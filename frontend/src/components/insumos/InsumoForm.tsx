@@ -190,7 +190,7 @@ export default function InsumoForm({
           className={
             embedded
               ? "space-y-8"
-              : "space-y-8 rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
+              : "space-y-8 rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6"
           }
         >
           <ProductFormSection

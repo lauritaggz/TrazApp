@@ -76,7 +76,7 @@ export default function Publicaciones() {
             action={
               <Link
                 to="/productos/nuevo"
-                className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+                className="inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-on-brand hover:bg-brand-700"
               >
                 Nuevo producto
               </Link>
@@ -100,7 +100,7 @@ export default function Publicaciones() {
               </p>
             </div>
 
-            <section aria-labelledby="publicaciones-lista" className="overflow-hidden rounded-xl border border-border bg-card">
+            <section aria-labelledby="publicaciones-lista" className="overflow-hidden rounded-2xl border border-border bg-card">
               <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
                 <div>
                   <h2 id="publicaciones-lista" className="text-sm font-semibold text-text-primary">
@@ -134,7 +134,7 @@ export default function Publicaciones() {
 
 function Metrica({ etiqueta, valor, icono }: { etiqueta: string; valor: string; icono: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
       <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-accent">
         {icono}
       </span>

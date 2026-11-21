@@ -93,7 +93,7 @@ export default function ProductElaboracionesSection({
                     ? `/elaboraciones/${item.id}/registro`
                     : `/elaboraciones/${item.id}`
                 }
-                className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface"
+                className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-panel"
               >
                 <span className="text-sm font-medium text-text-primary">{item.codigo}</span>
                 <span className="flex items-center gap-3 text-sm text-text-secondary">

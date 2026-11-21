@@ -117,7 +117,7 @@ export default function ProductForm({
       noValidate
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
-        <div className="space-y-8 rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6">
+        <div className="space-y-8 rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
           <ProductFormSection
             id="product-form-general"
             title="Información general"
@@ -308,7 +308,7 @@ export default function ProductForm({
 
         <aside
           aria-label="Imagen y vista previa"
-          className="space-y-5 rounded-xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-6"
+          className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-6"
         >
           {onImageChange && (
             <section aria-labelledby="product-form-image" className="space-y-3">

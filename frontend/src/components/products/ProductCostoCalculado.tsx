@@ -17,7 +17,7 @@ export default function ProductCostoCalculado({ product }: { product: Product })
   return (
     <section
       aria-labelledby="product-cost-title"
-      className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-soft sm:flex-row sm:items-center"
+      className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-soft sm:flex-row sm:items-center"
     >
       <div className="flex items-center gap-3">
         <span

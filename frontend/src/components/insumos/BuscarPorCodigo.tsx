@@ -89,7 +89,7 @@ export default function BuscarPorCodigo({ busqueda, existente, embedded = false 
       className={
         embedded
           ? "space-y-3 rounded-lg border border-border p-3.5"
-          : "max-w-2xl space-y-3 rounded-xl border border-border bg-card p-5 shadow-soft sm:p-6"
+          : "max-w-2xl space-y-3 rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6"
       }
     >
       <div className="space-y-1">
@@ -143,7 +143,7 @@ export default function BuscarPorCodigo({ busqueda, existente, embedded = false 
               {existente.hrefVer && (
                 <Link
                   to={existente.hrefVer(duplicado)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   Ver insumo
                 </Link>
