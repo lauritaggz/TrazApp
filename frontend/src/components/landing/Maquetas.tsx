@@ -139,7 +139,7 @@ export function TelefonoFicha({
     >
       <div className="relative h-full w-full overflow-hidden rounded-[23px] bg-surface">
         <span className="absolute left-1/2 top-1.5 z-10 h-4 w-14 -translate-x-1/2 rounded-full bg-[#1b1a16]" />
-        <div className="landing-respira flex flex-col gap-2.5 px-3 pb-3 pt-8 text-[11px] leading-snug text-text-primary">
+        <div className="flex flex-col gap-2.5 px-3 pb-3 pt-8 text-[11px] leading-snug text-text-primary">
           <div className={`grid h-20 place-items-center rounded-xl text-text-secondary ${ficha.fondo}`}>
             <span className="opacity-60">
               <Icono size={30}>{TRAZOS.frasco}</Icono>

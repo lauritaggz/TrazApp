@@ -33,19 +33,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* El contenido del teléfono respira apenas, como si alguien lo tuviera en la mano. */
-  .landing-respira {
-    animation: landing-respira 6s 1.5s ease-in-out infinite;
-  }
-
   .landing-laser {
     animation: landing-laser 2.4s ease-in-out infinite;
-  }
-}
-
-@keyframes landing-respira {
-  50% {
-    transform: translateY(-6px);
   }
 }
 
@@ -59,7 +48,8 @@
   }
 }
 
-/* Entrada al hacer scroll: solo transform, el contenido se lee igual sin ella. */
+/* Entrada al hacer scroll: solo un desplazamiento, sin escala (escalar texto lo desenfoca).
+   Las maquetas con texto chico (los teléfonos) no la usan: quedan fijas y nítidas. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .landing-scroll {
@@ -72,7 +62,7 @@
 
 @keyframes landing-scroll {
   from {
-    transform: translateY(40px) scale(0.98);
+    transform: translateY(32px);
   }
   to {
     transform: none;

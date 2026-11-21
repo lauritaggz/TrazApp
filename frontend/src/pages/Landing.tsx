@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import Logo from "@/components/Logo";
@@ -118,14 +118,15 @@ function Portada({ conSesion }: { conSesion: boolean }) {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-[-20%] bottom-[-30%] h-[70%] bg-[radial-gradient(60%_60%_at_50%_60%,var(--color-wheat),transparent_70%)]"
       />
-      <div className={`${CONTENEDOR} relative grid items-center gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]`}>
+      <div className={`${CONTENEDOR} relative grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]`}>
         <div className="flex flex-col gap-5">
-          <span className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-card py-1.5 pl-2 pr-3 text-[13.5px] font-medium text-text-secondary">
-            <b className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-accent-strong">
-              Para productores
-            </b>
-            conservas, panadería, salsas y más
-          </span>
+          <p className="flex items-start gap-2.5 text-[14.5px] leading-snug text-text-secondary">
+            <span aria-hidden="true" className="mt-[0.45em] h-2 w-2 shrink-0 rounded-full bg-brand-600" />
+            <span>
+              <b className="font-semibold text-text-primary">Para pequeños productores</b> de conservas, panadería,
+              salsas y más
+            </span>
+          </p>
           <h1
             id="landing-titulo"
             className="text-[clamp(2.6rem,11vw,5.25rem)] leading-[0.98] font-extrabold tracking-[-0.045em]"
@@ -177,10 +178,56 @@ function Portada({ conSesion }: { conSesion: boolean }) {
           </p>
         </div>
 
-        <div className="relative min-h-[380px] pb-10 sm:min-h-[420px]">
+        <VistaPrevia />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Las dos caras de TrazApp. En el celular se ven de a una, con un selector; desde 1024 px,
+ * el teléfono con la ficha queda sobre el panel, como en una mesa de trabajo.
+ */
+function VistaPrevia() {
+  const [vista, setVista] = useState<"panel" | "ficha">("panel");
+  const opciones = [
+    { valor: "panel", texto: "Tu panel" },
+    { valor: "ficha", texto: "Lo que ve tu cliente" },
+  ] as const;
+
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <div
+        role="group"
+        aria-label="Vista previa"
+        className="grid grid-cols-2 gap-1 self-center rounded-full border border-border bg-card p-1 lg:hidden"
+      >
+        {opciones.map((opcion) => (
+          <button
+            key={opcion.valor}
+            type="button"
+            aria-pressed={vista === opcion.valor}
+            onClick={() => setVista(opcion.valor)}
+            className={`min-h-11 rounded-full px-4 text-sm font-semibold transition-colors duration-200 ${
+              vista === opcion.valor
+                ? "bg-text-primary text-surface"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {opcion.texto}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative lg:min-h-[440px] lg:pb-10">
+        <div className={vista === "panel" ? "block" : "hidden lg:block"}>
           <MaquetaPanel />
+        </div>
+        <div
+          className={`${vista === "ficha" ? "flex" : "hidden lg:block"} flex-col items-center gap-4 lg:absolute lg:-bottom-6 lg:right-[-18px]`}
+        >
           <TelefonoFicha
-            className="landing-flota absolute -bottom-6 right-[-4px] w-[168px] lg:-bottom-10 lg:right-[-18px] lg:w-[220px]"
+            className="landing-flota w-[230px] sm:w-[250px] lg:w-[220px]"
             style={{ "--retraso": "380ms" } as CSSProperties}
             nombre="Pesto de albahaca"
             detalle="Dulces del Valle · 190 g"
@@ -199,22 +246,22 @@ function Portada({ conSesion }: { conSesion: boolean }) {
               ["Nueces", "Nutrisa"],
             ]}
           />
-          <div
-            aria-hidden="true"
-            className="landing-flota absolute bottom-4 left-[4%] z-10 inline-flex items-center gap-2.5 rounded-2xl border border-border bg-card py-2.5 pl-2.5 pr-3.5 text-[13.5px] shadow-soft"
-            style={{ "--retraso": "650ms" } as CSSProperties}
-          >
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-100 text-accent">
-              <Icono>{TRAZOS.qr}</Icono>
-            </span>
-            <span>
-              <b className="block font-semibold">Ficha publicada</b>
-              <span className="block font-mono text-xs text-text-muted">/p/pesto-190</span>
-            </span>
-          </div>
+        </div>
+        <div
+          aria-hidden="true"
+          className="landing-flota absolute bottom-4 left-[4%] z-10 hidden items-center gap-2.5 rounded-2xl border border-border bg-card py-2.5 pl-2.5 pr-3.5 text-[13.5px] shadow-soft lg:inline-flex"
+          style={{ "--retraso": "650ms" } as CSSProperties}
+        >
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-100 text-accent">
+            <Icono>{TRAZOS.qr}</Icono>
+          </span>
+          <span>
+            <b className="block font-semibold">Ficha publicada</b>
+            <span className="block font-mono text-xs text-text-muted">/p/pesto-190</span>
+          </span>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -377,7 +424,7 @@ function ParaTusClientes() {
   return (
     <section id="para-tus-clientes" aria-labelledby="landing-clientes" className="pb-16 pt-6 lg:pb-20">
       <div className={CONTENEDOR}>
-        <div className="landing-scroll overflow-hidden rounded-[32px] bg-deep text-on-brand">
+        <div className="overflow-hidden rounded-[32px] bg-deep text-on-brand">
           <div className="grid gap-10 px-6 py-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:px-16 lg:py-[72px]">
             <div className="flex flex-col gap-4">
               <span className="text-[13.5px] font-semibold text-panel-faint">Para tus clientes</span>
