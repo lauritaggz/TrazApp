@@ -1,0 +1,95 @@
+/*
+ * Landing (HT08): solo lo que Tailwind no resuelve con comodidad: el subrayado que se
+ * dibuja, la aparición de las maquetas, el láser del escáner y la entrada al hacer scroll.
+ * Todo con transform y opacity. Con movimiento reducido, nada se mueve.
+ */
+
+:root:has(.landing) {
+  scroll-behavior: smooth;
+}
+
+.landing section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Subrayado ámbar bajo «de dónde viene». */
+.landing-subrayado path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: trazo 1100ms 500ms var(--ease-out-soft) forwards;
+}
+
+/* Las maquetas del inicio suben al cargar, en orden. */
+.landing-flota {
+  animation: landing-flota 900ms var(--ease-out-soft) both;
+  animation-delay: var(--retraso, 150ms);
+}
+
+@keyframes landing-flota {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* El contenido del teléfono respira apenas, como si alguien lo tuviera en la mano. */
+  .landing-respira {
+    animation: landing-respira 6s 1.5s ease-in-out infinite;
+  }
+
+  .landing-laser {
+    animation: landing-laser 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes landing-respira {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes landing-laser {
+  0%,
+  100% {
+    transform: translateY(-34px);
+  }
+  50% {
+    transform: translateY(34px);
+  }
+}
+
+/* Entrada al hacer scroll: solo transform, el contenido se lee igual sin ella. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .landing-scroll {
+      animation: landing-scroll linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 28%;
+    }
+  }
+}
+
+@keyframes landing-scroll {
+  from {
+    transform: translateY(40px) scale(0.98);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Barras del código de barras del visor (decorativo). */
+.landing-barras i {
+  width: 3px;
+  border-radius: 1px;
+  background: #ede4d0;
+}
+
+.landing-barras i:nth-child(3n) {
+  width: 5px;
+}
+
+.landing-barras i:nth-child(4n) {
+  width: 2px;
+}

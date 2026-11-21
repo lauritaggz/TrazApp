@@ -32,7 +32,12 @@ describe("Etiquetas y textos en el código fuente (HT07, Bloque 4)", () => {
 
   it("ninguna etiqueta usa mayúsculas forzadas ni texto menor de 12 px", () => {
     const prohibido = [/\buppercase\b/, new RegExp("text-\\[(?:9|10|11)px\\]")];
-    const infractores = fuente.filter((r) => prohibido.some((p) => p.test(leer(r))));
+    // HT08: las maquetas de la landing son ilustraciones en miniatura de la app (aria-hidden),
+    // no etiquetas que alguien deba leer; su texto chico es parte del dibujo.
+    const ilustraciones = ["Maquetas.tsx"];
+    const infractores = fuente
+      .filter((r) => !ilustraciones.some((nombre) => r.endsWith(nombre)))
+      .filter((r) => prohibido.some((p) => p.test(leer(r))));
     expect(infractores).toEqual([]);
   });
 
