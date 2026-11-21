@@ -37,7 +37,7 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
         <>
           <span
             aria-hidden="true"
-            className={`relative ${isActive ? "text-on-brand" : "text-text-muted"}`}
+            className={`relative ${isActive ? "" : "text-text-muted"}`}
           >
             {icon}
           </span>

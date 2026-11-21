@@ -135,115 +135,49 @@ body {
   }
 }
 
-/* Transición entre secciones (View Transitions API, ver layout/transicionPagina.ts).
-   Solo se anima el contenido (`page`) y su título; el resto queda quieto. Los indicadores
-   del menú se deslizan con transiciones CSS propias, por debajo del texto. */
+/* Cambio de sección (ver layout/transicionPagina.ts). Cada página monta su propio
+   AppShell, así que el contenido entra con una animación CSS al montarse: sin capturas
+   de View Transitions, que se mezclaban sumando colores (destello) y dibujaban capas
+   encima del menú. Solo transform y opacity, sobre el DOM real. La dirección sigue el
+   orden del menú: avanzar entra desde la derecha; retroceder, desde la izquierda. */
 .app-page {
-  view-transition-name: page;
+  animation: page-in-fwd 300ms var(--ease-out-soft) backwards;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
-
-/* En secuencia, no superpuestas: la página anterior se va del todo antes de que
-   aparezca la nueva. Si se cruzan, los dos títulos se ven a la vez desplazados
-   (efecto fantasma) y el texto parece arrastrarse. */
-::view-transition-old(page) {
-  animation: page-out-fwd 130ms cubic-bezier(0.4, 0, 1, 1) both;
-}
-
-::view-transition-new(page) {
-  animation: page-in-fwd 320ms var(--ease-out-soft) 110ms both;
-}
-
-/* El título: fundido en su lugar, sin deslizarse ni estirarse (ver transicionPagina.ts).
-   Cada imagen conserva su tamaño natural aunque los títulos midan distinto. */
-::view-transition-group(page-title) {
-  animation-duration: 0s;
-}
-
-::view-transition-old(page-title),
-::view-transition-new(page-title) {
-  width: auto;
-  height: auto;
-}
-
-::view-transition-old(page-title) {
-  animation: titulo-sale 110ms ease-in both;
-}
-
-::view-transition-new(page-title) {
-  animation: titulo-entra 240ms ease-out 110ms both;
-}
-
-@keyframes titulo-sale {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes titulo-entra {
-  from {
-    opacity: 0;
-  }
-}
-
-/* El grupo no viaja entre la posición vieja y la nueva (si había scroll, la página
-   se desplazaría en diagonal): solo se mueve el contenido, en horizontal. */
-::view-transition-group(page) {
-  animation-duration: 0s;
+.app-page[data-dir="back"] {
+  animation-name: page-in-back;
 }
 
 /* La aparición escalonada (.reveal) es para la primera carga. Después de navegar
-   por el menú ya no corre: dentro de la transición se animaría dos veces y el
-   título llegaría tarde, como arrastrado. */
+   por el menú ya no corre: se sumaría a la entrada de la página y el título
+   llegaría tarde. */
 :root[data-nav-spa] .reveal {
   animation: none;
 }
 
-:root[data-nav-dir="back"]::view-transition-old(page) {
-  animation-name: page-out-back;
+/* Mientras el relleno del menú se desliza hacia el ítem nuevo, su texto pasa a claro al
+   mismo ritmo: así no se ve texto claro sobre el panel antes de que llegue el verde. */
+.nav-lista[data-deslizando] a[aria-current="page"] {
+  animation: nav-activo 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-:root[data-nav-dir="back"]::view-transition-new(page) {
-  animation-name: page-in-back;
-}
-
-@keyframes page-out-fwd {
-  to {
-    opacity: 0;
-    transform: translateX(-12px);
+@keyframes nav-activo {
+  from {
+    color: var(--color-text-secondary);
   }
 }
 
 @keyframes page-in-fwd {
   from {
     opacity: 0;
-    transform: translateX(20px);
-  }
-}
-
-@keyframes page-out-back {
-  to {
-    opacity: 0;
-    transform: translateX(12px);
+    transform: translate3d(16px, 0, 0);
   }
 }
 
 @keyframes page-in-back {
   from {
     opacity: 0;
-    transform: translateX(-20px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
+    transform: translate3d(-16px, 0, 0);
   }
 }
 

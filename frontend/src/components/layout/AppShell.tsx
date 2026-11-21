@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import TabBar from "@/components/layout/TabBar";
+import { direccionDeEntrada } from "@/components/layout/transicionPagina";
 import UserMenu from "@/components/layout/UserMenu";
 import Sidebar, { type AppSection } from "@/components/layout/Sidebar";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -40,6 +41,8 @@ export default function AppShell({
   businessName,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desde qué lado entra el contenido: se fija una vez, al montarse la página.
+  const [direccion] = useState(direccionDeEntrada);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const sidebarWrapRef = useRef<HTMLDivElement>(null);
@@ -143,7 +146,9 @@ export default function AppShell({
           // En el celular el borde inferior deja espacio a la barra de pestañas (--tabbar-h).
           className="flex-1 px-4 pt-5 pb-[calc(var(--tabbar-h)+1.5rem)] outline-none sm:px-5 lg:p-8"
         >
-          <div className="app-page mx-auto w-full max-w-[1440px]">{children}</div>
+          <div className="app-page mx-auto w-full max-w-[1440px]" data-dir={direccion}>
+            {children}
+          </div>
         </main>
       </div>
 

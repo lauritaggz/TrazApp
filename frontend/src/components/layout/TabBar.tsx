@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { GRUPOS } from "@/components/layout/secciones";
 import { useNavegacionAnimada } from "@/components/layout/transicionPagina";
@@ -8,6 +8,9 @@ const RAPIDAS = ["/dashboard", "/productos", "/ingredientes", "/insumos"];
 const TABS = GRUPOS.flatMap((grupo) => grupo.items).filter((item) =>
   RAPIDAS.includes(item.to),
 );
+
+/** Pestaña donde quedó la píldora en la página anterior (cada página monta su propia barra). */
+let ultimaPestana = -1;
 
 interface TabBarProps {
   menuOpen: boolean;
@@ -29,6 +32,18 @@ const TabBar = forwardRef<HTMLButtonElement, TabBarProps>(function TabBar(
   const activa = TABS.findIndex(
     (tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`),
   );
+  // La píldora nace en la pestaña anterior y se desliza hasta la nueva.
+  const [desde] = useState(() => (ultimaPestana >= 0 && activa >= 0 ? ultimaPestana : activa));
+  const pildoraRef = useRef<HTMLLIElement>(null);
+
+  useLayoutEffect(() => {
+    const pildora = pildoraRef.current;
+    if (pildora && activa >= 0) {
+      void pildora.offsetWidth;
+      pildora.style.transform = `translateX(${activa * 100}%)`;
+    }
+    ultimaPestana = activa;
+  }, [activa]);
 
   return (
     <nav
@@ -37,13 +52,14 @@ const TabBar = forwardRef<HTMLButtonElement, TabBarProps>(function TabBar(
     >
       <ul className="relative mx-auto grid h-16 max-w-[520px] grid-cols-5 px-1">
         {/* Una sola píldora que se desliza entre pestañas con una transición CSS, por debajo
-            del ícono. (Como capa de View Transition se dibujaba encima y lo tapaba.) */}
+            del ícono. */}
         <li
+          ref={pildoraRef}
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 left-1 flex w-[calc((100%-0.5rem)/5)] justify-center transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none ${
+          className={`pointer-events-none absolute inset-y-0 left-1 flex w-[calc((100%-0.5rem)/5)] justify-center transition-transform duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
             activa < 0 ? "opacity-0" : "opacity-100"
           }`}
-          style={{ transform: `translateX(${Math.max(activa, 0) * 100}%)` }}
+          style={{ transform: `translateX(${Math.max(desde, 0) * 100}%)` }}
         >
           <span className="mt-2 h-8 w-14 rounded-full bg-brand-100" />
         </li>

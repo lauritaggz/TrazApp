@@ -1,12 +1,14 @@
 import { useCallback, type MouseEvent } from "react";
-import { flushSync } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 /**
- * Transición entre secciones del menú (HT08) con la View Transitions API.
- * La página sale hacia un lado y entra desde el otro según el orden del menú:
- * avanzar en el menú desliza hacia la izquierda; retroceder, hacia la derecha.
- * Sin la API o con `prefers-reduced-motion`, la navegación es la normal.
+ * Cambio de sección del menú (HT08). Cada página monta su propio AppShell, así que el
+ * contenido entra con una animación CSS al montarse (`.app-page` en index.css). Aquí solo
+ * se marca la dirección según el orden del menú: avanzar entra desde la derecha y
+ * retroceder desde la izquierda. La navegación en sí es la normal de React Router.
+ *
+ * No se usa la View Transitions API: sus capturas se mezclaban sumando colores (un
+ * destello en el menú y el encabezado) y se dibujaban encima del texto del menú.
  */
 const ORDEN_SECCIONES = [
   "/dashboard",
@@ -18,39 +20,24 @@ const ORDEN_SECCIONES = [
   "/calculadora",
 ];
 
+/**
+ * Dirección de la próxima entrada. Se guarda aquí y la lee la página nueva al montarse:
+ * cambiar un atributo en <html> reiniciaba la animación de la página que se iba.
+ */
+let direccion: "fwd" | "back" = "fwd";
+
+export function direccionDeEntrada(): "fwd" | "back" {
+  return direccion;
+}
+
 function indiceSeccion(path: string): number {
   return ORDEN_SECCIONES.findIndex(
     (base) => path === base || path.startsWith(`${base}/`),
   );
 }
 
-type DocumentoConTransicion = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> };
-};
-
-/**
- * El título de la página (su primer h1) se anima aparte, solo con un fundido en su lugar:
- * texto grande desplazándose en fracciones de píxel se ve tembloroso. Se marca uno solo
- * a la vez, porque dos elementos con el mismo nombre cancelan la transición.
- */
-const NOMBRE_TITULO = "page-title";
-
-function marcarTitulo(): HTMLElement | null {
-  const titulo = document.querySelector<HTMLElement>(".app-page h1");
-  if (titulo) titulo.style.viewTransitionName = NOMBRE_TITULO;
-  return titulo;
-}
-
-function puedeAnimar(): boolean {
-  const doc = document as DocumentoConTransicion;
-  if (typeof doc.startViewTransition !== "function") return false;
-  if (typeof window.matchMedia !== "function") return true;
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** Devuelve un manejador de clic para enlaces del menú que anima el cambio de página. */
+/** Devuelve un manejador de clic para enlaces del menú que fija la dirección de la entrada. */
 export function useNavegacionAnimada() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
 
   return useCallback(
@@ -61,33 +48,16 @@ export function useNavegacionAnimada() {
         event.metaKey ||
         event.ctrlKey ||
         event.shiftKey ||
-        event.altKey ||
-        !puedeAnimar()
+        event.altKey
       ) {
         return;
       }
       const desde = indiceSeccion(pathname);
       const hacia = indiceSeccion(to);
-      if (desde === hacia && pathname === to) return;
-
-      event.preventDefault();
-      const raiz = document.documentElement;
-      raiz.dataset.navDir = desde >= 0 && hacia >= 0 && hacia < desde ? "back" : "fwd";
-      // Desde aquí las apariciones escalonadas (.reveal) ya no corren: la transición basta.
-      // No se quita al terminar: reactivarlas haría parpadear el contenido ya visible.
-      raiz.dataset.navSpa = "";
-      const viejo = marcarTitulo();
-      let nuevo: HTMLElement | null = null;
-      const transicion = (document as DocumentoConTransicion).startViewTransition!(() => {
-        flushSync(() => navigate(to));
-        window.scrollTo(0, 0);
-        if (viejo) viejo.style.viewTransitionName = "";
-        nuevo = marcarTitulo();
-      });
-      void transicion.finished.finally(() => {
-        if (nuevo) nuevo.style.viewTransitionName = "";
-      });
+      direccion = desde >= 0 && hacia >= 0 && hacia < desde ? "back" : "fwd";
+      // Desde aquí las apariciones escalonadas (.reveal) ya no corren: basta la entrada de la página.
+      document.documentElement.dataset.navSpa = "";
     },
-    [navigate, pathname],
+    [pathname],
   );
 }
