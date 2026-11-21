@@ -1,64 +1,80 @@
 import { Link } from "react-router-dom";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import Button from "@/components/ui/Button";
+import AuthLayout, { AuthHeading } from "@/components/auth/AuthLayout";
+import { FlechaBoton } from "@/components/auth/FlechaBoton";
 
 interface RegisterSuccessProps {
   name: string;
+  businessName?: string;
 }
 
-export default function RegisterSuccess({ name }: RegisterSuccessProps) {
-  return (
-    <div className="min-h-screen flex bg-surface">
-      <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 bg-brand-600 px-12 py-14">
-        <div className="flex items-center gap-2">
-          <Logo size="lg" variant="light" />
-          <ThemeToggle variant="onBrand" />
-        </div>
-        <div className="space-y-4">
-          <p className="text-3xl font-semibold text-white leading-tight">
-            Tu cuenta está lista.
-          </p>
-          <p className="text-panel-muted text-base leading-relaxed">
-            Ya puedes iniciar sesión y comenzar a registrar tu información de
-            trazabilidad.
-          </p>
-        </div>
-        <span className="text-panel-faint text-xs">
-          TrazApp · Trazabilidad para productores
-        </span>
-      </div>
+const PRIMEROS_PASOS = [
+  "Crea tu primer producto",
+  "Define sus ingredientes",
+  "Registra tu primera elaboración",
+];
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
-        <div className="w-full max-w-[400px] text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success-bg border border-success-border">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#027a48"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+export default function RegisterSuccess({ name, businessName }: RegisterSuccessProps) {
+  return (
+    <AuthLayout
+      panelTitle="Listo. El primer tramo del recorrido."
+      panelText="Desde ahora, cada insumo y cada elaboración que registres queda unido a lo que vendes."
+    >
+      <span
+        aria-hidden="true"
+        className="sello mb-6 flex h-[76px] w-[76px] items-center justify-center rounded-3xl bg-brand-600 text-on-brand"
+      >
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 12.5 10 17.5 19 7" />
+        </svg>
+      </span>
+
+      <AuthHeading title="Cuenta creada exitosamente">
+        Te damos la bienvenida a TrazApp,{" "}
+        <strong className="font-semibold text-text-primary">{name}</strong>. Ya puedes
+        iniciar sesión con tu correo y contraseña.
+        {businessName ? (
+          <>
+            {" "}
+            Tu negocio, <strong className="font-semibold text-text-primary">{businessName}</strong>,
+            ya tiene su cuaderno.
+          </>
+        ) : null}
+      </AuthHeading>
+
+      <p className="mb-3 text-sm font-semibold text-text-primary">Tus primeros pasos al entrar</p>
+      <ol className="mb-8 space-y-2.5">
+        {PRIMEROS_PASOS.map((paso, index) => (
+          <li
+            key={paso}
+            className="flex items-center gap-3 rounded-xl bg-panel px-3.5 py-3 text-[15px] text-text-primary"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card font-mono text-xs text-text-secondary"
             >
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-semibold text-text-primary mb-2">
-            Cuenta creada exitosamente
-          </h2>
-          <p className="text-sm text-text-secondary mb-8">
-            Te damos la bienvenida a TrazApp,{" "}
-            <strong className="text-text-primary">{name}</strong>. Ya puedes
-            iniciar sesión con tu correo y contraseña.
-          </p>
-          <Link to="/login" className="block">
-            <Button className="w-full">Ir al inicio de sesión</Button>
-          </Link>
-        </div>
-      </div>
-    </div>
+              {index + 1}
+            </span>
+            {paso}
+          </li>
+        ))}
+      </ol>
+
+      <Link
+        to="/login"
+        className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-[15px] font-semibold text-on-brand shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_6px_16px_-8px_var(--color-brand-600)] transition-[background-color,transform] duration-150 hover:bg-brand-700 active:translate-y-px active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+      >
+        Ir al inicio de sesión
+        <FlechaBoton />
+      </Link>
+    </AuthLayout>
   );
 }

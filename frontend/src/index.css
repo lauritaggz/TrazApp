@@ -198,6 +198,50 @@ body {
   animation-delay: calc(var(--i, 0) * 45ms);
 }
 
+/* Pantallas de acceso: el recorrido de la z se dibuja y los hitos aparecen en orden.
+   Con movimiento reducido quedan dibujados y visibles de inmediato. */
+.auth-ruta path {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: trazo 2000ms 250ms var(--ease-out-soft) forwards;
+}
+
+.auth-hito {
+  animation: hito-entra 560ms var(--ease-spring) both;
+  animation-delay: calc(700ms + var(--i, 0) * 550ms);
+}
+
+@keyframes trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hito-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+}
+
+/* Sello del registro exitoso: entra con un rebote y la marca se dibuja. */
+.sello {
+  animation: sello-entra 600ms var(--ease-spring) both;
+}
+
+.sello path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: trazo 500ms 380ms var(--ease-out-soft) forwards;
+}
+
+@keyframes sello-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+}
+
 @keyframes form-actions-float {
   from {
     opacity: 0.6;

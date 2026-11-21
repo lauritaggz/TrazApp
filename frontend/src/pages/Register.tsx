@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import RegisterSuccess from "@/components/auth/RegisterSuccess";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+import AuthLayout, { AuthHeading } from "@/components/auth/AuthLayout";
+import { FlechaBoton } from "@/components/auth/FlechaBoton";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
@@ -85,111 +85,95 @@ export default function Register() {
   }
 
   if (success) {
-    return <RegisterSuccess name={form.name} />;
+    return <RegisterSuccess name={form.name} businessName={form.businessName.trim()} />;
   }
 
+  const largo = Math.min(form.password.length, 8);
+
   return (
-    <div className="min-h-screen flex bg-surface">
-      <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 bg-brand-600 px-12 py-14">
-        <div className="flex items-center gap-2">
-          <Logo size="lg" variant="light" />
-          <ThemeToggle variant="onBrand" />
-        </div>
-        <div className="space-y-4">
-          <p className="text-3xl font-semibold text-white leading-tight">
-            Empieza a construir
-            <br />
-            tu historia de trazabilidad.
-          </p>
-          <p className="text-panel-muted text-base leading-relaxed">
-            Registra tu cuenta y comienza a documentar el origen y recorrido de
-            tus productos de forma sencilla.
-          </p>
-        </div>
-        <span className="text-panel-faint text-xs">
-          TrazApp · Trazabilidad para productores
-        </span>
-      </div>
+    <AuthLayout
+      panelTitle="Tu cocina, con el registro al día."
+      panelText="Una cuenta por negocio. Tus productos, insumos y elaboraciones quedan guardados con su nombre."
+    >
+      <AuthHeading title="Crear cuenta">
+        Crea tu cuenta de productor en TrazApp. Te pedimos lo justo para empezar.
+      </AuthHeading>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
-        <div className="mb-10 flex items-center gap-2 lg:hidden">
-          <Logo size="md" />
-          <ThemeToggle />
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {globalError && <Alert type="error">{globalError}</Alert>}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Nombre completo"
+            type="text"
+            placeholder="Tu nombre"
+            value={form.name}
+            onChange={(e) => update("name", e.target.value)}
+            error={fieldErrors.name}
+            disabled={loading}
+            autoComplete="name"
+          />
+
+          <Input
+            label="Nombre del negocio"
+            type="text"
+            placeholder="Tu negocio"
+            value={form.businessName}
+            onChange={(e) => update("businessName", e.target.value)}
+            error={fieldErrors.businessName}
+            disabled={loading}
+            autoComplete="organization"
+          />
         </div>
 
-        <div className="w-full max-w-[400px]">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-text-primary mb-1">
-              Crear cuenta
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Crea tu cuenta de productor en TrazApp.
-            </p>
+        <Input
+          label="Correo electrónico"
+          type="email"
+          placeholder="tu@correo.com"
+          value={form.email}
+          onChange={(e) => update("email", e.target.value)}
+          error={fieldErrors.email}
+          disabled={loading}
+          autoComplete="email"
+        />
+
+        <div className="space-y-2">
+          <PasswordInput
+            label="Contraseña"
+            placeholder="Mínimo 8 caracteres"
+            value={form.password}
+            onChange={(e) => update("password", e.target.value)}
+            error={fieldErrors.password}
+            hint={!fieldErrors.password ? "Mínimo 8 caracteres." : undefined}
+            disabled={loading}
+            autoComplete="new-password"
+          />
+          {/* Avance hacia los 8 caracteres: solo visual, el texto de ayuda ya lo dice. */}
+          <div aria-hidden="true" className="h-1.5 w-full overflow-hidden rounded-full bg-border">
+            <div
+              className={`h-full w-full origin-left rounded-full transition-[transform,background-color] duration-300 ease-out ${
+                largo >= 8 ? "bg-brand-600" : "bg-warning-border"
+              }`}
+              style={{ transform: `scaleX(${largo / 8})` }}
+            />
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {globalError && <Alert type="error">{globalError}</Alert>}
-
-            <Input
-              label="Nombre completo"
-              type="text"
-              placeholder="Tu nombre"
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
-              error={fieldErrors.name}
-              disabled={loading}
-              autoComplete="name"
-            />
-
-            <Input
-              label="Nombre del negocio"
-              type="text"
-              placeholder="Tu negocio"
-              value={form.businessName}
-              onChange={(e) => update("businessName", e.target.value)}
-              error={fieldErrors.businessName}
-              disabled={loading}
-              autoComplete="organization"
-            />
-
-            <Input
-              label="Correo electrónico"
-              type="email"
-              placeholder="tu@correo.com"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              error={fieldErrors.email}
-              disabled={loading}
-              autoComplete="email"
-            />
-
-            <PasswordInput
-              label="Contraseña"
-              placeholder="Mínimo 8 caracteres"
-              value={form.password}
-              onChange={(e) => update("password", e.target.value)}
-              error={fieldErrors.password}
-              hint={!fieldErrors.password ? "Mínimo 8 caracteres." : undefined}
-              disabled={loading}
-              autoComplete="new-password"
-            />
-
-            <Button type="submit" className="w-full mt-2" loading={loading}>
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-text-secondary">
-            ¿Ya tienes una cuenta?{" "}
-            <Link
-              to="/login"
-              className="font-medium text-accent hover:text-accent-strong underline-offset-2 hover:underline transition-colors"
-            >
-              Iniciar sesión
-            </Link>
-          </p>
         </div>
-      </div>
-    </div>
+
+        <Button type="submit" className="group mt-2 min-h-12 w-full text-[15px]" loading={loading}>
+          {loading ? "Creando cuenta..." : "Crear cuenta"}
+          {!loading && <FlechaBoton />}
+        </Button>
+      </form>
+
+      <p className="mt-8 text-center text-[15px] text-text-secondary">
+        ¿Ya tienes una cuenta?{" "}
+        <Link
+          to="/login"
+          className="font-semibold text-accent-strong underline-offset-2 transition-colors hover:underline"
+        >
+          Iniciar sesión
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
