@@ -2,7 +2,9 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "rea
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import { useToast } from "@/components/ui/toastContext";
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { AvisoLista, FichaInicial, FlechaFila } from "@/components/ui/ListaPiezas";
 import EmptyStateCard from "@/components/ui/EmptyStateCard";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PageHeader from "@/components/ui/PageHeader";
@@ -248,59 +250,61 @@ function IngredientsTable({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+    <div className="hidden overflow-hidden rounded-2xl border border-border bg-card md:block">
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[40rem] table-auto text-sm">
           <thead>
-            <tr className="border-b border-border bg-surface/60">
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+            <tr className="border-b border-border bg-panel/70">
+              <th className="px-5 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Ingrediente
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Estado
               </th>
-              <th className="px-4 py-3 text-right font-semibold text-text-secondary">
-                Acción
+              <th className="w-12 px-4 py-3 text-right">
+                <span className="sr-only">Acción</span>
               </th>
             </tr>
           </thead>
-        <tbody>
-          {ingredientes.map((ingrediente) => (
-            <tr
-              key={ingrediente.id}
-              className="border-b border-border last:border-b-0 hover:bg-brand-50/40 cursor-pointer focus-within:bg-brand-50/40"
-              onClick={(e) => {
-                if (!(e.target as HTMLElement).closest("a")) {
-                  onSelect(ingrediente.id);
-                }
-              }}
-            >
-              <td className="px-4 py-3">
-                <p>
-                  <Link
-                    to={`/ingredientes/${ingrediente.id}`}
-                    aria-label={`Ver ingrediente ${ingrediente.nombre}`}
-                    className="inline-flex min-h-11 items-center rounded font-medium text-text-primary hover:text-accent-strong hover:underline underline-offset-2"
-                  >
-                    {ingrediente.nombre}
-                  </Link>
-                </p>
-                <p className="text-[13px] text-text-secondary">
-                  {ingrediente.codigo_interno ?? "—"}
-                </p>
-              </td>
-              <td className="px-4 py-3">
-                <StatusBadge activo={ingrediente.activo} />
-              </td>
-              <td
-                aria-hidden="true"
-                className="px-4 py-3 text-right text-accent font-medium"
+          <tbody>
+            {ingredientes.map((ingrediente) => (
+              <tr
+                key={ingrediente.id}
+                className="group cursor-pointer border-b border-border-soft transition-colors duration-150 last:border-b-0 hover:bg-panel/60 focus-within:bg-panel/60"
+                onClick={(e) => {
+                  if (!(e.target as HTMLElement).closest("a")) {
+                    onSelect(ingrediente.id);
+                  }
+                }}
               >
-                Ver
-              </td>
-            </tr>
-          ))}
-        </tbody>
+                <td className="px-5 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <FichaInicial nombre={ingrediente.nombre} />
+                    <div className="min-w-0">
+                      <p>
+                        <Link
+                          to={`/ingredientes/${ingrediente.id}`}
+                          aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                          className="inline-flex min-h-11 items-center rounded text-[15px] font-semibold text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
+                        >
+                          {ingrediente.nombre}
+                        </Link>
+                      </p>
+                      <p className="-mt-2 text-[13px] tabular-nums text-text-secondary">
+                        {ingrediente.codigo_interno ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5">
+                  <StatusBadge activo={ingrediente.activo} />
+                </td>
+                <td aria-hidden="true" className="px-4 py-2.5 text-right">
+                  <FlechaFila />
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     </div>
@@ -309,29 +313,29 @@ function IngredientsTable({
 
 function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
   return (
-    <div className="md:hidden space-y-3">
+    <div className="space-y-2.5 md:hidden">
       {ingredientes.map((ingrediente) => (
         <article
           key={ingrediente.id}
-          className="relative bg-card border border-border rounded-xl p-4 hover:border-accent transition-colors focus-within:ring-2 focus-within:ring-accent"
+          className="group relative flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 transition-[border-color,transform] duration-150 active:scale-[0.99] hover:border-wheat-deep focus-within:ring-2 focus-within:ring-accent"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold break-words">
-                <Link
-                  to={`/ingredientes/${ingrediente.id}`}
-                  aria-label={`Ver ingrediente ${ingrediente.nombre}`}
-                  className="inline-flex min-h-11 items-center after:absolute after:inset-0 focus:outline-none"
-                >
-                  {ingrediente.nombre}
-                </Link>
-              </h2>
-              <p className="text-[13px] text-accent">
-                {ingrediente.codigo_interno ?? "—"}
-              </p>
-            </div>
-            <StatusBadge activo={ingrediente.activo} />
+          <FichaInicial nombre={ingrediente.nombre} />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[15px] font-semibold break-words">
+              <Link
+                to={`/ingredientes/${ingrediente.id}`}
+                aria-label={`Ver ingrediente ${ingrediente.nombre}`}
+                className="inline-flex min-h-11 items-center after:absolute after:inset-0 focus:outline-none"
+              >
+                {ingrediente.nombre}
+              </Link>
+            </h2>
+            <p className="-mt-2 text-[13px] tabular-nums text-text-secondary">
+              {ingrediente.codigo_interno ?? "—"}
+            </p>
           </div>
+          <StatusBadge activo={ingrediente.activo} />
+          <FlechaFila />
         </article>
       ))}
     </div>
@@ -340,15 +344,9 @@ function IngredientsCards({ ingredientes }: { ingredientes: Ingrediente[] }) {
 
 function StatusBadge({ activo }: { activo: boolean }) {
   return (
-    <span
-      className={`inline-flex shrink-0 self-start whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-medium ${
-        activo
-          ? "bg-success-bg text-success border border-success/20"
-          : "bg-surface text-text-secondary border border-border"
-      }`}
-    >
+    <Badge variant={activo ? "success" : "neutral"} className="shrink-0 self-center text-[13px]">
       {activo ? "Activo" : "Inactivo"}
-    </span>
+    </Badge>
   );
 }
 
@@ -377,12 +375,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function NoResultsState({ onClear }: { onClear: () => void }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold mb-2">No encontramos ingredientes</h2>
-      <Button type="button" variant="secondary" onClick={onClear}>
-        Limpiar filtros
-      </Button>
-    </div>
+    <AvisoLista
+      title="No encontramos ingredientes"
+      description="Prueba con otro nombre o código, o quita los filtros."
+      action={
+        <Button type="button" variant="secondary" onClick={onClear}>
+          Limpiar filtros
+        </Button>
+      }
+    />
   );
 }
 
@@ -394,11 +395,14 @@ function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <h2 className="text-lg font-semibold mb-2">{message}</h2>
-      <Button type="button" variant="secondary" onClick={onRetry}>
-        Reintentar
-      </Button>
-    </div>
+    <AvisoLista
+      title={message}
+      description="Verifica tu conexión e inténtalo nuevamente."
+      action={
+        <Button type="button" variant="secondary" onClick={onRetry}>
+          Reintentar
+        </Button>
+      }
+    />
   );
 }
