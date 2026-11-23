@@ -51,6 +51,12 @@ export default function Landing() {
 
 const CONTENEDOR = "mx-auto w-full max-w-[1180px] px-4 sm:px-6";
 
+/*
+ * Las secciones con adornos que sobresalen usan overflow-clip, no overflow-hidden:
+ * un contenedor hidden se puede desplazar, y al tocar un botón el navegador lo corría
+ * hacia el lado en el celular.
+ */
+
 const BOTON =
   "group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:translate-y-px active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
 const BOTON_PRINCIPAL = `${BOTON} bg-brand-600 text-on-brand shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_8px_20px_-8px_var(--color-brand-600)] hover:bg-brand-700`;
@@ -100,7 +106,10 @@ function Navegacion({ conSesion }: { conSesion: boolean }) {
               >
                 Ingresar
               </Link>
-              <Link to="/register" className={`${BOTON_PRINCIPAL} hidden min-h-11 px-4 text-sm sm:inline-flex`}>
+              <Link
+                to="/register"
+                className={`${BOTON_PRINCIPAL.replace("group inline-flex", "group hidden sm:inline-flex")} min-h-11 px-4 text-sm`}
+              >
                 Crear cuenta
               </Link>
             </>
@@ -113,7 +122,7 @@ function Navegacion({ conSesion }: { conSesion: boolean }) {
 
 function Portada({ conSesion }: { conSesion: boolean }) {
   return (
-    <section aria-labelledby="landing-titulo" className="relative overflow-hidden pb-16 pt-8 lg:pb-24 lg:pt-14">
+    <section aria-labelledby="landing-titulo" className="relative overflow-clip pb-16 pt-8 lg:pb-24 lg:pt-14">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-[-20%] bottom-[-30%] h-[70%] bg-[radial-gradient(60%_60%_at_50%_60%,var(--color-wheat),transparent_70%)]"
@@ -347,7 +356,7 @@ function Paso({
         </ul>
       </div>
       <div
-        className={`landing-scroll relative grid min-h-[260px] place-items-center overflow-hidden rounded-3xl p-5 lg:min-h-[340px] ${fondo} ${
+        className={`landing-scroll relative grid min-h-[260px] place-items-center overflow-clip rounded-3xl p-5 lg:min-h-[340px] ${fondo} ${
           invertido ? "lg:order-first" : ""
         }`}
       >
@@ -433,7 +442,7 @@ function ParaTusClientes() {
   return (
     <section id="para-tus-clientes" aria-labelledby="landing-clientes" className="pb-16 pt-6 lg:pb-20">
       <div className={CONTENEDOR}>
-        <div className="overflow-hidden rounded-[32px] bg-deep text-on-brand">
+        <div className="overflow-clip rounded-[32px] bg-deep text-on-brand">
           <div className="grid gap-10 px-6 py-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:px-16 lg:py-[72px]">
             <div className="flex flex-col gap-4">
               <span className="text-[13.5px] font-semibold text-panel-faint">Para tus clientes</span>
@@ -520,7 +529,7 @@ function Cierre({ conSesion }: { conSesion: boolean }) {
   return (
     <section aria-labelledby="landing-cierre" className="pb-10 pt-6 lg:pt-10">
       <div className={CONTENEDOR}>
-        <div className="landing-scroll relative flex flex-col items-start gap-5 overflow-hidden rounded-[32px] bg-wheat px-6 py-10 lg:p-16">
+        <div className="landing-scroll relative flex flex-col items-start gap-5 overflow-clip rounded-[32px] bg-wheat px-6 py-10 lg:p-16">
           <span
             aria-hidden="true"
             className="pointer-events-none absolute -bottom-16 -right-16 h-60 w-60 rounded-full border-[34px] border-wheat-deep/70"
