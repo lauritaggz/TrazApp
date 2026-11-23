@@ -15,6 +15,29 @@ import {
 import type { Ingrediente } from "@/types/ingredient";
 import type { Product } from "@/types/product";
 
+// El detalle del producto carga su formulación y sus elaboraciones. Sin simularlas, esas
+// llamadas iban a la red y fallaban después de terminar la prueba: React actualizaba el
+// estado con jsdom ya desmontado («window is not defined») y el CI fallaba (PR #30).
+vi.mock("@/services/formulationService", () => ({
+  getProductFormulation: vi.fn().mockResolvedValue({ existe: false, version: null }),
+  saveProductFormulation: vi.fn(),
+  listProductVersions: vi.fn().mockResolvedValue([]),
+  getVersionFormulation: vi.fn(),
+}));
+
+// El Inicio también cuenta los insumos con alérgenos sin revisar.
+vi.mock("@/services/insumoService", () => ({
+  listInsumos: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/services/elaboracionService", () => ({
+  listElaboraciones: vi.fn().mockResolvedValue({ items: [], total: 0, limit: 20, offset: 0 }),
+  getCodigoSugerido: vi.fn(),
+  createElaboracion: vi.fn(),
+  getElaboracion: vi.fn(),
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
+}));
+
 vi.mock("@/services/authService", () => ({
   login: vi.fn(),
   register: vi.fn(),
