@@ -57,16 +57,6 @@ export function QrIcon({ size }: { size?: number }) {
   );
 }
 
-export function TrazabilidadIcon({ size }: { size?: number }) {
-  return (
-    <Icon size={size}>
-      <circle cx="6" cy="6" r="2.5" />
-      <circle cx="18" cy="18" r="2.5" />
-      <path d="M8.5 6H15a3 3 0 010 6H9a3 3 0 000 6h6.5" />
-    </Icon>
-  );
-}
-
 export function HistorialIcon({ size }: { size?: number }) {
   return (
     <Icon size={size}>
@@ -81,15 +71,6 @@ export function CandadoIcon({ size }: { size?: number }) {
     <Icon size={size}>
       <rect x="4" y="11" width="16" height="10" rx="2" />
       <path d="M8 11V7a4 4 0 018 0v4" />
-    </Icon>
-  );
-}
-
-export function EtiquetaIcon({ size }: { size?: number }) {
-  return (
-    <Icon size={size}>
-      <path d="M20 13l-7 7-9-9V4h7l9 9z" />
-      <circle cx="8" cy="8" r="1.25" />
     </Icon>
   );
 }

@@ -119,8 +119,8 @@ export function IconoCargando({ size = 23 }: IconoProps) {
 const BASE_BOTON =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 select-none";
 const VARIANTES = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
-  secondary: "border border-border bg-card text-text-primary hover:bg-surface active:bg-brand-50",
+  primary: "bg-brand-600 text-on-brand hover:bg-brand-700 active:bg-brand-800",
+  secondary: "border border-border bg-card text-text-primary hover:bg-panel active:bg-brand-50",
   ghost: "text-accent hover:bg-brand-50 active:bg-brand-100",
 } as const;
 
@@ -149,7 +149,7 @@ export type ModoDeBusqueda = "codigo" | "nombre";
 export function PestanasDeBusqueda({ modo }: { modo: ModoDeBusqueda }) {
   const base =
     "inline-flex min-h-11 items-center rounded-md px-3.5 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
-  const activa = "bg-card text-text-primary shadow-sm";
+  const activa = "bg-card text-text-primary shadow-soft";
   const inactiva = "text-text-secondary hover:text-text-primary";
   return (
     <nav aria-label="Método de búsqueda" className="mb-5 flex w-fit rounded-lg bg-surface p-1">

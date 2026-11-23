@@ -78,14 +78,14 @@ export default function RevisarAlergenosDialog({
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
       role="presentation"
     >
-      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div className="dialogo-fondo absolute inset-0 bg-black/35 backdrop-blur-[6px]" aria-hidden="true" />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative max-h-[90dvh] w-full space-y-4 overflow-y-auto rounded-t-xl border border-border bg-card p-5 shadow-lg sm:max-w-xl sm:rounded-xl sm:p-6"
+        className="relative max-h-[90dvh] w-full space-y-4 overflow-y-auto rounded-t-xl border border-border bg-card p-5 shadow-lift sm:max-w-xl sm:rounded-xl sm:p-6"
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">

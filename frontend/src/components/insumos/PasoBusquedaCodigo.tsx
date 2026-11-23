@@ -113,7 +113,7 @@ export default function PasoBusquedaCodigo({ busqueda, existente }: PasoBusqueda
           <PestanasDeBusqueda modo="codigo" />
 
           <div className="mb-4 flex flex-col gap-4 rounded-xl border border-brand-200 bg-brand-50 p-4 sm:flex-row sm:items-center">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-on-brand">
               <IconoEscaner />
             </span>
             <div className="flex-1">
@@ -205,7 +205,7 @@ export default function PasoBusquedaCodigo({ busqueda, existente }: PasoBusqueda
                   {existente.hrefVer && (
                     <Link
                       to={existente.hrefVer(duplicado)}
-                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                     >
                       Ver insumo
                     </Link>

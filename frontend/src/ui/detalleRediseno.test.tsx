@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import ComingSoonCard from "@/components/detail/ComingSoonCard";
 import DetailHero from "@/components/detail/DetailHero";
 import FactTile from "@/components/detail/FactTile";
 
@@ -24,19 +23,6 @@ describe("Páginas de detalle: componentes del rediseño", () => {
     expect(screen.getByTestId("icono").closest("[aria-hidden='true']")).not.toBeNull();
   });
 
-  it("ComingSoonCard dice «Próximamente», no tiene nada que pulsar y sus filas de muestra no se leen", () => {
-    const { container } = render(
-      <ComingSoonCard id="soon" title="Uso en formulaciones" description="Verás los productos." icon={<svg />} />,
-    );
-
-    const region = screen.getByRole("region", { name: "Uso en formulaciones" });
-    expect(region).toHaveAttribute("data-proximamente");
-    expect(screen.getByText("Próximamente")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(container.querySelector("[aria-hidden='true'] .rounded-xl")).not.toBeNull();
-  });
-
   it("FactTile es un par término/valor dentro de una lista de descripción", () => {
     const { container } = render(
       <dl>
@@ -50,18 +36,22 @@ describe("Páginas de detalle: componentes del rediseño", () => {
 });
 
 describe("Páginas de detalle: maquetas y simplicidad (código fuente)", () => {
-  it("producto, insumo e ingrediente usan el mismo encabezado y marcan lo futuro como «Próximamente»", async () => {
-    const { readFileSync } = await import("node:fs");
+  it("producto, insumo e ingrediente usan el mismo encabezado y ninguno muestra maquetas «Próximamente»", async () => {
+    const { existsSync, readFileSync } = await import("node:fs");
     const leer = (r: string) => readFileSync(`src/pages/${r}`, "utf-8");
     for (const pagina of ["ProductDetail.tsx", "InsumoDetail.tsx", "IngredientDetail.tsx"]) {
       expect(leer(pagina), pagina).toContain("<DetailHero");
     }
-    // Lo que todavía no existe sigue marcado como «Próximamente» en el producto y en el ingrediente.
-    for (const pagina of ["ProductDetail.tsx", "IngredientDetail.tsx"]) {
-      expect(leer(pagina), pagina).toMatch(/ComingSoonCard|próximamente/);
-    }
+    // HT08 (T-HT08-03): se retiraron «Trazabilidad de ingredientes» e «Información adicional» del producto;
+    // ya no queda ninguna maqueta, así que ComingSoonCard se eliminó.
+    expect(leer("ProductDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/i);
+    expect(existsSync("src/components/detail/ComingSoonCard.tsx")).toBe(false);
+    // HT08 (T-HT08-02): «Uso en formulaciones» e «Insumos asociados» del ingrediente dejaron de ser maquetas.
+    expect(leer("IngredientDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/i);
+    expect(leer("IngredientDetail.tsx")).toContain("IngredientProductsSection");
+    expect(leer("IngredientDetail.tsx")).toContain("IngredientSuppliesSection");
     // HU08 (T08-04): la sección «Uso reciente en elaboraciones» del insumo dejó de ser una maqueta.
-    expect(leer("InsumoDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/);
+    expect(leer("InsumoDetail.tsx")).not.toMatch(/ComingSoonCard|próximamente/i);
     expect(leer("InsumoDetail.tsx")).toContain("SeccionUsoInsumo");
     // HU09 (T09-05): el marcador «Ver QR (próximamente)» se reemplazó por la sección real de publicación.
     expect(leer("ProductDetail.tsx")).not.toContain("Ver QR (próximamente)");

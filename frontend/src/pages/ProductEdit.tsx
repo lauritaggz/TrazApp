@@ -302,7 +302,7 @@ export default function ProductEdit() {
         {loadingProduct && (
           <div className="space-y-4" aria-live="polite" aria-busy="true">
             <p className="text-sm text-text-secondary">Cargando producto...</p>
-            <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
+            <div className="h-64 rounded-2xl border border-border bg-card animate-pulse" />
           </div>
         )}
 

@@ -54,14 +54,14 @@ export default function InsumoCreateDialog({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       role="presentation"
     >
-      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div className="dialogo-fondo absolute inset-0 bg-black/35 backdrop-blur-[6px]" aria-hidden="true" />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full sm:max-w-xl max-h-[90dvh] overflow-y-auto rounded-t-xl sm:rounded-xl border border-border bg-card p-5 sm:p-6 shadow-lg space-y-4"
+        className="relative w-full sm:max-w-xl max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-lift space-y-4"
       >
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold text-text-primary">

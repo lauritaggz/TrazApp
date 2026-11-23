@@ -20,7 +20,7 @@ export default function ViewToggle<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex rounded-lg border border-border-strong bg-card p-0.5"
+      className="inline-flex rounded-xl border border-border-strong bg-card p-0.5"
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -30,7 +30,7 @@ export default function ViewToggle<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={`min-h-11 rounded-md px-3 text-sm font-medium transition-colors ${
+            className={`min-h-11 rounded-[10px] px-3 text-sm font-medium transition-colors ${
               active
                 ? "bg-brand-50 text-accent-strong"
                 : "text-text-secondary hover:text-text-primary"

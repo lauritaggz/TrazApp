@@ -24,7 +24,7 @@ export default function EstadoPublico({
     <div
       className={
         compacto
-          ? "my-4 rounded-xl border border-border bg-card px-5 py-9 text-center"
+          ? "my-4 rounded-2xl border border-border bg-card px-5 py-9 text-center"
           : "mx-auto max-w-md px-6 py-20 text-center"
       }
     >

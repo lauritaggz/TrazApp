@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardAttention from "@/components/dashboard/DashboardAttention";
 import DashboardElaboracionesEnCurso, {
@@ -174,7 +174,7 @@ export default function Dashboard() {
       producerName={producerName}
       businessName={businessName}
     >
-      <div className="w-full space-y-7">
+      <div className="w-full space-y-8">
         <DashboardHeader
           firstName={firstName}
           businessName={businessName}
@@ -182,7 +182,8 @@ export default function Dashboard() {
           onNuevaElaboracion={() => setElaboracionDialogOpen(true)}
         />
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {/* Las cifras de la semana: cada tarjeta lleva a lo que cuenta. */}
+        <div className="reveal grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" style={{ "--i": 4 } as CSSProperties}>
           <DashboardStatCard
             label="Productos registrados"
             value={productsError ? "—" : products.length}
@@ -212,6 +213,7 @@ export default function Dashboard() {
               value={insumosError ? "—" : insumosSinRevisar}
               icon={<AlertIcon />}
               loading={loadingInsumos}
+              tono={!insumosError && insumosSinRevisar > 0 ? "alerta" : "normal"}
               to="/insumos?alergenos=sin-revisar"
             />
           )}
@@ -224,73 +226,81 @@ export default function Dashboard() {
           />
         </div>
 
-        <DashboardElaboracionesEnCurso
-          borradores={borradores}
-          total={totalBorradores}
-          verTodasTo={RUTA_BORRADORES}
-        />
-
-        {!loadingProducts && !productsError && incompleteProducts.length > 0 && (
-          <DashboardAttention items={incompleteProducts} />
-        )}
-
-        <DashboardSection
-          title="Tus productos"
-          description="Últimos productos registrados"
-          actionLabel="Ver todos los productos"
-          onAction={() => navigate("/productos")}
+        <div
+          className="reveal grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] lg:gap-6"
+          style={{ "--i": 5 } as CSSProperties}
         >
-          {loadingProducts ? (
-            <p className="text-sm text-text-secondary" aria-live="polite">
-              Cargando productos...
-            </p>
-          ) : productsError ? (
-            <div className="space-y-3" role="alert">
-              <p className="text-sm text-error">{productsError}</p>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={() => void loadProducts()}
-              >
-                Reintentar
-              </Button>
-            </div>
-          ) : recentProducts.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-border bg-card p-5">
-              <p className="text-sm text-text-secondary">
-                Aún no tienes productos.
-              </p>
-              <Button type="button" onClick={() => navigate("/productos")}>
-                Crear tu primer producto
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {recentProducts.map((product) => (
-                <DashboardProductPreviewCard
-                  key={product.id}
-                  product={product}
-                  onClick={() => navigate(`/productos/${product.id}`)}
-                />
-              ))}
-            </div>
-          )}
-        </DashboardSection>
+          {/* Lo que pide acción va primero; lo reciente después. */}
+          <div className="min-w-0 space-y-6">
+            <DashboardElaboracionesEnCurso
+              borradores={borradores}
+              total={totalBorradores}
+              verTodasTo={RUTA_BORRADORES}
+            />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <DashboardRecentIngredients
-            ingredients={sortedIngredients}
-            loading={loadingIngredients}
-            error={ingredientsError}
-            onRetry={() => void loadIngredients()}
-            onViewAll={() => navigate("/ingredientes")}
-          />
-          <DashboardGettingStarted
-            hasProducts={hasProducts}
-            hasIngredients={hasIngredients}
-            hasElaboraciones={totalElaboraciones > 0}
-          />
+            {!loadingProducts && !productsError && incompleteProducts.length > 0 && (
+              <DashboardAttention items={incompleteProducts} />
+            )}
+
+            <DashboardSection
+              title="Tus productos"
+              description="Últimos productos registrados"
+              actionLabel="Ver todos los productos"
+              onAction={() => navigate("/productos")}
+            >
+              {loadingProducts ? (
+                <p className="text-sm text-text-secondary" aria-live="polite">
+                  Cargando productos...
+                </p>
+              ) : productsError ? (
+                <div className="space-y-3" role="alert">
+                  <p className="text-sm text-error">{productsError}</p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    onClick={() => void loadProducts()}
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              ) : recentProducts.length === 0 ? (
+                <div className="space-y-3 rounded-2xl border border-dashed border-wheat-deep bg-panel p-5">
+                  <p className="text-sm text-text-secondary">
+                    Aún no tienes productos.
+                  </p>
+                  <Button type="button" onClick={() => navigate("/productos")}>
+                    Crear tu primer producto
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {recentProducts.map((product) => (
+                    <DashboardProductPreviewCard
+                      key={product.id}
+                      product={product}
+                      onClick={() => navigate(`/productos/${product.id}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+          </div>
+
+          <aside aria-label="Tu avance" className="space-y-6">
+            <DashboardGettingStarted
+              hasProducts={hasProducts}
+              hasIngredients={hasIngredients}
+              hasElaboraciones={totalElaboraciones > 0}
+            />
+            <DashboardRecentIngredients
+              ingredients={sortedIngredients}
+              loading={loadingIngredients}
+              error={ingredientsError}
+              onRetry={() => void loadIngredients()}
+              onViewAll={() => navigate("/ingredientes")}
+            />
+          </aside>
         </div>
       </div>
 

@@ -15,24 +15,30 @@ export default function EmptyStateCard({
   steps,
 }: EmptyStateCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft sm:p-10">
+    <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-soft sm:p-10">
+      {/* El recorrido del logo: del origen (punto lleno) a quien consume (punto abierto). */}
       <svg
         aria-hidden="true"
-        width="96"
+        width="112"
         height="56"
-        viewBox="0 0 96 56"
+        viewBox="0 0 112 56"
         fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         className="mx-auto mb-5"
       >
-        <line x1="16" y1="30" x2="48" y2="14" stroke="var(--color-brand-200)" strokeWidth="2" />
-        <line x1="48" y1="14" x2="80" y2="30" stroke="var(--color-brand-200)" strokeWidth="2" />
-        <line x1="48" y1="14" x2="48" y2="44" stroke="var(--color-brand-200)" strokeWidth="2" />
-        <circle cx="16" cy="30" r="8" fill="var(--color-brand-100)" stroke="var(--color-brand-500)" strokeWidth="2" />
-        <circle cx="80" cy="30" r="8" fill="var(--color-brand-100)" stroke="var(--color-brand-500)" strokeWidth="2" />
-        <circle cx="48" cy="44" r="8" fill="var(--color-brand-100)" stroke="var(--color-brand-500)" strokeWidth="2" />
-        <circle cx="48" cy="14" r="10" fill="var(--color-brand-600)" />
+        <path
+          d="M14 14H66L30 42H94"
+          stroke="var(--color-brand-200)"
+          strokeWidth="4"
+          strokeDasharray="1 9"
+        />
+        <circle cx="14" cy="14" r="7" fill="var(--color-brand-600)" />
+        <circle cx="66" cy="14" r="4" fill="var(--color-wheat-deep)" />
+        <circle cx="30" cy="42" r="4" fill="var(--color-wheat-deep)" />
+        <circle cx="98" cy="42" r="6.5" stroke="var(--color-brand-600)" strokeWidth="3" />
       </svg>
-      <h2 className="mb-2 text-lg font-semibold text-text-primary">{title}</h2>
+      <h2 className="mb-2 text-xl font-bold text-text-primary">{title}</h2>
       <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-text-secondary">
         {description}
       </p>

@@ -221,7 +221,7 @@ export default function AlergenosRevision({
                 <label
                   key={columna.tipo}
                   className={`inline-flex min-h-11 cursor-pointer items-center rounded-md px-3.5 py-2 text-sm font-medium focus-within:ring-2 focus-within:ring-accent ${
-                    tipoAgregar === columna.tipo ? "bg-card text-text-primary shadow-sm" : "text-text-secondary"
+                    tipoAgregar === columna.tipo ? "bg-card text-text-primary shadow-soft" : "text-text-secondary"
                   }`}
                 >
                   <input
@@ -260,7 +260,7 @@ export default function AlergenosRevision({
         {revision && <NotaUnion />}
 
         {revision && revision.libreDe.length > 0 && (
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-sm font-semibold text-text-primary">Indicaciones “Libre de…”</p>
             <p className="mt-1 text-xs text-text-secondary">
               Información adicional del producto. No modifica los alérgenos de arriba.

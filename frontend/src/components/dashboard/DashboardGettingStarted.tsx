@@ -1,5 +1,3 @@
-import { FlagIcon } from "@/components/dashboard/dashboardIcons";
-
 interface DashboardGettingStartedProps {
   hasProducts: boolean;
   hasIngredients: boolean;
@@ -34,30 +32,50 @@ export default function DashboardGettingStarted({
   const progressPercent = Math.round((completedSteps / steps.length) * 100);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-accent">
-          <FlagIcon />
-        </div>
-        <h2 className="text-sm font-semibold text-text-primary">Primeros pasos</h2>
+    <section
+      aria-labelledby="dashboard-primeros-pasos"
+      className="rounded-2xl border border-wheat-deep/60 bg-wheat p-5 sm:p-6"
+    >
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 id="dashboard-primeros-pasos" className="text-lg font-bold text-text-primary">
+          Primeros pasos
+        </h2>
+        <span className="text-[13px] font-medium tabular-nums text-text-secondary">
+          {completedSteps} de {steps.length}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Avance de primeros pasos"
+        aria-valuemin={0}
+        aria-valuemax={steps.length}
+        aria-valuenow={completedSteps}
+        className="mb-4 h-2 w-full overflow-hidden rounded-full bg-card/70"
+      >
+        {/* Indicador pequeño y aislado: se anima su escala, no su ancho. */}
+        <div
+          className="h-full w-full origin-left rounded-full bg-brand-600 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ transform: `scaleX(${progressPercent / 100})` }}
+        />
       </div>
       <ol className="space-y-3">
         {steps.map((step) => (
           <li key={step.n} className="flex items-center gap-3">
-            <div
+            <span
+              aria-hidden="true"
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 step.done
-                  ? "border border-success-border bg-success-bg text-success"
-                  : "border-2 border-border text-text-muted"
+                  ? "bg-brand-600 text-on-brand"
+                  : "border-2 border-wheat-deep bg-card/60 text-text-muted"
               }`}
             >
-              {step.done ? "✓" : step.n}
-            </div>
+              {step.done ? <CheckIcon /> : step.n}
+            </span>
             <span
               className={`text-sm ${
                 step.done
-                  ? "text-text-secondary line-through"
-                  : "text-text-primary"
+                  ? "text-text-secondary line-through decoration-wheat-deep"
+                  : "font-semibold text-text-primary"
               }`}
             >
               {step.label}
@@ -65,20 +83,18 @@ export default function DashboardGettingStarted({
           </li>
         ))}
       </ol>
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs text-text-secondary">Progreso general</span>
-          <span className="text-xs font-semibold text-accent">
-            {progressPercent}%
-          </span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
-          <div
-            className="h-full rounded-full bg-brand-600 transition-all"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-    </div>
+      <p className="mt-4 flex items-center justify-between border-t border-wheat-deep/60 pt-3 text-[13px] text-text-secondary">
+        Progreso general
+        <span className="font-semibold tabular-nums text-accent-strong">{progressPercent}%</span>
+      </p>
+    </section>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.5 10 17 19 7.5" />
+    </svg>
   );
 }

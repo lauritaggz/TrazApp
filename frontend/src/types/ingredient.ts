@@ -110,3 +110,19 @@ export interface ComposicionComponenteUpdatePayload {
   porcentaje?: string;
   orden?: number | null;
 }
+
+// HT08: «Uso en formulaciones» of the ingredient detail. A product whose CURRENT formulation
+// includes the ingredient; no quantity (CA1 adjusted by HU14).
+export interface IngredienteUsoProducto {
+  id: number;
+  nombre: string;
+  numero_version: number;
+}
+
+// HT08: «Insumos asociados» of the ingredient detail, active and inactive.
+export interface IngredienteInsumoAsociado {
+  id: number;
+  nombre: string;
+  marca_origen: string;
+  activo: boolean;
+}

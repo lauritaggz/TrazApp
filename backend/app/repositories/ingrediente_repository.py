@@ -1,10 +1,19 @@
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Alergeno, ComposicionIngrediente, Ingrediente
+from app.models import (
+    Alergeno,
+    ComposicionIngrediente,
+    FormulacionVersionProducto,
+    Ingrediente,
+    InsumoComercial,
+    Producto,
+    VersionProducto,
+)
 from app.models.alergeno import ingredientes_alergenos
 
 
@@ -184,6 +193,63 @@ class IngredienteRepository:
         if active_only:
             stmt = stmt.where(Ingrediente.activo.is_(True))
         return self.db.scalar(stmt)
+
+    def list_productos_con_formulacion_vigente(
+        self,
+        ingrediente_id: int,
+        productor_id: int,
+    ) -> list[Any]:
+        """Products of the productor whose CURRENT version lists the ingredient (HT08, CA1).
+
+        One read-only query. Older, no longer current versions do not count; archived products
+        (activo = false) are left out because their detail answers 404; unpublished ones stay.
+        Rows carry `id`, `nombre` and `numero_version`; no quantities are read.
+        """
+        stmt = (
+            select(Producto.id, Producto.nombre, VersionProducto.numero_version)
+            .join(VersionProducto, VersionProducto.producto_id == Producto.id)
+            .join(
+                FormulacionVersionProducto,
+                FormulacionVersionProducto.version_producto_id == VersionProducto.id,
+            )
+            .where(
+                FormulacionVersionProducto.ingrediente_id == ingrediente_id,
+                VersionProducto.vigente.is_(True),
+                Producto.productor_id == productor_id,
+                Producto.activo.is_(True),
+            )
+            .order_by(func.lower(Producto.nombre).asc(), Producto.id.asc())
+        )
+        return list(self.db.execute(stmt).all())
+
+    def list_insumos_asociados(
+        self,
+        ingrediente_id: int,
+        productor_id: int,
+    ) -> list[Any]:
+        """Commercial supplies of the ingredient, active and inactive (HT08, CA2).
+
+        One read-only query. It also filters by the supply's own productor, not only by the
+        association with the ingredient. Active ones first, then by name.
+        """
+        stmt = (
+            select(
+                InsumoComercial.id,
+                InsumoComercial.nombre,
+                InsumoComercial.marca_origen,
+                InsumoComercial.activo,
+            )
+            .where(
+                InsumoComercial.ingrediente_id == ingrediente_id,
+                InsumoComercial.productor_id == productor_id,
+            )
+            .order_by(
+                InsumoComercial.activo.desc(),
+                func.lower(InsumoComercial.nombre).asc(),
+                InsumoComercial.id.asc(),
+            )
+        )
+        return list(self.db.execute(stmt).all())
 
     def update(self, ingrediente: Ingrediente, **fields: object) -> Ingrediente:
         for key, value in fields.items():

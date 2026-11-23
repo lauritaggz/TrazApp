@@ -6,7 +6,7 @@ export default function ElaboracionCabecera({ elaboracion }: { elaboracion: Elab
   return (
     <section
       aria-label="Elaboración consultada"
-      className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 sm:p-5"
+      className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5"
     >
       <div>
         <p className="text-xs text-text-muted">Código de la elaboración</p>

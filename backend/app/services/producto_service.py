@@ -10,6 +10,7 @@ from app.models import Producto, Productor
 from app.services.qr_service import TIPOS_MEDIA, FormatoQr, generar_qr, nombre_archivo_qr
 from app.repositories.producto_repository import IdPublicoDuplicadoError, ProductoRepository
 from app.schemas.evaluacion import EvaluacionUtilidadResumen
+from app.schemas.vecinos import VecinosRead
 from app.schemas.producto import (
     ProductoGestionCreate,
     ProductoGestionRead,
@@ -105,6 +106,17 @@ class ProductoService:
     def list_mine(self, productor: Productor) -> list[ProductoGestionRead]:
         productos = self.repository.list_by_productor(productor.id)
         return leer_productos(self.repository, productos)
+
+    def vecinos_mine(self, productor: Productor, producto_id: int) -> VecinosRead:
+        """Previous and next product of the productor in the default order of the list (HT08).
+
+        Always the default order («Más recientes»), without search or filters, and only active products.
+        A product that is not among them (another productor's, archived or missing) is not found.
+        """
+        vecinos = self.repository.vecinos(productor.id, producto_id)
+        if vecinos is None:
+            raise ProductoNotFoundError("Producto no encontrado")
+        return VecinosRead.desde(vecinos)
 
     def get_mine(
         self,

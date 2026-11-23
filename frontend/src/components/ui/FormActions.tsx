@@ -32,7 +32,7 @@ export default function FormActions({ children }: { children: ReactNode }) {
       <div ref={sentinelRef} aria-hidden="true" className="h-px" />
       <div
         data-floating={floating}
-        className={`sticky bottom-0 z-10 grid grid-cols-2 gap-3 rounded-xl border bg-card px-4 py-3 transition-shadow duration-200 sm:flex sm:flex-row sm:justify-end sm:px-5 ${
+        className={`sticky bottom-[var(--tabbar-h)] z-10 grid grid-cols-2 gap-3 rounded-2xl border bg-card px-4 py-3 transition-shadow duration-200 sm:flex sm:flex-row sm:justify-end sm:px-5 ${
           floating
             ? "form-actions-float border-border shadow-lift"
             : "border-transparent shadow-none"

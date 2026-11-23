@@ -22,7 +22,7 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
             className="reveal"
             style={{ "--i": Math.min(index, 11) } as React.CSSProperties}
           >
-            <article className="group relative h-full overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift focus-within:ring-2 focus-within:ring-accent">
+            <article className="group relative h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift focus-within:ring-2 focus-within:ring-accent">
               <div className="aspect-[4/3] w-full overflow-hidden bg-surface">
                 {src ? (
                   <img

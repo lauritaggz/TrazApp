@@ -36,7 +36,7 @@ export default function EvaluacionUtilidadCard({ productoId }: { productoId: num
   const porcentaje = resultados ? textoPorcentaje(resultados) : null;
 
   return (
-    <section aria-labelledby="evaluacion-utilidad" className="overflow-hidden rounded-xl border border-border bg-card">
+    <section aria-labelledby="evaluacion-utilidad" className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="border-b border-border px-4 py-4 sm:px-5">
         <h2 id="evaluacion-utilidad" className="text-sm font-semibold text-text-primary">
           Evaluación de utilidad

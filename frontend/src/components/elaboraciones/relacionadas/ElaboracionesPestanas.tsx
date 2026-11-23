@@ -10,7 +10,7 @@ export default function ElaboracionesPestanas({ activa }: { activa: "historial" 
         to={to}
         aria-current={actual ? "page" : undefined}
         className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-          actual ? "bg-brand-50 text-accent-strong" : "text-text-secondary hover:bg-surface hover:text-text-primary"
+          actual ? "bg-brand-50 text-accent-strong" : "text-text-secondary hover:bg-panel hover:text-text-primary"
         }`}
       >
         {nombre}
@@ -20,7 +20,7 @@ export default function ElaboracionesPestanas({ activa }: { activa: "historial" 
   return (
     <nav
       aria-label="Vistas de elaboraciones"
-      className="inline-flex max-w-full self-start rounded-xl border border-border bg-card p-1 shadow-sm"
+      className="inline-flex max-w-full self-start rounded-2xl border border-border bg-card p-1 shadow-soft"
     >
       {item("Historial", "/elaboraciones", "historial")}
       {item("Rastrear insumo", RUTA_RASTREAR, "rastrear")}

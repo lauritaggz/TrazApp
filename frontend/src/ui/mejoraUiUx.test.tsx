@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -70,6 +70,13 @@ describe("Contraste de tokens (UI-A1/A2/A3)", () => {
     ["text-muted", "card"],
     ["text-muted", "surface"],
     ["text-secondary", "surface"],
+    // HT08: paneles trigo y crema de la dirección «Cuaderno de campo».
+    ["text-muted", "panel"],
+    ["text-muted", "wheat"],
+    ["text-primary", "wheat-deep"],
+    ["text-secondary", "wheat"],
+    ["accent-strong", "wheat"],
+    ["accent", "surface"],
     ["panel-muted", "brand-600"],
     ["panel-soft", "brand-600"],
     ["panel-faint", "brand-600"],
@@ -83,6 +90,10 @@ describe("Contraste de tokens (UI-A1/A2/A3)", () => {
 
   it("el borde de campos cumple 3:1 sobre la tarjeta", () => {
     expect(ratio(token("border-strong"), token("card"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("el texto claro sobre el panel profundo cumple 4.5:1", () => {
+    expect(ratio(token("surface"), token("deep"))).toBeGreaterThanOrEqual(4.5);
   });
 });
 
@@ -120,21 +131,21 @@ describe("AppShell accesible", () => {
     expect(document.title).toBe("Nuevo producto · TrazApp");
   });
 
-  it("en móvil el menú cerrado no es accesible y se abre y cierra con Esc", async () => {
+  it("en móvil el menú cerrado no es accesible y se abre desde «Más» y cierra con Esc (HT08)", async () => {
     mockViewport(false);
     const user = userEvent.setup();
     const { container } = renderShell("/productos");
 
-    const aside = container.querySelector("aside");
+    const aside = container.querySelector("aside")!;
     expect(aside).toHaveAttribute("inert");
 
-    const menuButton = screen.getByRole("button", { name: "Abrir menú" });
+    const menuButton = screen.getByRole("button", { name: "Más" });
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
 
     await user.click(menuButton);
     expect(aside).not.toHaveAttribute("inert");
     expect(menuButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("link", { name: "Inicio" })).toHaveFocus();
+    expect(within(aside).getByRole("link", { name: "Inicio" })).toHaveFocus();
 
     await user.keyboard("{Escape}");
     expect(aside).toHaveAttribute("inert");
@@ -146,7 +157,7 @@ describe("AppShell accesible", () => {
     const user = userEvent.setup();
     renderShell("/productos");
 
-    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    await user.click(screen.getByRole("button", { name: "Más" }));
     const first = screen.getByRole("button", { name: "Cambiar a modo oscuro" });
     // HU14: el último enlace del menú es «Calculadora de costos» (grupo «Herramientas»); antes era «Publicaciones».
     const last = screen.getByRole("link", { name: "Calculadora de costos" });

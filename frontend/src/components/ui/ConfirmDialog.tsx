@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import Button from "@/components/ui/Button";
 
 interface ConfirmDialogProps {
@@ -49,14 +50,16 @@ export default function ConfirmDialog({
 
   if (!open) return null;
 
-  return (
+  // En un portal sobre <body>: si el diálogo nace dentro del encabezado (menú de usuario),
+  // su `backdrop-filter` lo volvía el marco de referencia de `fixed` y el diálogo quedaba cortado.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       role="presentation"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="dialogo-fondo absolute inset-0 bg-black/35 backdrop-blur-[6px]"
         aria-label="Cerrar diálogo"
         disabled={loading}
         onClick={() => {
@@ -68,10 +71,10 @@ export default function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full max-w-md rounded-xl border border-border bg-card p-5 sm:p-6 shadow-lg space-y-4"
+        className="dialogo-panel relative w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-5 shadow-lift sm:p-6"
       >
         <div className="space-y-2">
-          <h2 id={titleId} className="text-lg font-semibold text-text-primary">
+          <h2 id={titleId} className="text-xl font-bold text-text-primary">
             {title}
           </h2>
           <p
@@ -96,7 +99,7 @@ export default function ConfirmDialog({
             type="button"
             className={`w-full sm:w-auto ${
               destructive
-                ? "bg-error text-white hover:bg-error/90 focus-visible:ring-error"
+                ? "bg-error text-surface hover:bg-error/90 focus-visible:ring-error"
                 : ""
             }`}
             loading={loading}
@@ -106,6 +109,7 @@ export default function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -25,7 +25,7 @@ function productoDeLaUrl(valor: string | null): number | null {
 }
 
 const BOTON_ENLACE =
-  "inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700";
+  "inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-on-brand hover:bg-brand-700";
 
 /** Calculadora de costos (HU14): cuánto cuesta una tanda de un producto y cada unidad. */
 export default function CostCalculator() {
@@ -215,7 +215,7 @@ export default function CostCalculator() {
                   {/* 4. Ingredientes de la formulación vigente. */}
                   <section
                     aria-labelledby="costos-lineas"
-                    className="overflow-hidden rounded-xl border border-border bg-card shadow-soft"
+                    className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft"
                   >
                     <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
                       <div className="flex min-w-0 items-center gap-3">

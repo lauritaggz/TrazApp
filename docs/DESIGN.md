@@ -6,62 +6,73 @@ Documento de referencia del sistema de diseño de TrazApp, con la estructura de 
 
 ## 1. Visual Theme & Atmosphere
 
-Una interfaz serena y legible, de densidad equilibrada ("Daily App Balanced", 5/10). Superficies claras con un único acento verde bosque, esquinas generosas y sombras suaves tintadas del mismo verde. La jerarquía se construye con peso tipográfico, color de texto y espacio en blanco, no con bordes en todo.
+Dirección **«Cuaderno de campo»** (HT08): una libreta de trabajo de quien produce. Fondo crema, paneles color trigo y un único acento verde albahaca; el ámbar queda reservado para alertas. Cercana y cálida, no de punto de venta. La jerarquía se construye con tipografía, color de texto y espacio en blanco, no con bordes en todo.
 
 - **Densidad:** 5. Aire suficiente para leer en el celular; sin celdas apretadas.
-- **Variación:** 3. Estructura predecible y simétrica. Un usuario que registra un lote no debe buscar dónde está cada cosa.
+- **Variación:** 3. Estructura predecible. Un usuario que registra un lote no debe buscar dónde está cada cosa.
 - **Movimiento:** 3. Transiciones breves de 150–320 ms y una aparición escalonada en cuadrículas. Nada se anima en bucle. Todo se desactiva con `prefers-reduced-motion`.
 - **Tono:** claro, directo, en español de Chile. Sin voseo, sin frases de marketing.
 
 ## 2. Color Palette & Roles
 
-Un solo acento (verde), saturación por debajo del 80 %. Sin morados ni neones. Sin negro puro.
+Un solo acento (verde), saturación por debajo del 80 %. Grises siempre cálidos (familia tierra), nunca fríos. Sin morados ni neones. Sin negro puro.
 
 | Rol | Nombre | Valor | Token |
 |---|---|---|---|
-| Fondo de página | Lienzo Niebla | `#f7f8f7` | `surface` |
-| Tarjetas y campos | Superficie Pura | `#ffffff` | `card` |
-| Texto principal | Tinta Carbón | `#1f2933` | `text-primary` |
-| Texto secundario | Pizarra | `#475467` | `text-secondary` |
-| Texto auxiliar | Pizarra Suave | `#667085` | `text-muted` |
-| Línea estructural | Borde Susurro | `#e5e7e5` | `border` |
-| Borde de campos | Borde Firme | `#838d88` | `border-strong` |
-| **Acento** | Verde Bosque | `#2f6b57` | `brand-600` |
-| Acento, hover / activo | Verde Profundo | `#255747` / `#1c4336` | `brand-700` / `brand-800` |
-| Acento, fondo suave | Verde Bruma | `#f0f7f4` / `#d9ede6` | `brand-50` / `brand-100` |
-| Éxito | — | `#027a48` sobre `#ecfdf3` | `success` |
-| Error | — | `#b42318` sobre `#fef3f2` | `error` |
-| Advertencia (alérgenos obligatorios, pendientes) | — | `#93370d` sobre `#fffaeb` | `warning` |
-| Información | — | `#175cd3` sobre `#eff8ff` | `info` |
+| Fondo de página | Crema | `#faf7f2` | `surface` |
+| Tarjetas y campos | Papel | `#ffffff` | `card` |
+| Panel suave (bloques secundarios) | Lino | `#f2ece0` | `panel` |
+| Panel de énfasis | Trigo | `#ede4d0` / `#dcd0b5` | `wheat` / `wheat-deep` |
+| Panel profundo (lateral de acceso, destacados) | Bosque | `#1f3f2a` | `deep` |
+| Texto principal | Tinta | `#22201c` | `text-primary` |
+| Texto secundario | Tierra | `#5b554b` | `text-secondary` |
+| Texto auxiliar | Tierra Suave | `#6b6457` | `text-muted` |
+| Línea estructural | Borde | `#e7e0d3` / `#f0eadf` | `border` / `border-soft` |
+| Borde de campos | Borde Firme | `#8c8474` | `border-strong` |
+| **Acento** | Verde Albahaca | `#2e5e3e` | `brand-600`, `accent` |
+| Acento, hover / activo | Albahaca Profunda | `#244b31` / `#1f3f2a` | `brand-700` / `brand-800` |
+| Acento, fondo suave | Brote | `#eef3ee` / `#e3ece4` | `brand-50` / `brand-100` |
+| Texto sobre relleno de marca | Crema | `#faf7f2` (y `#a8d8b4` para la z del logo) | `on-brand` / `on-brand-accent` |
+| Éxito | — | `#256b3a` sobre `#e8f1e8` | `success` |
+| Error | — | `#b42318` sobre `#fdf1ee` | `error` |
+| Advertencia (alérgenos obligatorios, pendientes) | Ámbar | `#7a3e06` sobre `#fcf1dc` | `warning` |
+| Información | — | `#2f5a7a` sobre `#eaf1f5` | `info` |
 
 **Contraste mínimo, protegido por pruebas:** texto 4.5:1 sobre su fondo y 3:1 para el borde de los campos. Ver `src/ui/mejoraUiUx.test.tsx`. Cualquier color nuevo debe pasar esa misma prueba.
 
-**Sombras tintadas** (nunca grises ni negras): `shadow-soft` para tarjetas en reposo, `shadow-lift` para elementos flotantes (barra de acciones) y al pasar el cursor sobre tarjetas.
+**Sombras tintadas** del tono tierra (nunca grises ni negras en modo claro): `shadow-soft` para tarjetas en reposo, `shadow-lift` para elementos flotantes y al pasar el cursor sobre tarjetas.
 
 ### Modo oscuro
 
 El selector (luna / sol) está junto al logo, en el menú lateral y en las pantallas de acceso. Se aplica con `data-theme` en `<html>` y se recuerda en el navegador (`trazapp_tema`); sin elección guardada, sigue la preferencia del sistema. Un script en `index.html` fija el modo antes de pintar para evitar el parpadeo.
 
 - **Solo cambian los tokens** (`:root[data-theme="dark"]` en `index.css`); los componentes no tienen variantes propias.
-- **Rellenos de marca** (`brand-600/700/800`) no cambian porque llevan texto blanco. Para texto, enlaces, anillos de foco y bordes de acento se usan `accent` y `accent-strong`, que en oscuro pasan a un verde claro.
-- Superficies: fondo `#0e1311`, tarjeta `#151b18`. Texto `#e6ebe8` / `#a8b3ad` / `#8d9993`. Sombras más densas, sin color.
+- **Rellenos de marca** (`brand-600/700/800`) se aclaran un poco (`#3d7a52`) y siguen llevando texto claro (5:1 o más). Para texto, enlaces, anillos de foco y bordes de acento se usan `accent` y `accent-strong`, que en oscuro pasan a un verde claro (`#8cc49b` / `#a9d6b5`).
+- Superficies: fondo `#15140f`, tarjeta `#1c1a15`, trigo `#2a2619`. Texto `#eee9df` / `#bdb5a6` / `#a39b8c`. Ámbar `#f2b866`.
 - Los mismos contrastes (4.5:1 texto, 3:1 bordes y anillos) están protegidos por pruebas en `src/ui/modoOscuro.test.tsx`.
-- **Regla:** nunca usar `text-brand-600/700` ni `ring-brand-600` en componentes nuevos; usar `text-accent`, `text-accent-strong` y `ring-accent`.
-
+- **Regla:** nunca usar `text-brand-600/700` ni `ring-brand-600` en componentes nuevos; usar `text-accent`, `text-accent-strong` y `ring-accent`. Sobre rellenos de marca, `text-on-brand`.
 
 ## 3. Typography Rules
 
-- **Interfaz:** **Geist** (300–700). Cabecera con peso 600 y espaciado ajustado; la jerarquía viene del peso y del color, no de tamaños enormes.
-- **Mono:** **Geist Mono**, reservada para códigos o identificadores largos si se necesitan.
+- **Títulos:** **Bricolage Grotesque** (500–800, `font-display`). Se aplica sola a `h1` y `h2`, con espaciado `-0.02em` y `text-wrap: balance`. Es una grotesca con carácter, no una serif.
+- **Interfaz:** **Geist** (300–700) para todo lo demás, incluidos `h3`, etiquetas, botones y tablas.
+- **Mono:** **Geist Mono**, reservada para códigos o identificadores largos.
 - **Cifras:** `tabular-nums` en precios, costos, porcentajes, contenidos y contadores, para que alineen en columna.
-- **Cuerpo:** 14–16 px con interlineado relajado. Datos clave (código, categoría, ayuda de campo) no bajan de **13 px**; 12 px solo en etiquetas (`Badge`).
-- **Prohibido:** Inter, fuentes serif de cualquier tipo (es una herramienta de software), texto de cuerpo bajo 13 px.
+- **Cuerpo:** 14–16 px con interlineado relajado y `text-wrap: pretty`. Datos clave (código, categoría, ayuda de campo) no bajan de **13 px**; 12 px solo en etiquetas (`Badge`).
+- **Prohibido:** Inter, fuentes serif de cualquier tipo, Bricolage en texto de cuerpo o en controles, texto de cuerpo bajo 13 px.
+
+### Logotipo «la z que une»
+
+- **Nombre:** «trazapp» en minúsculas, Bricolage 800, espaciado `-0.05em`. La z es un dibujo (no una letra): un recorrido que termina en un punto abierto, quien consume. Va en el color de acento; sobre verde, en `on-brand-accent`.
+- **Símbolo:** la misma z sobre un cuadrado verde redondeado, con un punto lleno al inicio (el origen) y uno abierto al final. Es el favicon (`public/favicon.svg`) y `TrazSymbol` en `components/Logo.tsx`.
+- El componente `Logo` expone «TrazApp» como texto accesible; el dibujo va con `aria-hidden`.
+- No recolorear fuera de los tokens, no estirar y no reemplazar la z por la letra de la fuente.
 
 ## 4. Component Stylings
 
 Todos viven en `frontend/src/components/ui`.
 
-- **Button** (`Button`): relleno verde para la acción principal, borde para la secundaria, texto verde para la discreta. Hundimiento de 1 px al presionar (`active:translate-y-px`). Sin brillos ni sombras de color. Estado `loading` con indicador interno.
+- **Button** (`Button`): esquinas de 12 px. Relleno verde para la acción principal (con un brillo interior de 1 px y una sombra corta del mismo verde), borde para la secundaria, texto verde para la discreta. Al presionar se hunde 1 px y se reduce a 98,5 %. Estado `loading` con indicador interno.
 - **Campos** (`Input`, `Select`, `Textarea`, `fieldStyles`): etiqueta arriba, ayuda opcional, error debajo y enlazado con `aria-describedby`. Borde firme (3:1), foco con anillo verde. Sin etiquetas flotantes. Los campos de dinero llevan el prefijo `$`.
 - **Tarjetas:** solo cuando la elevación comunica jerarquía (formulario principal, vista previa, tarjetas de producto). El resto usa divisores y espacio.
 - **Badge** (`Badge`): variantes `neutral`, `brand`, `success`, `warning`, `info`, `error`. "Rotulación obligatoria" usa `warning`.
@@ -79,14 +90,17 @@ Todos viven en `frontend/src/components/ui`.
 
 - **Contenedor:** ancho máximo de 1440 px centrado; formularios hasta 64 rem (`max-w-5xl`).
 - **Formularios de creación y edición:** dos columnas desde 1024 px. Izquierda: campos, con lo obligatorio primero y las secciones opcionales marcadas con la etiqueta "Opcional". Derecha, fija al desplazar: imagen y vista previa en vivo del producto con el avance de datos obligatorios, o los próximos pasos del ingrediente. Bajo 1024 px todo colapsa a una columna.
-- **Listados:** barra de búsqueda y filtros, chips activos y luego tabla (escritorio) o tarjetas (móvil). Productos admite además una cuadrícula con imagen.
-- **Navegación:** menú lateral de 240 px con enlaces reales y la sección Trazabilidad ya reservada ("Pronto"). Menú de usuario en el encabezado.
+- **Listados:** barra de búsqueda y filtros, chips activos y luego tabla (escritorio) o tarjetas (móvil). Productos admite además una cuadrícula con imagen. Cada fila lleva una ficha con la inicial sobre trigo y una flecha que se desliza al pasar el cursor (`components/ui/ListaPiezas.tsx`); los «sin resultados» y errores van en un bloque lino punteado (`AvisoLista`). Insumos suma vistas rápidas con conteo (Activos, Por revisar en ámbar, Inactivos), sincronizadas con los filtros de la barra.
+- **Navegación:** en escritorio (desde 1024 px), menú lateral de 248 px sobre el panel `panel`, fijo al alto de la ventana; el ítem activo lleva un relleno verde que se desliza al cambiar de sección. En el celular, barra de pestañas inferior (Inicio, Productos, Ingredientes, Insumos y «Más», que abre el menú completo) y encabezado con el logo. La barra reserva su alto en `--tabbar-h`: el contenido, los avisos y la barra de acciones de formularios se apoyan sobre ella. Menú de usuario en el encabezado.
+- **Acceso (login, registro, cuenta creada):** `components/auth/AuthLayout.tsx`. Desde 1024 px, a la izquierda un panel `deep` con el logo claro, el recorrido de la z dibujándose y tres hitos que aparecen en orden (insumo revisado, elaboración finalizada, ficha publicada), y una frase propia de cada pantalla; a la derecha el formulario, con título grande en Bricolage y botón principal con flecha. En el celular solo queda el formulario, con logo y selector de modo arriba. El registro muestra el avance hacia los 8 caracteres de la contraseña.
+- **Landing (`/`, `pages/Landing.tsx`):** portada con «Cada frasco sabe de dónde viene» (subrayado ámbar que se dibuja) y dos maquetas que suben al cargar y luego quedan fijas (panel en un navegador y ficha pública en un teléfono). Desde 1024 px se superponen; en el celular se ven de a una, con un selector «Tu panel» / «Lo que ve tu cliente»; rubros; «Cómo funciona» en tres pasos que alternan lado; un bloque `deep` para lo que ve quien compra; costos; cierre en trigo. Las maquetas (`components/landing/Maquetas.tsx`) son `aria-hidden` y usan datos inventados. Con sesión iniciada, las llamadas llevan a «Ir a mi panel». Las pantallas de acceso tienen «Volver» a la landing. Al hacer scroll, algunos bloques entran con un desplazamiento corto (`animation-timeline: view()`, sin escala); los teléfonos no se animan, para que su texto chico quede nítido.
 - **Responsive:** móvil primero. Sin desplazamiento horizontal. Botones y elementos del menú de al menos 44 px de alto.
 - **Prohibido:** elementos superpuestos o con posicionamiento absoluto apilado, `calc()` con porcentajes, `h-screen` (usar `min-h-[100dvh]`).
 
 ## 6. Motion & Interaction
 
 - **Duraciones:** 150 ms en controles, 200 ms en paneles, 320 ms en la aparición de tarjetas.
+- **Cambio de sección:** animación CSS al montar la página (`.app-page` en `index.css`, dirección en `layout/transicionPagina.ts`). El contenido entra en 300 ms desde 16 px en la dirección del menú (avanzar desde la derecha, retroceder desde la izquierda); la página anterior no se anima. El relleno del menú lateral y la píldora de las pestañas recuerdan dónde estaban y se deslizan en 320 ms hasta el ítem nuevo, por debajo del texto, que pasa a claro al mismo ritmo. La aparición escalonada `.reveal` solo corre en la primera carga. No se usa la View Transitions API: sus capturas se mezclaban sumando colores (un destello) y se dibujaban encima del texto del menú.
 - **Aparición escalonada** (`.reveal` con `--i`): solo `opacity` y `transform`, con retardo de 45 ms por elemento y máximo 12.
 - **Rendimiento:** no se animan `width`, `height`, `top` ni `left`. La barra de avance usa `width` solo por tratarse de un indicador pequeño y aislado.
 - **Accesibilidad:** `prefers-reduced-motion` reduce todas las animaciones y transiciones a casi cero.
@@ -95,8 +109,9 @@ Todos viven en `frontend/src/components/ui`.
 ## 7. Anti-Patterns (Banned)
 
 - Sin emojis en la interfaz.
-- Sin Inter ni fuentes serif.
-- Sin negro puro (`#000000`); usar Tinta Carbón.
+- Sin Inter ni fuentes serif. Bricolage solo en títulos y en el logo.
+- Sin grises fríos (azulados) junto a la paleta tierra.
+- Sin negro puro (`#000000`); usar Tinta.
 - Sin sombras con brillo de color ni degradados de texto en titulares.
 - Sin acentos saturados, morados o neón. Un solo acento.
 - Sin colores fijos en el código de componentes: todo sale de los tokens de `index.css`.

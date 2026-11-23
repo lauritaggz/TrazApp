@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 
 interface DashboardHeaderProps {
@@ -28,31 +29,31 @@ export default function DashboardHeader({
   const today = fecha.charAt(0).toUpperCase() + fecha.slice(1);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-7 py-6">
-      <svg
-        className="absolute right-0 top-0 pointer-events-none opacity-10"
-        width="260"
-        height="140"
-        viewBox="0 0 260 140"
-        aria-hidden
-      >
-        <circle cx="200" cy="30" r="60" fill="white" />
-        <circle cx="240" cy="100" r="40" fill="white" />
-        <circle cx="130" cy="80" r="30" fill="white" />
-        <line x1="200" y1="30" x2="240" y2="100" stroke="white" strokeWidth="2" />
-        <line x1="200" y1="30" x2="130" y2="80" stroke="white" strokeWidth="2" />
-      </svg>
-      <p className="mb-1 text-xs font-medium text-panel-muted">{today}</p>
-      <h1 className="mb-1 text-2xl font-semibold text-white">
-        Hola, {firstName}
-      </h1>
-      {businessName?.trim() ? (
-        <p className="mb-1 text-sm font-medium text-panel-soft">{businessName.trim()}</p>
-      ) : null}
-      <p className="max-w-2xl text-sm text-panel-soft">
-        Registra tus elaboraciones, insumos y alérgenos, y mantén tu catálogo al día.
-      </p>
-      <div className="mt-5 flex flex-wrap gap-3">
+    <section aria-label="Bienvenida" className="space-y-5 pt-1">
+      <div className="space-y-1.5">
+        <p className="reveal text-[13px] font-medium text-text-muted" style={{ "--i": 0 } as CSSProperties}>
+          {today}
+        </p>
+        <h1
+          className="reveal text-[2rem] leading-[1.1] font-bold text-text-primary sm:text-[2.5rem]"
+          style={{ "--i": 1 } as CSSProperties}
+        >
+          Hola, <span className="text-accent">{firstName}</span>
+        </h1>
+        {businessName?.trim() ? (
+          <p className="reveal text-sm font-semibold text-text-secondary" style={{ "--i": 2 } as CSSProperties}>
+            {businessName.trim()}
+          </p>
+        ) : null}
+        <p
+          className="reveal max-w-[52ch] text-[15px] leading-relaxed text-text-secondary"
+          style={{ "--i": 2 } as CSSProperties}
+        >
+          Registra tus elaboraciones, insumos y alérgenos, y mantén tu catálogo al día.
+        </p>
+      </div>
+
+      <div className="reveal flex flex-wrap gap-2.5" style={{ "--i": 3 } as CSSProperties}>
         {/* La acción de cada semana va primero y es la única rellena. */}
         {onNuevaElaboracion && (
           <button
@@ -60,35 +61,59 @@ export default function DashboardHeader({
             onClick={onNuevaElaboracion}
             disabled={puedeRegistrarElaboracion !== true}
             aria-describedby={puedeRegistrarElaboracion === false ? "dashboard-sin-formulacion" : undefined}
-            className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-sm font-medium text-brand-700 transition-colors hover:bg-white/90 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
+            className={`${ACCION} w-full bg-brand-600 text-on-brand shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_6px_16px_-8px_var(--color-brand-600)] hover:bg-brand-700 active:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-brand-600 disabled:active:scale-100 sm:w-auto`}
           >
+            <PlusIcon />
             Nueva elaboración
           </button>
         )}
         <Link
           to="/insumos/nuevo"
-          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
+          className={`${ACCION} flex-1 border border-border bg-card text-text-primary hover:border-border-strong sm:flex-none`}
         >
           Nuevo insumo
         </Link>
         <Link
           to="/productos/nuevo"
-          className="inline-flex min-h-11 items-center rounded-lg border border-white/60 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-white"
+          className={`${ACCION} flex-1 border border-border bg-card text-text-primary hover:border-border-strong sm:flex-none`}
         >
           Nuevo producto
         </Link>
       </div>
       {onNuevaElaboracion && puedeRegistrarElaboracion === false && (
-        <p id="dashboard-sin-formulacion" className="mt-3 max-w-2xl text-sm text-panel-soft">
+        <p
+          id="dashboard-sin-formulacion"
+          className="max-w-2xl rounded-xl border border-border-soft bg-panel px-3.5 py-2.5 text-sm text-text-secondary"
+        >
           {SIN_FORMULACION}.{" "}
           <Link
             to="/productos"
-            className="font-medium text-white underline underline-offset-2 hover:text-white/90"
+            className="font-semibold text-accent-strong underline underline-offset-2"
           >
             Ir a Productos
           </Link>
         </p>
       )}
-    </div>
+    </section>
+  );
+}
+
+const ACCION =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-[background-color,border-color,transform] duration-150 active:translate-y-px active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
+
+function PlusIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
   );
 }

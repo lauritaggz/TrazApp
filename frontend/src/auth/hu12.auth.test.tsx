@@ -24,6 +24,8 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   deleteProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({

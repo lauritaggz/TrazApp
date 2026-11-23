@@ -86,7 +86,7 @@ export default function SelectorElaboracion({
   onBuscarFecha,
 }: SelectorElaboracionProps) {
   return (
-    <section className="mt-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+    <section className="mt-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-4 flex items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-accent">
           <IconoCalendario />

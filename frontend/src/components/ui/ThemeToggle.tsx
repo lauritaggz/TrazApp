@@ -15,10 +15,10 @@ export default function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
       onClick={toggleTheme}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Modo claro" : "Modo oscuro"}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-[background-color,color,transform] duration-150 active:scale-95 ${
         variant === "onBrand"
-          ? "text-white hover:bg-white/15 focus-visible:outline-white"
-          : "text-text-secondary hover:bg-surface hover:text-text-primary"
+          ? "text-on-brand hover:bg-white/15 focus-visible:outline-white"
+          : "text-text-secondary hover:bg-wheat/60 hover:text-text-primary"
       }`}
     >
       {isDark ? <SunIcon /> : <MoonIcon />}

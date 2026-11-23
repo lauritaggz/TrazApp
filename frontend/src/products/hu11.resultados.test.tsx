@@ -33,6 +33,8 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   deleteProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/elaboracionService", () => ({
@@ -40,6 +42,8 @@ vi.mock("@/services/elaboracionService", () => ({
   getCodigoSugerido: vi.fn(),
   createElaboracion: vi.fn(),
   getElaboracion: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/evaluacionService", () => ({ obtenerResultadosEvaluacion: vi.fn() }));

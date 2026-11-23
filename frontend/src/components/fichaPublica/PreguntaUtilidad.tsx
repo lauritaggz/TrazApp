@@ -53,7 +53,7 @@ export default function PreguntaUtilidad({ idPublico, codigo, token }: Props) {
   return (
     <section
       aria-label="Evaluación de la información"
-      className="mt-6 rounded-xl border border-border bg-card p-5"
+      className="mt-6 rounded-2xl border border-border bg-card p-5"
     >
       {estado === "gracias" ? (
         <p role="status" className="text-sm font-medium text-text-primary">

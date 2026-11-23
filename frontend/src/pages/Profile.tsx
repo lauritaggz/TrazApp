@@ -111,7 +111,7 @@ export default function Profile() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-card border border-border rounded-xl p-6 space-y-4"
+          className="bg-card border border-border rounded-2xl p-6 space-y-4"
           noValidate
         >
           {globalError && <Alert type="error">{globalError}</Alert>}

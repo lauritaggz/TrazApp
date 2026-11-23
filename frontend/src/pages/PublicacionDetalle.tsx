@@ -129,7 +129,7 @@ function Contenido({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
       <div className="min-w-0 space-y-6">
-      <section aria-labelledby="publicacion-estado" className="overflow-hidden rounded-xl border border-border bg-card">
+      <section aria-labelledby="publicacion-estado" className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-4 py-4 sm:px-5">
           <h2 id="publicacion-estado" className="text-sm font-semibold text-text-primary">
             Estado de publicación

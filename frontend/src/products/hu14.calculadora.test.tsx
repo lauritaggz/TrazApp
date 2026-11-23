@@ -28,6 +28,8 @@ vi.mock("@/services/productService", () => ({
   listProducts: vi.fn(),
   listCategories: vi.fn(),
   getProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/costosService", () => ({
@@ -38,6 +40,8 @@ vi.mock("@/services/costosService", () => ({
 vi.mock("@/services/insumoService", () => ({
   getInsumo: vi.fn(),
   actualizarPrecioDesdeJumbo: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // --- datos -------------------------------------------------------------------------------------------

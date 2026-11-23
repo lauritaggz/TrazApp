@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import Badge from "@/components/ui/Badge";
+import { useNavegacionAnimada } from "@/components/layout/transicionPagina";
 
 interface NavItemProps {
   icon: ReactNode;
@@ -9,17 +10,26 @@ interface NavItemProps {
   onClick?: () => void;
 }
 
+/**
+ * Enlace del menú lateral. El relleno verde del activo lo dibuja el menú (Sidebar):
+ * es un solo elemento que se desliza de un ítem al otro, por debajo del texto.
+ */
 export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
+  const animar = useNavegacionAnimada();
+
   return (
     <NavLink
       to={to}
-      onClick={onClick}
+      onClick={(event) => {
+        onClick?.();
+        animar(to)(event);
+      }}
       className={({ isActive }) => `
-        flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
+        relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors duration-300
         ${
           isActive
-            ? "bg-brand-50 text-accent"
-            : "text-text-secondary hover:bg-surface hover:text-text-primary"
+            ? "font-semibold text-on-brand"
+            : "font-medium text-text-secondary hover:bg-wheat/70 hover:text-text-primary"
         }
       `}
     >
@@ -27,11 +37,11 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
         <>
           <span
             aria-hidden="true"
-            className={isActive ? "text-accent" : "text-text-muted"}
+            className={`relative ${isActive ? "" : "text-text-muted"}`}
           >
             {icon}
           </span>
-          {label}
+          <span className="relative">{label}</span>
         </>
       )}
     </NavLink>
@@ -41,7 +51,7 @@ export default function NavItem({ icon, label, to, onClick }: NavItemProps) {
 /** Sección planificada: se muestra como texto, sin enlace ni foco, para anticipar el menú. */
 export function NavItemSoon({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted">
+    <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-muted">
       <span aria-hidden="true">{icon}</span>
       {label}
       <Badge className="ml-auto">Pronto</Badge>

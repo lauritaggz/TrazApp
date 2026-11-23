@@ -16,6 +16,8 @@ from app.schemas.ingrediente import (
     IngredienteGestionCreate,
     IngredienteGestionRead,
     IngredienteGestionUpdate,
+    IngredienteInsumoAsociadoRead,
+    IngredienteUsoProductoRead,
 )
 
 
@@ -162,6 +164,26 @@ class IngredienteService:
     def list_alergenos_catalogo(self) -> list[AlergenoCatalogoRead]:
         alergenos = self.repository.list_alergenos_catalogo()
         return [AlergenoCatalogoRead.model_validate(item) for item in alergenos]
+
+    def list_productos_mine(
+        self,
+        productor: Productor,
+        ingrediente_id: int,
+    ) -> list[IngredienteUsoProductoRead]:
+        """«Uso en formulaciones» (HT08): read-only, only the productor's own products."""
+        ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
+        filas = self.repository.list_productos_con_formulacion_vigente(ingrediente.id, productor.id)
+        return [IngredienteUsoProductoRead.model_validate(fila) for fila in filas]
+
+    def list_insumos_mine(
+        self,
+        productor: Productor,
+        ingrediente_id: int,
+    ) -> list[IngredienteInsumoAsociadoRead]:
+        """«Insumos asociados» (HT08): read-only, only the productor's own supplies."""
+        ingrediente = self._get_owned_or_raise(productor.id, ingrediente_id)
+        filas = self.repository.list_insumos_asociados(ingrediente.id, productor.id)
+        return [IngredienteInsumoAsociadoRead.model_validate(fila) for fila in filas]
 
     def list_alergenos_mine(
         self,

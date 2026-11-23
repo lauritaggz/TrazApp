@@ -56,7 +56,7 @@ function Cifra({
   icono: ReactNode;
 }): ReactNode {
   return (
-    <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
           <p

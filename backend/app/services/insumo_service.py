@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models import Ingrediente, InsumoAlergeno, InsumoComercial, Productor
 from app.models.insumo import FUENTE_MANUAL
 from app.repositories.insumo_repository import InsumoRepository
+from app.schemas.vecinos import VecinosRead
 from app.schemas.insumo import (
     CAMPO_CONTENIDO,
     CAMPO_PRECIO,
@@ -187,6 +188,17 @@ class InsumoService:
             ingrediente_id=ingrediente_id,
         )
         return [InsumoRead.from_insumo(insumo) for insumo in insumos]
+
+    def vecinos_mine(self, productor: Productor, insumo_id: int) -> VecinosRead:
+        """Previous and next active supply in the default order of the list (HT08).
+
+        Only active ones, like the list by default. An inactive supply, another productor's or a missing
+        one is not found (its detail then shows no navigation).
+        """
+        vecinos = self.repository.vecinos(productor.id, insumo_id)
+        if vecinos is None:
+            raise InsumoNotFoundError("Insumo no encontrado")
+        return VecinosRead.desde(vecinos)
 
     def get_mine(self, productor: Productor, insumo_id: int) -> InsumoRead:
         return InsumoRead.from_insumo(self._get_owned_or_raise(productor.id, insumo_id))

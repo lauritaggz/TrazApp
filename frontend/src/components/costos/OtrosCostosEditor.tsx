@@ -20,7 +20,7 @@ export default function OtrosCostosEditor({ otros, errores, onAgregar, onCambiar
   return (
     <section
       aria-labelledby="costos-otros"
-      className="overflow-hidden rounded-xl border border-border bg-card shadow-soft"
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft"
     >
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
         <div className="min-w-0">

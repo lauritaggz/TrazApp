@@ -36,7 +36,7 @@ export default function ResumenCostos({ datos, sucio, rendimiento, errorRendimie
 
   return (
     <aside className="space-y-4 xl:sticky xl:top-5">
-      <section aria-labelledby="costos-resumen" className="rounded-xl border border-border bg-card p-5 shadow-soft">
+      <section aria-labelledby="costos-resumen" className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <h2 id="costos-resumen" className="text-sm font-semibold text-text-primary">
           Resumen del cálculo
         </h2>
@@ -65,7 +65,7 @@ export default function ResumenCostos({ datos, sucio, rendimiento, errorRendimie
         </div>
 
         {resumen.completo && resumen.costo_tanda !== null ? (
-          <div className="mt-5 rounded-xl bg-brand-600 p-4 text-white">
+          <div className="mt-5 rounded-xl bg-brand-600 p-4 text-on-brand">
             <div>
               <p className="text-xs text-brand-100">Costo por tanda</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{formatearPesos(resumen.costo_tanda)}</p>
@@ -124,7 +124,7 @@ export default function ResumenCostos({ datos, sucio, rendimiento, errorRendimie
 
         <Link
           to={`/productos/${datos.producto_id}`}
-          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-text-primary hover:bg-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           Ver detalle del producto
         </Link>

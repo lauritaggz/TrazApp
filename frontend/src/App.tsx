@@ -16,6 +16,7 @@ import InsumoNew from "@/pages/InsumoNew";
 import Insumos from "@/pages/Insumos";
 import Ingredients from "@/pages/Ingredients";
 import Login from "@/pages/Login";
+import Landing from "@/pages/Landing";
 import Profile from "@/pages/Profile";
 import ProductDetail from "@/pages/ProductDetail";
 import PublicacionDetalle from "@/pages/PublicacionDetalle";
@@ -29,7 +30,7 @@ import VistaPreviaFicha from "@/pages/VistaPreviaFicha";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Landing />} />
 
       {/* Public consultation (HU10): no account, outside every guard and without the productor menu. */}
       <Route path="/p/:idPublico" element={<FichaPublica />} />

@@ -1,46 +1,58 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap");
 @import "tailwindcss";
 
+/* Dirección visual «Cuaderno de campo» (HT08): crema, trigo y un único verde albahaca.
+   El ámbar queda reservado para alertas. */
 @theme {
   --font-sans: "Geist", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Geist", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 
-  --shadow-soft: 0 1px 2px rgb(28 67 54 / 0.05), 0 6px 20px rgb(28 67 54 / 0.06);
-  --shadow-lift: 0 2px 4px rgb(28 67 54 / 0.06), 0 12px 28px rgb(28 67 54 / 0.1);
+  /* Sombras tintadas del tono tierra del fondo, nunca negras. */
+  --shadow-soft: 0 1px 2px rgb(60 48 24 / 0.05), 0 6px 20px rgb(60 48 24 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(60 48 24 / 0.07), 0 12px 28px rgb(60 48 24 / 0.11);
 
-  --color-brand-50: #f0f7f4;
-  --color-brand-100: #d9ede6;
-  --color-brand-200: #b3dbd0;
-  --color-brand-500: #3d8a6e;
-  --color-brand-600: #2f6b57;
-  --color-brand-700: #255747;
-  --color-brand-800: #1c4336;
+  --color-brand-50: #eef3ee;
+  --color-brand-100: #e3ece4;
+  --color-brand-200: #c9dccd;
+  --color-brand-500: #4a7d5a;
+  --color-brand-600: #2e5e3e;
+  --color-brand-700: #244b31;
+  --color-brand-800: #1f3f2a;
 
-  --color-accent: #2f6b57;
-  --color-accent-strong: #255747;
+  --color-accent: #2e5e3e;
+  --color-accent-strong: #244b31;
 
-  --color-surface: #f7f8f7;
+  --color-surface: #faf7f2;
   --color-card: #ffffff;
-  --color-border: #e5e7e5;
-  --color-border-strong: #838d88;
-  --color-text-primary: #1f2933;
-  --color-text-secondary: #475467;
-  --color-text-muted: #667085;
+  --color-panel: #f2ece0;
+  --color-wheat: #ede4d0;
+  --color-wheat-deep: #dcd0b5;
+  --color-deep: #1f3f2a;
+  /* Texto y trazos sobre rellenos de marca; igual en claro y oscuro. */
+  --color-on-brand: #faf7f2;
+  --color-on-brand-accent: #a8d8b4;
+  --color-border: #e7e0d3;
+  --color-border-soft: #f0eadf;
+  --color-border-strong: #8c8474;
+  --color-text-primary: #22201c;
+  --color-text-secondary: #5b554b;
+  --color-text-muted: #6b6457;
   --color-error: #b42318;
-  --color-error-bg: #fef3f2;
-  --color-error-border: #fecdca;
-  --color-success: #027a48;
-  --color-success-bg: #ecfdf3;
-  --color-success-border: #a9efc5;
-  --color-warning: #93370d;
-  --color-warning-bg: #fffaeb;
-  --color-warning-border: #fedf89;
-  --color-info: #175cd3;
-  --color-info-bg: #eff8ff;
-  --color-info-border: #b2ddff;
-  --color-panel-muted: #d9ede6;
-  --color-panel-soft: #e6f3ee;
-  --color-panel-faint: #cfe5dd;
+  --color-error-bg: #fdf1ee;
+  --color-error-border: #f3c9bf;
+  --color-success: #256b3a;
+  --color-success-bg: #e8f1e8;
+  --color-success-border: #bbd5bf;
+  --color-warning: #7a3e06;
+  --color-warning-bg: #fcf1dc;
+  --color-warning-border: #e8c98e;
+  --color-info: #2f5a7a;
+  --color-info-bg: #eaf1f5;
+  --color-info-border: #bcd0dd;
+  --color-panel-muted: #e3ece4;
+  --color-panel-soft: #eef3ee;
+  --color-panel-faint: #c9dccd;
 }
 
 *,
@@ -65,6 +77,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@layer base {
+  /* Títulos con presencia: Bricolage en h1 y h2; el resto de la interfaz sigue en Geist. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -76,11 +102,11 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c4c7c4;
+  background: var(--color-wheat-deep);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -92,6 +118,66 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Alto de la barra de pestañas del celular: el contenido, los avisos y la barra de
+   acciones de formularios se apoyan sobre ella. Vale 0 cuando no está en pantalla. */
+:root {
+  --tabbar-h: 0px;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (max-width: 1023.98px) {
+  :root:has(.app-tabbar) {
+    --tabbar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Cambio de sección (ver layout/transicionPagina.ts). Cada página monta su propio
+   AppShell, así que el contenido entra con una animación CSS al montarse: sin capturas
+   de View Transitions, que se mezclaban sumando colores (destello) y dibujaban capas
+   encima del menú. Solo transform y opacity, sobre el DOM real. La dirección sigue el
+   orden del menú: avanzar entra desde la derecha; retroceder, desde la izquierda. */
+.app-page {
+  animation: page-in-fwd 300ms var(--ease-out-soft) backwards;
+}
+
+.app-page[data-dir="back"] {
+  animation-name: page-in-back;
+}
+
+/* La aparición escalonada (.reveal) es para la primera carga. Después de navegar
+   por el menú ya no corre: se sumaría a la entrada de la página y el título
+   llegaría tarde. */
+:root[data-nav-spa] .reveal {
+  animation: none;
+}
+
+/* Mientras el relleno del menú se desliza hacia el ítem nuevo, su texto pasa a claro al
+   mismo ritmo: así no se ve texto claro sobre el panel antes de que llegue el verde. */
+.nav-lista[data-deslizando] a[aria-current="page"] {
+  animation: nav-activo 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes nav-activo {
+  from {
+    color: var(--color-text-secondary);
+  }
+}
+
+@keyframes page-in-fwd {
+  from {
+    opacity: 0;
+    transform: translate3d(16px, 0, 0);
+  }
+}
+
+@keyframes page-in-back {
+  from {
+    opacity: 0;
+    transform: translate3d(-16px, 0, 0);
   }
 }
 
@@ -112,6 +198,72 @@ body {
   animation-delay: calc(var(--i, 0) * 45ms);
 }
 
+/* Pantallas de acceso: el recorrido de la z se dibuja y los hitos aparecen en orden.
+   Con movimiento reducido quedan dibujados y visibles de inmediato. */
+.auth-ruta path {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: trazo 2000ms 250ms var(--ease-out-soft) forwards;
+}
+
+.auth-hito {
+  animation: hito-entra 560ms var(--ease-spring) both;
+  animation-delay: calc(700ms + var(--i, 0) * 550ms);
+}
+
+@keyframes trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hito-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+}
+
+/* Sello del registro exitoso: entra con un rebote y la marca se dibuja. */
+.sello {
+  animation: sello-entra 600ms var(--ease-spring) both;
+}
+
+.sello path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: trazo 500ms 380ms var(--ease-out-soft) forwards;
+}
+
+@keyframes sello-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+}
+
+/* Diálogos de confirmación: el fondo se desenfoca y el panel entra con una escala corta. */
+.dialogo-fondo {
+  animation: dialogo-fondo 200ms ease-out both;
+}
+
+.dialogo-panel {
+  animation: dialogo-panel 260ms var(--ease-out-soft) both;
+}
+
+@keyframes dialogo-fondo {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialogo-panel {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
 @keyframes form-actions-float {
   from {
     opacity: 0.6;
@@ -129,39 +281,47 @@ body {
 }
 
 /* Modo oscuro: solo se redefinen los tokens; los componentes no cambian.
-   Los rellenos de marca (brand-600/700/800) se mantienen, porque llevan texto blanco.
+   Los rellenos de marca (brand-600/700/800) siguen llevando texto blanco (5:1 o más).
    El color de acento para texto, anillos y bordes pasa a un verde claro (accent). */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --color-brand-50: #14231d;
-  --color-brand-100: #1b3027;
-  --color-brand-200: #2b4a3d;
-  --color-brand-500: #4f9c80;
+  --color-brand-50: #1b2a1f;
+  --color-brand-100: #223527;
+  --color-brand-200: #2f4a36;
+  --color-brand-500: #5e9a70;
+  --color-brand-600: #3d7a52;
+  --color-brand-700: #346a47;
+  --color-brand-800: #2b5a3b;
 
-  --color-accent: #5fb592;
-  --color-accent-strong: #86cdb0;
+  --color-accent: #8cc49b;
+  --color-accent-strong: #a9d6b5;
 
-  --color-surface: #0e1311;
-  --color-card: #151b18;
-  --color-border: #26302b;
-  --color-border-strong: #6b7872;
-  --color-text-primary: #e6ebe8;
-  --color-text-secondary: #a8b3ad;
-  --color-text-muted: #8d9993;
+  --color-surface: #15140f;
+  --color-card: #1c1a15;
+  --color-panel: #211f19;
+  --color-wheat: #2a2619;
+  --color-wheat-deep: #3a3424;
+  --color-deep: #13261a;
+  --color-border: #2e2b23;
+  --color-border-soft: #25221c;
+  --color-border-strong: #7a7365;
+  --color-text-primary: #eee9df;
+  --color-text-secondary: #bdb5a6;
+  --color-text-muted: #a39b8c;
 
-  --color-error: #f97066;
-  --color-error-bg: #2a1311;
-  --color-error-border: #5c2420;
-  --color-success: #6ce9a6;
-  --color-success-bg: #0f2a1c;
-  --color-success-border: #14532d;
-  --color-warning: #fdb022;
-  --color-warning-bg: #2b2008;
-  --color-warning-border: #6b4d0f;
-  --color-info: #84caff;
-  --color-info-bg: #0f2236;
-  --color-info-border: #1e4a73;
+  --color-error: #f4877a;
+  --color-error-bg: #2e1612;
+  --color-error-border: #5c2a22;
+  --color-success: #8cc49b;
+  --color-success-bg: #172a1c;
+  --color-success-border: #2f4a36;
+  --color-warning: #f2b866;
+  --color-warning-bg: #33260f;
+  --color-warning-border: #6b4d17;
+  --color-info: #8db8d8;
+  --color-info-bg: #14222d;
+  --color-info-border: #2a4a63;
 
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px rgb(0 0 0 / 0.3);
   --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.45), 0 12px 28px rgb(0 0 0 / 0.45);

@@ -8,6 +8,7 @@ import type {
   InsumoUpdatePayload,
   TipoDeclaracion,
 } from "@/types/insumo";
+import type { Vecinos } from "@/types/vecinos";
 
 interface ListInsumosParams {
   /** Backend default is active supplies only; false asks for the inactive ones. */
@@ -159,4 +160,9 @@ export async function replaceInsumoAlergenos(
     { method: "PUT", body: JSON.stringify({ alergenos }) },
     true,
   );
+}
+
+/** HT08: previous and next active supply in the default order of the list (read-only). */
+export async function getInsumoNeighbors(id: number): Promise<Vecinos> {
+  return apiRequest<Vecinos>(`/gestion/insumos/${id}/vecinos`, { method: "GET" }, true);
 }

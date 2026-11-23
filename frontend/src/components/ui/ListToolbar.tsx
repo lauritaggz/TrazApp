@@ -48,7 +48,7 @@ export default function ListToolbar({
   const nonSearchCount = chips.filter((chip) => chip.key !== "search").length;
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
       <div className={layout === "fila" ? "space-y-3 lg:flex lg:items-end lg:gap-3 lg:space-y-0" : "space-y-3"}>
         <div className={`flex items-end gap-3 ${layout === "fila" ? "lg:min-w-[11rem] lg:flex-1" : ""}`}>
           <div className="min-w-0 flex-1">
@@ -74,12 +74,12 @@ export default function ListToolbar({
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
             aria-controls={controlsId}
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border-strong bg-card px-3 text-sm font-medium text-text-primary transition-colors hover:bg-surface sm:hidden"
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-card px-3 text-sm font-medium text-text-primary transition-colors hover:bg-panel sm:hidden"
           >
             <FilterIcon />
             Filtros
             {nonSearchCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold tabular-nums text-on-brand">
                 {nonSearchCount}
               </span>
             )}

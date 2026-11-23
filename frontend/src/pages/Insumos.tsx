@@ -4,6 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyStateCard from "@/components/ui/EmptyStateCard";
+import { AvisoLista, Etiqueta, FichaInicial, FlechaFila } from "@/components/ui/ListaPiezas";
 import ListToolbar, { type FilterChip } from "@/components/ui/ListToolbar";
 import PageHeader from "@/components/ui/PageHeader";
 import Select from "@/components/ui/Select";
@@ -119,6 +120,21 @@ export default function Insumos() {
         />
 
         {!(showEmptyState && activos) && !error && (
+          <VistasRapidas
+            filters={filters}
+            insumos={insumos}
+            loading={loading}
+            onChange={(cambio) =>
+              setFilters({
+                ...filters,
+                ...cambio,
+                ingredienteId: cambio.estado !== filters.estado ? "all" : filters.ingredienteId,
+              })
+            }
+          />
+        )}
+
+        {!(showEmptyState && activos) && !error && (
           <InsumoListControls
             filters={filters}
             onChange={setFilters}
@@ -137,14 +153,10 @@ export default function Insumos() {
         {showEmptyState && activos && <EmptyState onCreate={() => navigate("/insumos/nuevo")} />}
 
         {showEmptyState && !activos && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
-            <h2 className="mb-2 text-lg font-semibold text-text-primary">
-              No tienes insumos inactivos
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Los insumos que desactives aparecerán aquí para que puedas reactivarlos.
-            </p>
-          </div>
+          <AvisoLista
+            title="No tienes insumos inactivos"
+            description="Los insumos que desactives aparecerán aquí para que puedas reactivarlos."
+          />
         )}
 
         {showNoResults && <NoResultsState onClear={clearFilters} />}
@@ -277,27 +289,30 @@ function SinRevisarBadge() {
 
 function InsumoNameCell({ insumo }: { insumo: Insumo }) {
   return (
-    <div className="min-w-0 space-y-1">
-      <p className="flex flex-wrap items-center gap-2">
-        <Link
-          to={`/insumos/${insumo.id}`}
-          aria-label={`Ver insumo ${insumo.nombre}`}
-          className="inline-flex min-h-11 items-center rounded font-medium text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
-        >
-          {insumo.nombre}
-        </Link>
-        {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
-        {!insumo.activo && <Badge>Inactivo</Badge>}
-        {!insumo.alergenos_revisados && <SinRevisarBadge />}
-      </p>
-      {insumo.presentacion && (
-        <p data-presentacion className="text-[13px] text-text-secondary">
-          {insumo.presentacion}
+    <div className="flex min-w-0 items-center gap-3">
+      <FichaInicial nombre={insumo.nombre} />
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Link
+            to={`/insumos/${insumo.id}`}
+            aria-label={`Ver insumo ${insumo.nombre}`}
+            className="inline-flex min-h-11 items-center rounded text-[15px] font-semibold text-text-primary underline-offset-2 hover:text-accent-strong hover:underline"
+          >
+            {insumo.nombre}
+          </Link>
+          {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
+          {!insumo.activo && <Badge>Inactivo</Badge>}
+          {!insumo.alergenos_revisados && <SinRevisarBadge />}
         </p>
-      )}
-      {insumo.codigo_barras && (
-        <p className="text-[13px] tabular-nums text-text-secondary">{insumo.codigo_barras}</p>
-      )}
+        {insumo.presentacion && (
+          <p data-presentacion className="-mt-1.5 text-[13px] text-text-secondary">
+            {insumo.presentacion}
+          </p>
+        )}
+        {insumo.codigo_barras && (
+          <p className="text-[13px] tabular-nums text-text-muted">{insumo.codigo_barras}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -310,37 +325,41 @@ function InsumosTable({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+    <div className="hidden overflow-hidden rounded-2xl border border-border bg-card md:block">
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[40rem] table-auto text-sm">
           <thead>
-            <tr className="border-b border-border bg-surface/60">
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">Insumo</th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+            <tr className="border-b border-border bg-panel/70">
+              <th className="px-5 py-3 text-left text-[13px] font-semibold text-text-muted">Insumo</th>
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Marca u origen
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-text-secondary">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-text-muted">
                 Ingrediente
               </th>
-              <th className="px-4 py-3 text-right font-semibold text-text-secondary">Acción</th>
+              <th className="w-12 px-4 py-3 text-right">
+                <span className="sr-only">Acción</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {insumos.map((insumo) => (
               <tr
                 key={insumo.id}
-                className="cursor-pointer border-b border-border last:border-b-0 hover:bg-brand-50/40 focus-within:bg-brand-50/40"
+                className="group cursor-pointer border-b border-border-soft transition-colors duration-150 last:border-b-0 hover:bg-panel/60 focus-within:bg-panel/60"
                 onClick={(e) => {
                   if (!(e.target as HTMLElement).closest("a")) onSelect(insumo.id);
                 }}
               >
-                <td className="px-4 py-3">
+                <td className="px-5 py-2.5">
                   <InsumoNameCell insumo={insumo} />
                 </td>
-                <td className="px-4 py-3 text-text-secondary">{insumo.marca_origen}</td>
-                <td className="px-4 py-3 text-text-secondary">{insumo.ingrediente.nombre}</td>
-                <td aria-hidden="true" className="px-4 py-3 text-right font-medium text-accent">
-                  Ver
+                <td className="px-4 py-2.5 text-text-secondary">{insumo.marca_origen}</td>
+                <td className="px-4 py-2.5">
+                  <Etiqueta>{insumo.ingrediente.nombre}</Etiqueta>
+                </td>
+                <td aria-hidden="true" className="px-4 py-2.5 text-right">
+                  <FlechaFila />
                 </td>
               </tr>
             ))}
@@ -353,38 +372,124 @@ function InsumosTable({
 
 function InsumosCards({ insumos }: { insumos: Insumo[] }) {
   return (
-    <div className="space-y-3 md:hidden">
+    <div className="space-y-2.5 md:hidden">
       {insumos.map((insumo) => (
         <article
           key={insumo.id}
-          className="relative rounded-xl border border-border bg-card p-4 transition-colors hover:border-accent focus-within:ring-2 focus-within:ring-accent"
+          className="group relative flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-3 transition-[border-color,transform] duration-150 active:scale-[0.99] hover:border-wheat-deep focus-within:ring-2 focus-within:ring-accent"
         >
-          <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            <Link
-              to={`/insumos/${insumo.id}`}
-              aria-label={`Ver insumo ${insumo.nombre}`}
-              className="inline-flex min-h-11 items-center break-words after:absolute after:inset-0 focus:outline-none"
-            >
-              {insumo.nombre}
-            </Link>
-            {insumo.presentacion && (
-              <span data-presentacion className="text-[13px] font-normal text-text-secondary">
-                {insumo.presentacion}
-              </span>
-            )}
-            {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
-            {!insumo.activo && <Badge>Inactivo</Badge>}
-            {!insumo.alergenos_revisados && <SinRevisarBadge />}
-          </h2>
-          <p className="mt-1 text-[13px] text-text-secondary">
-            {insumo.marca_origen} · {insumo.ingrediente.nombre}
-          </p>
-          {insumo.codigo_barras && (
-            <p className="mt-1 text-[13px] tabular-nums text-text-secondary">
-              {insumo.codigo_barras}
+          <span className="mt-1.5">
+            <FichaInicial nombre={insumo.nombre} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] font-semibold">
+              <Link
+                to={`/insumos/${insumo.id}`}
+                aria-label={`Ver insumo ${insumo.nombre}`}
+                className="inline-flex min-h-11 items-center break-words after:absolute after:inset-0 focus:outline-none"
+              >
+                {insumo.nombre}
+              </Link>
+              {insumo.presentacion && (
+                <span data-presentacion className="text-[13px] font-normal text-text-secondary">
+                  {insumo.presentacion}
+                </span>
+              )}
+              {insumo.habitual && <Badge variant="brand">Habitual</Badge>}
+              {!insumo.activo && <Badge>Inactivo</Badge>}
+              {!insumo.alergenos_revisados && <SinRevisarBadge />}
+            </h2>
+            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-text-secondary">
+              <Etiqueta>{insumo.ingrediente.nombre}</Etiqueta>
+              {insumo.marca_origen}
             </p>
-          )}
+            {insumo.codigo_barras && (
+              <p className="mt-1 text-[13px] tabular-nums text-text-muted">
+                {insumo.codigo_barras}
+              </p>
+            )}
+          </div>
+          <span className="mt-3.5">
+            <FlechaFila />
+          </span>
         </article>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Atajos de la vista (HT08): activos, por revisar e inactivos, con su conteo cuando se conoce.
+ * Equivalen a los filtros «Alérgenos» y «Estado» de la barra; los dos quedan sincronizados.
+ */
+function VistasRapidas({
+  filters,
+  insumos,
+  loading,
+  onChange,
+}: {
+  filters: InsumoListFilters;
+  insumos: Insumo[];
+  loading: boolean;
+  onChange: (cambio: Pick<InsumoListFilters, "estado" | "alergenos">) => void;
+}) {
+  const enActivos = filters.estado === "activos";
+  const conocidos = enActivos && !loading;
+  const porRevisar = insumos.filter((insumo) => !insumo.alergenos_revisados).length;
+  const vistas = [
+    {
+      key: "activos",
+      label: "Activos",
+      n: conocidos ? insumos.length : null,
+      activa: enActivos && filters.alergenos === "todos",
+      cambio: { estado: "activos", alergenos: "todos" } as const,
+      alerta: false,
+    },
+    {
+      key: "por-revisar",
+      label: "Por revisar",
+      n: conocidos ? porRevisar : null,
+      activa: enActivos && filters.alergenos === "sin_revisar",
+      cambio: { estado: "activos", alergenos: "sin_revisar" } as const,
+      alerta: true,
+    },
+    {
+      key: "inactivos",
+      label: "Inactivos",
+      n: !enActivos && !loading ? insumos.length : null,
+      activa: !enActivos,
+      cambio: { estado: "inactivos", alergenos: "todos" } as const,
+      alerta: false,
+    },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label="Vistas rápidas de insumos"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0"
+    >
+      {vistas.map((vista) => (
+        <button
+          key={vista.key}
+          type="button"
+          aria-pressed={vista.activa}
+          onClick={() => onChange(vista.cambio)}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-[background-color,color,border-color,transform] duration-200 active:scale-95 ${
+            vista.activa
+              ? vista.alerta
+                ? "border-warning bg-warning text-surface"
+                : "border-text-primary bg-text-primary text-surface"
+              : vista.alerta
+                ? "border-warning-border bg-warning-bg text-warning hover:border-warning"
+                : "border-border bg-card text-text-secondary hover:border-border-strong hover:text-text-primary"
+          }`}
+        >
+          {vista.label}
+          {vista.n !== null && (
+            <span className="text-[13px] tabular-nums opacity-80">{vista.n}</span>
+          )}
+        </button>
       ))}
     </div>
   );
@@ -411,26 +516,28 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function NoResultsState({ onClear }: { onClear: () => void }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-8 text-center">
-      <h2 className="mb-2 text-lg font-semibold text-text-primary">No encontramos insumos</h2>
-      <p className="mb-6 text-sm text-text-secondary">
-        No hay insumos que coincidan con la búsqueda o los filtros seleccionados.
-      </p>
-      <Button type="button" variant="secondary" onClick={onClear}>
-        Limpiar filtros
-      </Button>
-    </div>
+    <AvisoLista
+      title="No encontramos insumos"
+      description="No hay insumos que coincidan con la búsqueda o los filtros seleccionados."
+      action={
+        <Button type="button" variant="secondary" onClick={onClear}>
+          Limpiar filtros
+        </Button>
+      }
+    />
   );
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-8 text-center">
-      <h2 className="mb-2 text-lg font-semibold text-text-primary">{message}</h2>
-      <p className="mb-6 text-sm text-text-secondary">Verifica tu conexión e inténtalo nuevamente.</p>
-      <Button type="button" variant="secondary" onClick={onRetry}>
-        Reintentar
-      </Button>
-    </div>
+    <AvisoLista
+      title={message}
+      description="Verifica tu conexión e inténtalo nuevamente."
+      action={
+        <Button type="button" variant="secondary" onClick={onRetry}>
+          Reintentar
+        </Button>
+      }
+    />
   );
 }

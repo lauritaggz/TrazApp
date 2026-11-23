@@ -182,7 +182,7 @@ export default function Elaboraciones() {
                 Cargando elaboraciones...
               </p>
               {[0, 1, 2, 3].map((n) => (
-                <div key={n} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+                <div key={n} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-3.5 w-1/4" />
                     <Skeleton className="h-3 w-1/3" />
@@ -215,7 +215,7 @@ export default function Elaboraciones() {
           )}
 
           {!loading && !error && !fechasInvalidas && items.length === 0 && conFiltros && (
-            <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
               <h2 className="mb-2 text-lg font-semibold text-text-primary">Ninguna elaboración coincide</h2>
               <p className="mb-6 text-sm text-text-secondary">
                 No hay elaboraciones que coincidan con la búsqueda o los filtros seleccionados.
@@ -228,7 +228,7 @@ export default function Elaboraciones() {
 
           {!loading && !error && !fechasInvalidas && items.length > 0 && (
             <>
-              <ul aria-label="Elaboraciones" className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              <ul aria-label="Elaboraciones" className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
                 {items.map((elaboracion) => (
                   <HistorialFila key={elaboracion.id} elaboracion={elaboracion} />
                 ))}

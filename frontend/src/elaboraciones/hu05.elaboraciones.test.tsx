@@ -40,6 +40,8 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   deleteProduct: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/formulationService", () => ({
@@ -61,6 +63,8 @@ vi.mock("@/services/insumoService", () => ({
   updateInsumoAlergenoTipo: vi.fn(),
   deleteInsumoAlergeno: vi.fn(),
   replaceInsumoAlergenos: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -89,6 +93,8 @@ vi.mock("@/services/elaboracionService", () => ({
   deleteElaboracion: vi.fn(),
   finalizarElaboracion: vi.fn(),
   listLotesInsumo: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // --- datos ---
@@ -644,7 +650,7 @@ describe("Diálogo «Nueva elaboración»", () => {
     const dialogo = await abrirDialogo(user);
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
-    expect(dialogo).toHaveClass("w-full", "sm:max-w-lg", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
+    expect(dialogo).toHaveClass("w-full", "sm:max-w-lg", "rounded-t-2xl", "sm:rounded-2xl", "max-h-[90dvh]", "overflow-y-auto");
     expect(dialogo).toHaveAttribute("aria-modal", "true");
     for (const nombre of ["Cancelar", "Crear borrador"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto", "min-h-11");
@@ -1681,7 +1687,7 @@ describe("Registro: registrar un insumo nuevo desde la línea (T05-08)", () => {
     const dialogo = await abrirDialogoHarina(user);
 
     expect(dialogo.parentElement).toHaveClass("items-end", "sm:items-center");
-    expect(dialogo).toHaveClass("w-full", "rounded-t-xl", "sm:rounded-xl", "max-h-[90dvh]", "overflow-y-auto");
+    expect(dialogo).toHaveClass("w-full", "rounded-t-2xl", "sm:rounded-2xl", "max-h-[90dvh]", "overflow-y-auto");
     for (const nombre of ["Cancelar", "Crear insumo"]) {
       expect(within(dialogo).getByRole("button", { name: nombre })).toHaveClass("w-full", "sm:w-auto");
     }
@@ -2502,7 +2508,8 @@ describe("Registro: la acción principal siempre al alcance (HT07, Bloque 1)", (
     expect(finalizar.querySelector(".hidden")).toHaveTextContent("Finalizar elaboración");
     expect(within(barra).queryByRole("button", { name: "Eliminar borrador" })).not.toBeInTheDocument();
     expect(within(barra).queryByRole("link", { name: "Volver al producto" })).not.toBeInTheDocument();
-    expect(barra).toHaveClass("sticky", "bottom-0", "grid", "grid-cols-2", "sm:flex");
+    // HT08: se fija sobre la barra de pestañas del celular (--tabbar-h vale 0 sin ella).
+    expect(barra).toHaveClass("sticky", "bottom-[var(--tabbar-h)]", "grid", "grid-cols-2", "sm:flex");
   });
 
   it("«Eliminar borrador» va al final, en una sección aparte con color de error, y sigue confirmando", async () => {

@@ -23,6 +23,8 @@ vi.mock("@/services/insumoService", () => ({
   consultarCodigoBarras: vi.fn(),
   replaceInsumoAlergenos: vi.fn(),
   addInsumoAlergeno: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({

@@ -11,11 +11,13 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import SeccionUsoInsumo from "@/components/elaboraciones/relacionadas/SeccionUsoInsumo";
 import DetailHero from "@/components/detail/DetailHero";
+import DetailNeighborsNav from "@/components/detail/DetailNeighborsNav";
 import FactTile from "@/components/detail/FactTile";
 import { InsumoIcon } from "@/components/detail/icons";
 import { Breadcrumbs } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toastContext";
 import { useAppShell } from "@/hooks/useAppShell";
+import { useDetailNeighbors } from "@/hooks/useDetailNeighbors";
 import { etiquetaDeOrigen, etiquetaUnidad, slugDeJumbo } from "@/lib/costosInsumo";
 import { formatearCantidad, formatearPrecio } from "@/lib/dinero";
 import { nombreFuente } from "@/lib/fuentesInsumo";
@@ -23,6 +25,7 @@ import {
   actualizarPrecioDesdeJumbo,
   deactivateInsumo,
   getInsumo,
+  getInsumoNeighbors,
   reactivateInsumo,
 } from "@/services/insumoService";
 import { ApiError } from "@/types/auth";
@@ -46,6 +49,8 @@ export default function InsumoDetail() {
   const [insumo, setInsumo] = useState<Insumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
+  // Only active supplies are walked: on an inactive one the request answers 404 and the nav is hidden.
+  const { vecinos, cargando: cargandoVecinos } = useDetailNeighbors(insumoId, getInsumoNeighbors);
   const [actionError, setActionError] = useState("");
   const [working, setWorking] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
@@ -155,13 +160,29 @@ export default function InsumoDetail() {
       businessName={businessName}
     >
       <div className="max-w-6xl space-y-6">
+        {/* Outside the loading block: moving to a neighbour keeps the pressed link (and its focus). */}
+        {insumoId != null && !unavailable && (
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {!loading && insumo ? (
+              <Breadcrumbs items={[{ label: "Insumos", to: "/insumos" }, { label: insumo.nombre }]} />
+            ) : (
+              <span />
+            )}
+            <DetailNeighborsNav
+              vecinos={vecinos}
+              cargando={cargandoVecinos}
+              rutaBase="/insumos"
+              etiqueta="Navegación entre insumos"
+            />
+          </div>
+        )}
+
         {loading && <p className="text-sm text-text-secondary">Cargando insumo...</p>}
 
         {!loading && unavailable && <InsumoUnavailable onBack={() => navigate("/insumos")} />}
 
         {!loading && insumo && (
           <>
-            <Breadcrumbs items={[{ label: "Insumos", to: "/insumos" }, { label: insumo.nombre }]} />
             <DetailHero
               kind="Insumo"
               icon={<InsumoIcon size={30} />}

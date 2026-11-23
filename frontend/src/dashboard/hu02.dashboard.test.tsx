@@ -29,16 +29,22 @@ vi.mock("@/services/productService", () => ({
   updateProduct: vi.fn(),
   deleteProduct: vi.fn(),
   uploadProductImage: vi.fn(),
+  // HT08: the product detail loads its «Anterior» / «Siguiente» neighbours.
+  getProductNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // HT06-07: the Dashboard also asks for the drafts in progress; no real request in these tests.
 vi.mock("@/services/elaboracionService", () => ({
   listElaboraciones: vi.fn(),
+  // HT08: the elaboración detail loads its «Anterior» / «Siguiente» neighbours.
+  getElaboracionNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 // HT07: the Dashboard counts the supplies with allergens to review; no real request in these tests.
 vi.mock("@/services/insumoService", () => ({
   listInsumos: vi.fn(),
+  // HT08: the supply detail loads its «Anterior» / «Siguiente» neighbours.
+  getInsumoNeighbors: vi.fn().mockResolvedValue({ anterior: null, siguiente: null }),
 }));
 
 vi.mock("@/services/ingredientService", () => ({
@@ -249,9 +255,10 @@ describe("Dashboard HT02", () => {
     const insumoLink = screen.getByRole("link", { name: "Nuevo insumo" });
     const producto = screen.getByRole("link", { name: "Nuevo producto" });
 
-    expect(principal).toHaveClass("bg-white");
-    expect(insumoLink).not.toHaveClass("bg-white");
-    expect(producto).not.toHaveClass("bg-white");
+    // HT08: el saludo ya no va sobre un bloque verde; la acción principal es la del relleno de marca.
+    expect(principal).toHaveClass("bg-brand-600");
+    expect(insumoLink).not.toHaveClass("bg-brand-600");
+    expect(producto).not.toHaveClass("bg-brand-600");
     expect(principal.compareDocumentPosition(insumoLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(insumoLink.compareDocumentPosition(producto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -379,7 +386,7 @@ describe("Dashboard HT02", () => {
     renderWithProviders(<App />, { initialEntries: ["/dashboard"] });
 
     const ingredientsPanel = await screen.findByText("Ingredientes recientes");
-    const section = ingredientsPanel.closest("div.rounded-xl");
+    const section = ingredientsPanel.closest("section");
     expect(section).not.toBeNull();
 
     expect(
