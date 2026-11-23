@@ -413,7 +413,16 @@ function ComoFunciona() {
 
 function ParaTusClientes() {
   const hechos: [string, string, ReactNode][] = [
-    ["Alérgenos destacados", "Los que el producto declara, arriba y en otro color.", TRAZOS.alerta],
+    [
+      "Alérgenos a la vista",
+      "Los que declara el producto, arriba y en otro color, para encontrarlos sin leer toda la ficha.",
+      TRAZOS.alerta,
+    ],
+    [
+      "De dónde viene cada ingrediente",
+      "El insumo y la marca que usaste, para que nadie tenga que adivinar qué lleva.",
+      TRAZOS.hoja,
+    ],
     ["Sin cuentas ni apps", "Se abre en el navegador del teléfono de quien compra.", TRAZOS.ojo],
     [
       "Sabes si sirvió",
