@@ -432,8 +432,8 @@ function ParaTusClientes() {
                 Lo que tu etiqueta no alcanza a decir
               </h2>
               <p className="max-w-[48ch] text-[17px] leading-relaxed text-panel-faint">
-                Una ficha clara en el celular de quien compra: qué tiene, qué alérgenos declara y cuándo se hizo. La
-                confianza que ganas en la feria, ahora por escrito.
+                Para quien vive con una alergia o una intolerancia, leer bien una etiqueta no es opcional. Tu ficha le
+                da esa información completa y ordenada, en su celular.
               </p>
               <ul className="mt-2 grid gap-3.5">
                 {hechos.map(([titulo, texto, trazo]) => (
