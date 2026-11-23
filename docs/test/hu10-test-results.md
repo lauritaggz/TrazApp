@@ -5,9 +5,9 @@
 **Historia:** HU10 — Consulta pública mediante QR (Sprint 3, P1, 8 SP)  
 **Criterios de referencia:** CA1 … CA11 y PT10-01 … PT10-13 (`docs/context/TrazApp_HU10_contexto_agente.md`, secciones 3 y 7; contrato en las secciones 9.x)  
 **Entorno:** backend con Python 3.12 (contenedor `trazapp-backend`) sobre SQLite y PostgreSQL 16; frontend con Vitest y Vite. **Sin migración nueva** (la vigente sigue siendo `018_publicacion_producto_hu09`). Sin dependencias nuevas.  
-**Integración continua:** enlace **PENDIENTE** (la desarrolladora lo agrega tras el push). Captura esperada: `docs/test/validacion_hu10/ci_verde_hu10.png` — *(espacio reservado; la captura aún no existe)*. La única ejecución del CI de HU10 informada hasta hoy es la del commit de T10-04 entrega B: frontend, 60 archivos, 1284 pruebas, **1283 aprobadas y 1 fallida** (`ui/ht07.bloque4.test.tsx`: mayúsculas forzadas en la ficha pública); se corrigió en el commit `3b6c8a9` y **no hay todavía una ejecución en verde que citar**.
+**Integración continua:** ejecución https://github.com/lauritaggz/TrazApp/actions/runs/43228576290 del merge de HU10 (Pull Request #26, commit `47f6a0d`): los tres trabajos en verde (Backend SQLite, Backend PostgreSQL y Frontend). Antes, la ejecución del commit de T10-04 entrega B tuvo en el frontend 60 archivos, 1284 pruebas, **1283 aprobadas y 1 fallida** (`ui/ht07.bloque4.test.tsx`: mayúsculas forzadas en la ficha pública); se corrigió en el commit `3b6c8a9`.
 
-**Convención de las fuentes de los números:** **(L)** corrida local de hoy (11-11-2026) en el contenedor; **(E)** última corrida local informada en el reporte de la tarea; **(C)** corrida del CI. Nada de este documento se da por pasado en el CI.
+**Convención de las fuentes de los números:** **(L)** corrida local de hoy (11-11-2026) en el contenedor; **(E)** última corrida local informada en el reporte de la tarea; **(C)** corrida del CI. El resultado del CI se cita con el enlace a la ejecución del merge; las corridas locales se informan por separado.
 
 ---
 
@@ -119,7 +119,6 @@ Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend
 | `pt10-07_version_anterior.jpg` | **no existe** | La desarrolladora indicó que no la tomará |
 | `rt03_antes.png`, `rt03_insumo_modificado.png`, `rt03_ficha_sin_cambios.png` | **no existen** | La desarrolladora indicó que no las tomará |
 | `pt10-11_vista_previa.png` | `WhatsApp Image 2026-11-11 at 7.18.27 PM.jpeg` | Vista previa de un producto publicado: barra de vista previa con «Publicado» y «Volver a la publicación», sobre la ficha |
-| `ci_verde_hu10.png` | **no existe aún** (esperado) | — |
 
 Observaciones: dos nombres esperados (`pt10-12_aviso` y `pt09-09_elaboracion_oculta`) corresponden a la misma captura; `E-001` aparece visible en la captura de la fecha (7:18) porque se volvió a mostrar después de la prueba de PT09-09. Las capturas no permiten comprobar por sí solas la ausencia de desplazamiento horizontal.
 

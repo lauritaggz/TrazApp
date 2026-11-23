@@ -5,7 +5,7 @@
 **Historia:** HU11 — Evaluación de utilidad de la información (Sprint 3, P2, 3 SP)  
 **Criterios de referencia:** CA1 … CA7 y PT11-01 … PT11-07 (`docs/context/TrazApp_HU11_contexto_agente.md`, secciones 3 y 7).  
 **Entorno:** backend en el contenedor `trazapp-backend` sobre SQLite y PostgreSQL 16; frontend con Vitest y Vite en el contenedor `trazapp-frontend`. **Migración nueva: `020_evaluacion_utilidad_hu11`.** Sin dependencias nuevas (el token usa PyJWT, que ya estaba).  
-**Integración continua:** ejecución https://github.com/lauritaggz/TrazApp/actions/runs/44768408541 sobre el commit `962be25` (último commit con código; el de T11-04 solo agrega documentación). **Los tres trabajos en verde:** Backend (PostgreSQL) 2411 pruebas en 29 min, Backend (SQLite) 2208 pasan y 203 se saltan en 14 min, Frontend 1559 pruebas en 72 archivos en 2,5 min (C). **Captura: `docs/test/validacion_hu11/ci_verde_hu11.png` — PENDIENTE** (la agrega la desarrolladora; este documento no la cita como evidencia). La ejecución anterior (commit `21ab86a`, T11-03) falló en dos pruebas de HU14; ver k.
+**Integración continua:** ejecución https://github.com/lauritaggz/TrazApp/actions/runs/44795959697 del merge de HU11 (Pull Request #29, commit `9d784bc`): los tres trabajos en verde (Backend SQLite, Backend PostgreSQL y Frontend). Antes, en la rama, la ejecución https://github.com/lauritaggz/TrazApp/actions/runs/44768408541 sobre el commit `962be25` (último commit con código; el de T11-04 solo agrega documentación). **Los tres trabajos en verde:** Backend (PostgreSQL) 2411 pruebas en 29 min, Backend (SQLite) 2208 pasan y 203 se saltan en 14 min, Frontend 1559 pruebas en 72 archivos en 2,5 min (C). **Captura:** `docs/test/validacion_hu11/ci_verde_hu11.png`: «All checks have passed», los 3 trabajos en verde en el Pull Request #29 para el commit `962be25` (Backend PostgreSQL 29 min, Backend SQLite 14 min, Frontend 2 min); corresponde a la ejecución de la rama, y el merge se cita con su enlace. La ejecución anterior (commit `21ab86a`, T11-03) falló en dos pruebas de HU14; ver k.
 
 **Convención de las fuentes de los números:** **(E)** última corrida local informada en el reporte de la tarea que creó o tocó el archivo (T11-01, T11-02 o T11-03), en el contenedor, 18 a 20-11-2026; **(C)** corrida del CI de `962be25` (20-11-2026); **(L)** conteo de hoy con `pytest --collect-only` (recolección, no ejecución); **(M)** resultado manual informado por la desarrolladora. **Hoy no se corrió ninguna prueba ni mutación nueva**: la regresión la ejecuta el CI y las mutaciones salen de los reportes de cada tarea.
 
@@ -15,13 +15,12 @@
 
 **Historia.** Como consumidor, quiero indicar de forma sencilla si la información consultada me resultó útil. HU11 deja la pregunta «¿Esta información te resultó útil?» al final de la ficha pública, el endpoint anónimo `POST /publico/productos/{id_publico}/evaluaciones` (una sola respuesta por consulta, mediante un token firmado de un solo uso), la tabla `evaluaciones_utilidad` (migración 020) sin datos de quien responde, y los resultados para el productor: `GET /gestion/productos/{id}/evaluaciones`, el campo `evaluacion_utilidad` en el listado y el detalle de productos, y la tarjeta «Evaluación de utilidad» en Publicaciones.
 
-**Criterios cumplidos: 7 de 7.** Todos con pruebas automatizadas, CI en verde (C) y, en CA1, CA2, CA4, CA5, CA6 y CA7, también con la **prueba manual en celular informada por la desarrolladora** con capturas. CA3 queda cubierto por pruebas automatizadas (PT11-03 no tiene fila manual). Lo único pendiente es la captura del CI.
+**Criterios cumplidos: 7 de 7.** Todos con pruebas automatizadas, CI en verde (C) y, en CA1, CA2, CA4, CA5, CA6 y CA7, también con la **prueba manual en celular informada por la desarrolladora** con capturas. CA3 queda cubierto por pruebas automatizadas (PT11-03 no tiene fila manual). El CI se cita con el enlace del merge y la captura `ci_verde_hu11.png`.
 
 | Estado | Criterios |
 |---|---|
 | Cumplidos, verificados con pruebas automatizadas (E) y CI en verde (C) | CA1, CA2, CA3, CA4, CA5, CA6, CA7 |
 | Además, con prueba manual informada y capturas (M) | CA1, CA2, CA4, CA5, CA6, CA7 |
-| Pendiente | Captura del CI (`ci_verde_hu11.png`) |
 
 ### Pruebas automáticas de HU11, por archivo
 
@@ -91,7 +90,7 @@ Evidencia = archivo y prueba (backend en `backend/tests/`, frontend en `frontend
 | PT11-04 Recarga mantiene agradecimiento | OK: tras recargar la ficha (12:34) se muestra «¡Gracias por tu respuesta!» en lugar de la pregunta; no se generó un nuevo registro en BD (siguen 5) | `pt11-04_recarga_agradecimiento.jpg` |
 | PT11-05 Registro sin datos personales | OK: columnas `id`, `producto_id`, `elaboracion_id`, `util`, `nonce_hash`, `fecha` (solo día); sin IP ni user agent; 5 registros (4 verdaderos y 1 falso) coherentes con 80 % | `pt11-05_registro_bd.png` |
 | PT11-06 Resultados en Publicaciones y detalle | OK: 5 respuestas (4 «Sí» y 1 «No») = 80 %; productos sin respuestas muestran «Sin respuestas todavía» | `pt11-06_publicaciones_utilidad.jpg`, `pt11-06_detalle_evaluacion.jpg` |
-| CI (SQLite, PostgreSQL, frontend) | **PENDIENTE**: la desarrolladora agrega la captura cuando termine | `ci_verde_hu11.png` |
+| CI (SQLite, PostgreSQL, frontend) | OK: los 3 trabajos en verde en el Pull Request #29 (commit `962be25`); merge en verde: https://github.com/lauritaggz/TrazApp/actions/runs/44795959697 | `ci_verde_hu11.png` |
 
 Las capturas no comprueban por sí solas lo que se informa de ellas (el 5 de registros, el momento de la recarga); son datos informados.
 
@@ -105,7 +104,7 @@ Las capturas no comprueban por sí solas lo que se informa de ellas (el 5 de reg
 | `pt11-04_recarga_agradecimiento.jpg` | PT11-04: tras recargar, el agradecimiento en lugar de la pregunta |
 | `pt11-05_registro_bd.png` | PT11-05: el registro guardado, con sus seis columnas |
 | `pt11-06_publicaciones_utilidad.jpg`, `pt11-06_detalle_evaluacion.jpg` | PT11-06: resultados en Publicaciones y en el detalle |
-| `ci_verde_hu11.png` | **PENDIENTE** (CI en verde) |
+| `ci_verde_hu11.png` | CI: «All checks have passed», 3 trabajos en verde en el Pull Request #29 para el commit `962be25` |
 
 ---
 
@@ -228,4 +227,4 @@ Otras decisiones: el desglose por elaboración incluye las elaboraciones ocultas
 - **CI de `21ab86a` (T11-03): dos pruebas de HU14 fallaron en SQLite y en PostgreSQL**, por el mismo motivo: `test_el_numero_de_consultas_del_get_y_del_detalle_no_depende_del_numero_de_lineas` (`13 == 12`) y `test_sin_rendimiento_o_sin_formulacion_el_detalle_no_hace_consultas_de_costos` (`6 == 5`). Cuentan las consultas exactas del detalle del producto, y T11-03 le suma una (el conteo agrupado de evaluaciones). No era una regresión: lo que protegen, que el número no dependa de las líneas de costo, sigue igual. El reporte de T11-03 no corrió ese archivo y por eso no lo detectó. Se ajustaron los dos números con un comentario (commit `962be25`) y el archivo pasa completo en las dos bases (83 pruebas en cada una); la ejecución siguiente del CI quedó en verde.
 - **Advertencia de `oxlint`** (`react(set-state-in-effect)`) en `EvaluacionUtilidadCard.tsx`: es el mismo patrón de carga al montar que usa `PublicacionElaboraciones.tsx`; no se cambió para mantener el código uniforme.
 - **Una prueba propia mal escrita en T11-01:** esperaba `IntegrityError` para un hash de 65 caracteres, pero `varchar(64)` lo rechaza con `DataError`. Se corrigió la prueba, no el código.
-- **Captura del CI pendiente:** `ci_verde_hu11.png` queda sin citar como evidencia hasta que la desarrolladora la confirme.
+- **Captura del CI:** `ci_verde_hu11.png` muestra la ejecución del Pull Request #29 sobre `962be25` (3 trabajos en verde); la ejecución del merge en `main` se cita con su enlace.

@@ -290,7 +290,7 @@ La guía y las tablas están en `docs/test/hu13-prueba-celular.md`; la prueba la
 **Problemas encontrados en la prueba (tabla 9.4):**
 
 1. Al registrar un insumo cuyo ingrediente no existe había que salir de la página y se perdían los datos, incluidos los recuperados por el código. Gravedad media. **Originó la T13-09**, corregida y verificada en el celular el 21-10.
-2. El texto de ingredientes del azúcar flor traía el fabricante y su dirección. Gravedad baja. **Originó la T13-10** (limpieza en el backend); automatizada, aún no repetida en el celular.
+2. El texto de ingredientes del azúcar flor traía el fabricante y su dirección. Gravedad baja. **Originó la T13-10** (limpieza en el backend); automatizada y verificada posteriormente en el celular.
 
 ---
 
@@ -523,7 +523,7 @@ Al grabar las respuestas (T13-03) se vio que Open Food Facts **ya resuelve el UP
 ## Deuda técnica y riesgos pendientes
 
 1. **Safari para iOS sin probar** (CA12 parcialmente verificado). Tarea pendiente «Verificar HU13 en Safari iOS»: acceso a la cámara con el certificado propio (alternativa: túnel con cloudflared), lectura, flujo completo, cierre de la cámara y el comportamiento real de la linterna. En Android quedan sin probar PT13-15 (sin conexión), girar el celular y la poca luz.
-   1. **Repetir en el celular el azúcar flor** (T13-10): la limpieza del texto solo está probada de forma automatizada. La del ingrediente inexistente (T13-09) sí se verificó el 21-10.
+   1. **Azúcar flor en el celular** (T13-10): la limpieza del texto está automatizada y verificada posteriormente en el celular. La del ingrediente inexistente (T13-09) se verificó el 21-10.
    2. **Limpieza del texto:** corta desde la primera frase de fabricante o contacto hasta el final, así que un texto que intercale esa frase en medio de los ingredientes pierde lo que sigue (salvo los avisos de alérgenos). El productor lo ve y lo corrige antes de guardar. Una dirección sin esas palabras (solo calle y comuna) no se detecta.
 2. **Primer push con cambios compartidos.** T13-07 tocó `vite.config.ts` y agregó una devDependency; la primera comprobación fuera de esta máquina es GitHub Actions (Netlify instala devDependencies, y el plugin solo se carga con `VITE_DEV_HTTPS=1`).
 3. **Carrera de duplicados entre formas.** El índice único de la base solo cubre la forma exacta del código. Dos peticiones simultáneas que registren un UPC-A y su EAN-13 equivalente no las frena la base; la verificación previa del servicio cubre el uso normal.
