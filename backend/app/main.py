@@ -41,6 +41,17 @@ class _SinEvaluaciones(logging.Filter):
 
 logging.getLogger("uvicorn.access").addFilter(_SinEvaluaciones())
 
+
+def rutas_de_documentacion(app_env: str) -> dict[str, str | None]:
+    """Deployment: in production the interactive docs and the schema are not published.
+
+    `/docs`, `/redoc` and `/openapi.json` stay as FastAPI's defaults in any other environment.
+    """
+    if app_env.strip().lower() == "production":
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+
+
 app = FastAPI(
     title=settings.app_name,
     description=(
@@ -48,6 +59,7 @@ app = FastAPI(
         "Prototipo de mitigación RT-01."
     ),
     version="0.1.0",
+    **rutas_de_documentacion(settings.app_env),
 )
 
 app.add_middleware(

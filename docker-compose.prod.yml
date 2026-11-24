@@ -1,0 +1,66 @@
+# TrazApp — producción para la demostración (VPS Ubuntu 24.04 con Docker).
+# Frontend en Netlify: reenvía /api/* a este servidor. Aquí solo corren la base, la API y Caddy.
+#
+# Uso (siempre con las dos opciones, para que el compose lea DOMINIO de .env.production):
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#
+# Puertos: SOLO caddy publica (80, 443/tcp y 443/udp). Docker abre los puertos publicados por su
+# cuenta y se salta ufw, así que database y api NO publican nada: se alcanzan por la red interna.
+# Pasos completos, respaldo y restauración: docs/despliegue.md.
+
+name: trazapp
+
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ = variable del contenedor (no la interpola compose).
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - product_uploads:/uploads
+    # Sin --reload ni código montado. Sin --proxy-headers: nada depende de la IP del cliente, y el
+    # registro de acceso no guarda la IP de quien evalúa (HU11).
+    command: >
+      sh -c "alembic upgrade head &&
+      exec uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMINIO: ${DOMINIO:?Falta DOMINIO en .env.production (usa --env-file .env.production)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  product_uploads:
+  caddy_data:
+  caddy_config:

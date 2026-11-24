@@ -1,0 +1,9 @@
+# TrazApp — proxy HTTPS de la API (docker-compose.prod.yml).
+# DOMINIO viene de .env.production, por ejemplo 203-0-113-10.sslip.io.
+# Caddy obtiene y renueva solo el certificado de Let's Encrypt (necesita los puertos 80 y 443 abiertos).
+# Sin directiva `log`: Caddy no escribe registro de acceso (privacidad de quien evalúa, HU11).
+
+{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy api:8000
+}
