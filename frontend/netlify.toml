@@ -22,7 +22,7 @@
 #    Status 200 = proxy (reescritura), no redirección: para el navegador es el mismo origen.
 [[redirects]]
   from = "/api/*"
-  to = "https:/189-24-13-100.sslip.io/:splat"
+  to = "https://189-24-13-100.sslip.io/:splat"
   status = 200
   force = true
 
