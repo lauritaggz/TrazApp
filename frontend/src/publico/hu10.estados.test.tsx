@@ -57,7 +57,8 @@ describe("estados de la ficha pública (HU10)", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Información no disponible" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.queryByText(/Mermelada/)).not.toBeInTheDocument();
-    expect(document.title).toBe("Información no disponible · TrazApp");
+    // The title is set in an effect, after the screen is drawn: wait for it like for the heading.
+    await waitFor(() => expect(document.title).toBe("Información no disponible · TrazApp"));
   });
 
   it("elaboración no disponible: mensaje unificado, sin datos de ninguna elaboración y con el selector", async () => {
