@@ -1,0 +1,9 @@
+# La imagen de producción solo necesita el código de la aplicación y las migraciones.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/
+.env
+.env.*

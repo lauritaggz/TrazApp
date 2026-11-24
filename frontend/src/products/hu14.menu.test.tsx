@@ -92,7 +92,8 @@ describe("HU14 — menú y acceso desde el producto", () => {
     // Cada pantalla trae su propio menú: se vuelve a buscar.
     const navNuevo = screen.getByRole("navigation", { name: "Secciones" });
     expect(within(navNuevo).getByRole("link", { name: "Calculadora de costos" })).toHaveAttribute("aria-current", "page");
-    expect(document.title).toContain("Calculadora de costos");
+    // The title is set in an effect, after the screen is drawn: wait for it like for the heading.
+    await waitFor(() => expect(document.title).toContain("Calculadora de costos"));
   });
 
   it("el detalle del producto tiene «Calcular costos» y lleva a /calculadora?producto=<id>", async () => {
