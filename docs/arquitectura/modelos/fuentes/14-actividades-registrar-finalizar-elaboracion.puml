@@ -1,0 +1,55 @@
+@startuml
+title Actividades: registrar y finalizar una elaboración (RF-07, RNF-01)
+skinparam defaultFontName Arial
+skinparam shadowing false
+|Productor|
+start
+:Selecciona el producto;
+|Sistema|
+:Crea la elaboración en borrador
+con la versión vigente de la formulación;
+|Productor|
+:Ingresa el código y la fecha de elaboración;
+repeat
+  :Elige el insumo comercial
+  para un ingrediente de la formulación;
+  if (¿El insumo existe?) then (no)
+    :Registra el insumo
+    (búsqueda por nombre, código de barras
+    o ingreso manual);
+  else (sí)
+  endif
+  :Indica el lote utilizado
+  o lo marca «sin lote»;
+repeat while (¿Quedan ingredientes sin insumo?) is (sí)
+->no;
+:Revisa los alérgenos de los insumos;
+:Solicita finalizar la elaboración;
+|Sistema|
+:Bloquea la elaboración y los insumos asignados;
+if (¿Sigue en borrador?) then (no)
+  :Rechaza: la elaboración ya está finalizada;
+  stop
+else (sí)
+endif
+if (¿Cada ingrediente tiene un insumo activo, un lote
+o «sin lote», y alérgenos revisados?) then (no)
+  :Informa qué falta en cada ingrediente;
+  |Productor|
+  :Completa la información faltante;
+  stop
+else (sí)
+endif
+|Sistema|
+:Copia la información de cada insumo y lote
+(información conservada);
+:Marca la elaboración como finalizada
+en la misma transacción;
+note right
+  Si algo falla, se revierte todo:
+  nunca queda una elaboración finalizada
+  sin su información conservada.
+  Los triggers impiden modificarla después.
+end note
+stop
+@enduml

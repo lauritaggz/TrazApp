@@ -31,11 +31,12 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-basic-ssl": "2.3.0",
     "@vitejs/plugin-react": "^6.1.0",
+    "@vitest/coverage-v8": "^4.1.12",
     "jsdom": "^30.0.1",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.2.6",
+    "vitest": "^4.1.12"
   }
 }

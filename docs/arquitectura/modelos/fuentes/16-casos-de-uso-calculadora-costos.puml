@@ -1,0 +1,19 @@
+@startuml
+title Casos de uso: calculadora de costos (RF-14, incorporada por SC-05)
+skinparam defaultFontName Arial
+skinparam shadowing false
+left to right direction
+actor Productor
+actor "Jumbo.cl" as Jumbo <<sistema>>
+rectangle TrazApp {
+  usecase "Calcular el costo\ndel producto" as UC1
+  usecase "Registrar el precio y el\ncontenido de un insumo" as UC2
+  usecase "Actualizar el precio de\nuna línea desde Jumbo" as UC3
+  usecase "Definir otros costos\npor tanda" as UC4
+}
+Productor --> UC1
+Productor --> UC2
+UC4 .> UC1 : <<extend>>
+UC3 .> UC1 : <<extend>>
+UC3 --> Jumbo
+@enduml

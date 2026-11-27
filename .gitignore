@@ -42,6 +42,9 @@ frontend/.vite/
 .pytest_cache/
 .coverage
 htmlcov/
+backend/cobertura.xml
+backend/cobertura-html/
+frontend/cobertura/
 .tox/
 .mypy_cache/
 .ruff_cache/

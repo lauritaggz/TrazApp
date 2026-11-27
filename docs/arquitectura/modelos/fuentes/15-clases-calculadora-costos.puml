@@ -1,0 +1,50 @@
+@startuml
+title Clases: calculadora de costos (RF-14, HU14)
+skinparam defaultFontName Arial
+skinparam shadowing false
+hide empty methods
+class Producto {
+  nombre
+  rendimiento
+  costo_produccion
+  precio_venta
+}
+class Ingrediente {
+  nombre
+}
+class InsumoComercial {
+  nombre
+  precio_referencia
+  precio_fuente
+  precio_fecha
+  contenido_cantidad
+  contenido_unidad
+  contenido_fuente
+}
+class CantidadIngredienteProducto {
+  cantidad
+  unidad
+}
+class OtroCostoProducto {
+  nombre
+  monto
+  orden
+}
+class CostosService <<servicio>> {
+  calcular()
+  guardar()
+  costo_calculado_por_unidad()
+}
+Producto "1" -- "0..*" CantidadIngredienteProducto : cantidad por tanda
+Ingrediente "1" -- "0..*" CantidadIngredienteProducto
+Producto "1" -- "0..*" OtroCostoProducto : otros costos por tanda
+Ingrediente "1" -- "0..*" InsumoComercial : lo cubre
+CostosService ..> CantidadIngredienteProducto
+CostosService ..> OtroCostoProducto
+CostosService ..> InsumoComercial : precio y contenido
+note bottom of CostosService
+  Es una estimación con precios vigentes:
+  no crea versiones del producto
+  ni modifica elaboraciones.
+end note
+@enduml
