@@ -96,11 +96,22 @@ jobs:
       - name: Ejecutar pruebas
         env:
           UPLOADS_ROOT: ${{ runner.temp }}/trazapp-uploads
-        run: python -m pytest -q --junitxml=resultados.xml
+        # La cobertura se mide aquí, sobre PostgreSQL, porque es la suite que ejecuta todas las pruebas.
+        run: python -m pytest -q --junitxml=resultados.xml --cov=app --cov-report=term --cov-report=xml:cobertura.xml --cov-report=html:cobertura-html
 
       - name: Resumen de pruebas
         if: always()
         run: python ../.github/scripts/resumen_pruebas.py "Backend (PostgreSQL)" resultados.xml
+
+      # Reporte de cobertura descargable desde la ejecución (pestaña Actions → Artifacts).
+      - name: Publicar cobertura del backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-backend-${{ github.sha }}
+          path: |
+            backend/cobertura.xml
+            backend/cobertura-html/
 
   frontend:
     name: Frontend
@@ -124,7 +135,14 @@ jobs:
 
       # "vitest run" ejecuta una sola vez (sin modo watch).
       - name: Ejecutar pruebas
-        run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=resultados.xml
+        run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=resultados.xml --coverage --coverage.provider=v8 --coverage.include='src/**' --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.reporter=html --coverage.reportsDirectory=cobertura
+
+      - name: Publicar cobertura del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-frontend-${{ github.sha }}
+          path: frontend/cobertura/
 
       - name: Resumen de pruebas
         if: always()
