@@ -27,8 +27,14 @@ Puntajes de 1 a 5.
 
 | Criterio | Peso | Solo Open Food Facts | Solo Jumbo.cl | Open Food Facts + Jumbo.cl | Solo ingreso manual |
 |---|---|---|---|---|---|
-| Fichas que coinciden con el envase (RNF-05) | | | | | |
-| Tiempo de recuperación (RNF-06) | | | | | |
-| Reducción de la transcripción manual | | | | | |
-| Dependencia de una fuente externa (RT-06) | | | | | |
-| **Puntaje ponderado** | 100 % | | | | |
+| Fichas que coinciden con el envase (RNF-05) | 35 % | 2 | 3 | 4 | 4 |
+| Tiempo de recuperación (RNF-06) | 15 % | 4 | 4 | 5 | 5 |
+| Reducción de la transcripción manual | 30 % | 3 | 4 | 5 | 1 |
+| Dependencia de una fuente externa (RT-06) | 20 % | 3 | 3 | 4 | 5 |
+| **Puntaje ponderado** | 100 % | 2,80 | 3,45 | **4,45** | 3,45 |
+
+**Justificación de los puntajes**
+- *Coincidencia:* Open Food Facts solo trae alérgenos en el 12 % de los productos (HT04); Jumbo no declara alérgenos de forma consistente; la combinación logró 75,7 %. El ingreso manual depende de que el productor transcriba bien el envase.
+- *Tiempo:* la combinación se midió (100 % bajo 10 s); el tiempo de cada fuente por separado no se midió y se estima similar.
+- *Transcripción:* el ingreso manual toma 14 interacciones por insumo, frente a 5 por código de barras (sección 33.4.6).
+- *Dependencia:* con dos fuentes y el ingreso manual siempre disponible, la caída de una fuente no bloquea el registro.

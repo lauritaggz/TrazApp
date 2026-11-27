@@ -22,12 +22,18 @@ Fuente: informe, secciones 22.5, 23.3 y 27.
 
 ## Matriz de decisión ponderada
 
-Puntajes de 1 a 5.
+La decisión sobre la información de los insumos, que cambia fuera del control del productor, se tomó en el Sprint 2 (informe, sección 33.3.6): la copia al finalizar reemplazó el versionamiento de ingredientes del prototipo. Puntajes de 1 a 5.
 
-| Criterio | Peso | Sobrescritura | Copia completa | Versionamiento con referencias |
+| Criterio | Peso | Sobrescritura | Versionar ingredientes e insumos (prototipo RT-01) | Copiar la información del insumo al finalizar |
 |---|---|---|---|---|
-| Conservación de lo registrado ante cambios (RNF-01) | | | | |
-| Reconstrucción de relaciones con insumos y lotes (RF-08, RF-09) | | | | |
-| Volumen de datos duplicados | | | | |
-| Esfuerzo de implementación | | | | |
-| **Puntaje ponderado** | 100 % | | | |
+| Conservación de lo registrado ante cambios (RNF-01) | 40 % | 1 | 5 | 5 |
+| Consulta de lo usado en una elaboración (RF-08, RF-11) | 20 % | 1 | 3 | 5 |
+| Volumen de datos duplicados | 15 % | 5 | 4 | 3 |
+| Complejidad para el productor y para el modelo | 25 % | 5 | 2 | 4 |
+| **Puntaje ponderado** | 100 % | 2,60 | 3,70 | **4,45** |
+
+**Justificación de los puntajes**
+- *Conservación:* sobrescribir pierde el estado anterior; las otras dos alternativas lo conservan, como mostró PT10-08 (0 diferencias).
+- *Consulta:* con la copia, la elaboración se lee directamente; con versiones hay que resolver qué versión de cada ingrediente e insumo correspondía.
+- *Duplicación:* la copia repite la información del insumo en cada elaboración; el volumen del MVP es bajo.
+- *Complejidad:* versionar insumos obliga al productor a gestionar versiones de productos comerciales que no controla.

@@ -2,81 +2,53 @@
 
 [![CI](https://github.com/lauritaggz/TrazApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lauritaggz/TrazApp/actions/workflows/ci.yml)
 
-Plataforma web para la **gestión y comunicación de trazabilidad de alimentos elaborados**, pensada para pequeños productores.
+Plataforma web para pequeños productores de alimentos elaborados que relaciona cada elaboración con los insumos comerciales y lotes efectivamente utilizados, conserva esa información ante cambios posteriores y la comunica al consumidor mediante un código QR.
 
-## Qué es TrazApp
+**MVP en línea:** https://trazapp.netlify.app
 
-Un pequeño productor de alimentos (panadería, repostería, conservas, etc.) necesita saber, y poder demostrar, **qué ingredientes, proveedores, alérgenos y lotes componen cada producto que vende**, incluso meses después y aunque la receta o los ingredientes hayan cambiado.
+## Documentación del proyecto
 
-Hoy esa información suele vivir en planillas, cuadernos o en la memoria de quien produce. TrazApp la centraliza en un solo lugar, la mantiene ordenada y conserva su historia.
+| Artefacto | Documento |
+|---|---|
+| Problema, hipótesis y objetivos medibles | [`docs/objetivos.md`](docs/objetivos.md) |
+| Requerimientos, alcance del MVP y escenarios de calidad | [`docs/requerimientos.md`](docs/requerimientos.md) |
+| Historias con criterios de aceptación | [`docs/historias.md`](docs/historias.md) |
+| Matriz de trazabilidad | [`docs/trazabilidad.md`](docs/trazabilidad.md) |
+| Plan de pruebas y evidencia | [`docs/pruebas/`](docs/pruebas/README.md) · resultados por historia en [`docs/test/`](docs/test/) |
+| Reportes de seguridad y eficiencia | [`docs/calidad/`](docs/calidad/README.md) |
+| Arquitectura, decisiones (ADR) y modelos UML | [`docs/arquitectura/`](docs/arquitectura/README.md) |
+| Riesgos y deuda técnica | [`docs/riesgos.md`](docs/riesgos.md) |
+| Despliegue | [`docs/despliegue.md`](docs/despliegue.md) |
+| Sistema de diseño | [`docs/DESIGN.md`](docs/DESIGN.md) |
+| Cambios por versión | [`CHANGELOG.md`](CHANGELOG.md) |
 
-## Problema que resuelve
+## Funcionalidades del MVP
 
-Dificultad de pequeños productores para mantener **trazable, actualizada e históricamente relacionada** la información de ingredientes, composición, proveedores, alérgenos y lotes de sus productos.
+**Productor**
+- Registro e inicio de sesión, con la información de cada productor aislada de la de los demás.
+- Productos, ingredientes y formulación, con una nueva versión del producto cuando cambia una receta ya utilizada.
+- Insumos comerciales con ingredientes declarados y alérgenos, completados por búsqueda por nombre (Jumbo.cl), escaneo del código de barras (Open Food Facts) o ingreso manual, siempre con confirmación.
+- Elaboraciones con el insumo y el lote de cada ingrediente; al finalizarlas, su información queda conservada y no puede modificarse.
+- Historial de elaboraciones y elaboraciones relacionadas con un insumo o un lote.
+- Publicación del producto y código QR permanente.
+- Calculadora de costos del producto.
 
-## Hacia dónde apunta
-
-La meta es que un productor pueda, sin conocimientos técnicos:
-
-1. **Registrar su catálogo**: productos e ingredientes, con su composición y alérgenos.
-2. **Versionar sin perder historia**: cambiar una receta o un ingrediente sin alterar lo ya producido.
-3. **Registrar lotes** de ingredientes recibidos y de productos elaborados.
-4. **Responder en segundos** a "¿qué lleva este lote y de qué lotes de ingredientes salió?".
-5. **Comunicar** esa información (alérgenos, composición) de forma clara a quien la necesite: clientes, fiscalizadores o el propio equipo.
-
-### Principio de diseño: historia inmutable
-
-Riesgo central (**RT-01**): pérdida o alteración de relaciones históricas de trazabilidad.
-Mitigación: **versionamiento con referencias explícitas**. Las versiones nunca se sobrescriben y cada lote guarda referencia a las versiones exactas que usó. Así, un lote producido en enero sigue mostrando la receta de enero aunque en junio se haya modificado.
-
-## Estado actual
-
-### Implementado
-
-**Cuentas y acceso**
-- Registro e inicio de sesión de productores con JWT y contraseñas con hash (bcrypt).
-- Rutas privadas, perfil editable y cierre de sesión.
-
-**Productos**
-- Alta, listado, detalle, edición y eliminación de productos.
-- Categorías (catálogo precargado), costo y precio, imagen del producto.
-- Búsqueda, filtros y orden; vista de lista o cuadrícula.
-- Versiones de producto y **formulación por versión** (líneas de ingredientes con orden).
-
-**Ingredientes**
-- Alta, listado, detalle, edición y eliminación de ingredientes.
-- Composición del ingrediente.
-- Alérgenos asociados desde un catálogo, con los alérgenos de declaración obligatoria en Chile.
-- Versiones de ingrediente.
-
-**Trazabilidad (prototipo RT-01 validado)**
-- Registro de lotes de ingredientes y de productos.
-- Consulta histórica de un lote de producto: producto y versión usados, y los lotes y versiones de ingredientes utilizados, con composición y alérgenos declarados.
-- Pruebas de regresión que confirman que los lotes antiguos no cambian al crear nuevas versiones (PR-01 a PR-07).
-
-**Interfaz**
-- Dashboard con elementos que requieren atención (por ejemplo productos incompletos).
-- Navegación, menú de usuario, aviso de cambios sin guardar y formularios en dos columnas con vista previa.
-- Auditoría UX/UI por fases: accesibilidad, sistema de diseño documentado en [`docs/DESIGN.md`](docs/DESIGN.md), listados y estados vacíos.
-
-### Pendiente
-
-- Interfaz de lotes y de consulta de trazabilidad en el frontend (hoy disponible solo vía API).
-- Proveedores como entidad propia.
-- Salidas para comunicar la información (ficha o etiqueta de producto, exportación).
-- Despliegue productivo completo (frontend en Netlify; API en VPS con proxy inverso).
+**Consumidor**
+- Ficha pública por QR, sin cuenta: insumos y alérgenos («contiene» y «puede contener») de la elaboración seleccionada, tal como se conservaron.
+- Evaluación anónima de la utilidad de la información.
 
 ## Stack
 
 | Capa | Tecnología |
 |------|------------|
 | Frontend | React 19 + TypeScript + Vite + Tailwind CSS 4 |
-| Pruebas frontend | Vitest + Testing Library |
 | API | FastAPI + Pydantic |
 | Persistencia | PostgreSQL + SQLAlchemy |
 | Migraciones | Alembic |
+| Pruebas | PyTest (backend) · Vitest + Testing Library (frontend) |
+| Integración continua | GitHub Actions: backend sobre SQLite, backend sobre PostgreSQL y frontend |
 | Contenedores | Docker + Docker Compose |
-| Pruebas backend | PyTest |
+| Producción | Frontend en Netlify · API y PostgreSQL en un VPS con Docker y Caddy (HTTPS) |
 
 ## Arquitectura
 
@@ -86,7 +58,7 @@ Monolito modular en capas:
 API / Routes → Services → Repositories → PostgreSQL
 ```
 
-El frontend es una SPA independiente (se despliega en Netlify) que consume la API.
+El frontend es una SPA independiente publicada en Netlify, que reenvía `/api/*` a la API del VPS. Detalle, decisiones y diagramas en [`docs/arquitectura/`](docs/arquitectura/README.md).
 
 ## Requisitos
 
@@ -157,79 +129,56 @@ docker compose exec backend alembic upgrade head
 ## Pruebas
 
 ```bash
-docker compose exec backend pytest -v     # backend
-cd frontend && npm test                   # frontend
+docker compose exec backend pytest -q                 # backend
+cd frontend && npm test                               # frontend
 ```
 
-Regresión RT-01: `backend/tests/test_trazabilidad_historica.py`.
-Resultados documentados en `docs/test/hu01-test-results.md` y `docs/test/hu12-test-results.md`.
+Con cobertura:
 
-## API
-
-Documentación interactiva completa en `/docs`. Grupos principales:
-
-| Grupo | Rutas |
-|-------|-------|
-| Autenticación | `/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout` |
-| Productos | `/gestion/productos` (CRUD, imagen) |
-| Formulación | `/gestion/productos/{id}/versiones/{version_id}/formulacion` |
-| Ingredientes | `/gestion/ingredientes` (CRUD, composición, alérgenos) |
-| Catálogos | `/gestion/categorias`, `/gestion/alergenos` |
-| Trazabilidad | `/productos`, `/ingredientes` (versiones), `/lotes-ingredientes`, `/lotes-productos` |
-| Consulta histórica | `GET /lotes-productos/{codigo}/trazabilidad` |
-| Salud | `/health` |
-
-### Ejemplo de consulta de trazabilidad
-
-```json
-{
-  "lote_producto": "LP-001",
-  "producto": { "nombre": "Galleta", "version": 1, "descripcion": "Formulación original" },
-  "ingredientes_utilizados": [
-    {
-      "ingrediente": "Chocolate",
-      "lote": "CH-001",
-      "version": 1,
-      "composicion_declarada": "Cacao, azúcar, leche",
-      "alergenos_declarados": "Leche"
-    }
-  ]
-}
+```bash
+docker compose exec backend pytest -q --cov=app --cov-report=term
+cd frontend && npx vitest run --coverage
 ```
 
-### Escenario de validación RT-01
+Los resultados por historia están en [`docs/test/`](docs/test/), y el plan de pruebas en [`docs/pruebas/`](docs/pruebas/README.md).
 
-Estado inicial: LP-001 → VP1 → CH-001 → VI1. Tras crear VP2, VI2, CH-002 y LP-002:
+## Despliegue
 
-- LP-001 sigue devolviendo VP1 + CH-001 + VI1.
-- LP-002 devuelve VP2 + CH-002 + VI2.
+El procedimiento completo (VPS, variables de entorno, Caddy y Netlify) está en [`docs/despliegue.md`](docs/despliegue.md).
+
+## Documentación de la API
+
+Documentación interactiva en `/docs` del ambiente de desarrollo (`http://localhost:8000/docs`).
+
+## Versiones
+
+| Tag | Sprint | Fecha |
+|---|---|---|
+| `v1.0.0-sprint1` | 1 | 12-09-2026 |
+| `v2.0.0-sprint2` | 2 | 21-10-2026 |
+| `v3.0.0-sprint3` | 3 | 23-11-2026 |
+
+Detalle en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Estructura del proyecto
 
 ```
 backend/
   app/
-    api/routes/     # auth, gestion_*, productos, ingredientes, lotes, health
+    api/routes/     # autenticación, gestión del productor y consulta pública
     core/           # configuración
-    db/             # SQLAlchemy base y sesión
+    db/             # SQLAlchemy, sesión y triggers
     models/         # dominio
     schemas/        # Pydantic
     services/       # lógica de negocio
     repositories/   # acceso a datos
   alembic/versions/
+  scripts/          # mediciones (por ejemplo, OE4)
   tests/
 frontend/
-  src/
-    pages/          # Dashboard, Products, Ingredients, Login, Profile…
-    components/     # ui, layout, products, ingredients, dashboard
-    auth/ hooks/ lib/ ui/
-docs/               # DESIGN.md y resultados de pruebas
+  src/              # páginas, componentes y pruebas (Vitest)
+deploy/             # configuración del servidor
+docs/               # artefactos del proyecto, resultados de pruebas y diseño
 docker-compose.yml
-netlify.toml
+docker-compose.prod.yml
 ```
-
-## Métricas de éxito
-
-- Reconstrucción histórica correcta: meta ≥ 95 %
-- Conservación de registros históricos ante cambios: meta 100 %
-- Índice de integridad de trazabilidad: meta ≥ 95 %

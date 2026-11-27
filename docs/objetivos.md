@@ -44,14 +44,14 @@ Desarrollar un sistema para pequeños productores de alimentos elaborados que re
 | OE3 | Elaboraciones relacionadas con un insumo o lote identificadas respecto del conjunto esperado | | 100 % | PT08-07: seis elaboraciones con relaciones conocidas | 100 % (4 de 4 y 1 de 1) | [hu08-test-results.md](test/hu08-test-results.md) |
 | OE3 | Elaboraciones no relacionadas identificadas incorrectamente | | 0 % | PT08-07 | 0 % | [hu08-test-results.md](test/hu08-test-results.md) |
 | OE4 | Consultas válidas que presentan la elaboración seleccionada sin exponer información interna | | 100 % | PT10-09: lista blanca de claves y búsqueda de valores internos en la respuesta | 100 % | [hu10-test-results.md](test/hu10-test-results.md) |
-| OE4 | Tiempo de respuesta de la consulta pública | | ≤ 2 s en al menos el 95 % de las consultas | PT10-13: 100 consultas en 4 variantes con `backend/scripts/medir_oe4_hu10.py`, ambiente local, sin concurrencia | p95 de 24,9 ms | [validacion_hu10/oe4_resultados.md](test/validacion_hu10/oe4_resultados.md) |
+| OE4 | Tiempo de respuesta de la consulta pública | | ≤ 2 s en al menos el 95 % de las consultas | PT10-13: 100 consultas en 4 variantes con `backend/scripts/medir_oe4_hu10.py`, ambiente local, sin concurrencia · prueba de carga con k6, 50 usuarios concurrentes sobre el backend desplegado | Local: p95 de 24,9 ms · desplegado: p95 de 109 ms, 0 % de errores | [validacion_hu10/oe4_resultados.md](test/validacion_hu10/oe4_resultados.md) · [calidad/carga/](calidad/carga/README.md) |
 | OE5 | Insumos del conjunto de validación (37 productos) cuya ficha recuperada coincide con el envase en nombre, marca, ingredientes y alérgenos | | ≥ 70 % | Comparación de cada ficha recuperada contra el envase | 75,7 % (28 de 37) | [validacion_hu07/resultados.md](test/validacion_hu07/resultados.md) |
 | OE5 | Tiempo de recuperación de una ficha | | ≤ 10 s en al menos el 90 % de las búsquedas | Medición sobre las 37 búsquedas del conjunto de validación | 100 % bajo 10 s | [validacion_hu07/resultados.md](test/validacion_hu07/resultados.md) |
 
 ### Análisis de los resultados
 
 - **OG, OE1, OE2 y OE3** cumplen su meta. La conservación de la información se verificó con pruebas automatizadas y con el caso completo, en el que la elaboración E-002 conserva 400 g aunque el insumo pasó a 397 g.
-- **OE4** cumple su meta con amplio margen, pero la medición se hizo en el ambiente local, sin red móvil ni usuarios concurrentes. El comportamiento con carga queda pendiente (ver `docs/calidad/`).
+- **OE4** cumple su meta en local (p95 de 24,9 ms) y en el backend desplegado con 50 usuarios concurrentes (p95 de 109 ms, 0 % de errores). Por el camino del frontend publicado, el proxy de Netlify cortó el 47,2 % de las consultas con esa carga; se registra como DT-12 (ver [`docs/calidad/carga/`](calidad/carga/README.md)).
 - **OE3**: la identificación de elaboraciones relacionadas se verificó sobre un escenario construido por las pruebas, no sobre datos reales de un productor.
 - **OE5** supera la meta del 70 %. La muestra se redujo de 50 a 37 productos, porque solo se incluyeron los que tienen un envase que se pudo verificar directamente. En 4 de los 37 casos, la búsqueda por nombre devolvió otro producto; por eso el resultado siempre pasa por la confirmación del productor.
 

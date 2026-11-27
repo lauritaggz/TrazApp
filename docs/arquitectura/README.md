@@ -52,5 +52,8 @@ El backend y PostgreSQL se ejecutan en contenedores Docker en un VPS de Hostinge
 | Vista lógica | [11-vista-logica.png](modelos/11-vista-logica.png) | Todos |
 | Vista física | [12-vista-fisica.png](modelos/12-vista-fisica.png) | Despliegue |
 | Despliegue | [13-despliegue.png](modelos/13-despliegue.png) | Despliegue, RNF-03 |
+| Actividades: registrar y finalizar una elaboración | [14-actividades-registrar-finalizar-elaboracion.png](modelos/14-actividades-registrar-finalizar-elaboracion.png) | RF-07, RNF-01 |
+| Clases: calculadora de costos | [15-clases-calculadora-costos.png](modelos/15-clases-calculadora-costos.png) | RF-14 |
+| Casos de uso: calculadora de costos | [16-casos-de-uso-calculadora-costos.png](modelos/16-casos-de-uso-calculadora-costos.png) | RF-14 |
 
-**Pendiente:** diagrama de actividades de al menos un proceso, y la representación de RF-14 (calculadora de costos) en los diagramas de casos de uso y de clases.
+Los diagramas 14 a 16 se generan con PlantUML desde [`modelos/fuentes/`](modelos/fuentes/) y se construyeron a partir del código (`backend/app/services/elaboracion_service.py`, `backend/app/models/costos.py` y `frontend/src/components/costos/`).

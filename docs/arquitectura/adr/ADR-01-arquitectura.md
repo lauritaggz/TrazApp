@@ -27,7 +27,12 @@ Puntajes de 1 a 5.
 
 | Criterio | Peso | Monolito modular en capas | Hexagonal | Microservicios |
 |---|---|---|---|---|
-| Esfuerzo de desarrollo y despliegue para una persona en tres sprints | | | | |
-| Separación de la lógica de conservación y aislamiento (RNF-01, RNF-03) | | | | |
-| Facilidad de prueba de la lógica de negocio | | | | |
-| **Puntaje ponderado** | 100 % | | | |
+| Esfuerzo de desarrollo y despliegue para una persona en tres sprints | 40 % | 5 | 3 | 1 |
+| Separación de la lógica de conservación y aislamiento (RNF-01, RNF-03) | 35 % | 4 | 5 | 4 |
+| Facilidad de prueba de la lógica de negocio | 25 % | 4 | 5 | 3 |
+| **Puntaje ponderado** | 100 % | **4,40** | 4,20 | 2,55 |
+
+**Justificación de los puntajes**
+- *Esfuerzo:* el monolito en capas es un solo backend que desplegar; la hexagonal agrega puertos y adaptadores en todas las capas; los microservicios exigen desplegar y comunicar varios servicios.
+- *Separación:* las capas separan la lógica de negocio de la API y la persistencia; la hexagonal la aísla además de toda la infraestructura.
+- *Prueba:* los servicios se prueban sin la API (por ejemplo, `test_formulacion_vigente_hu03.py`); en microservicios, los flujos completos cruzan servicios.
